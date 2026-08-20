@@ -10,13 +10,13 @@
     "backfill": "tsx scripts/backfill-to-notion.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.30.0",
+    "@anthropic-ai/sdk": "^0.120.0",
     "@notionhq/client": "^2.2.15",
     "dotenv": "^16.4.5"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.6.0",
-    "@types/node": "^22.0.0"
+    "typescript": "^5.6.0"
   }
 }

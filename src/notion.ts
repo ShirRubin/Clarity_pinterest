@@ -14,7 +14,14 @@ export function dbId(): string {
   return id;
 }
 
-const rt = (content: string) => [{ type: "text" as const, text: { content: content.slice(0, 2000) } }];
+// Notion caps each rich-text item at 2000 chars — chunk instead of truncating.
+const rt = (content: string) => {
+  const chunks: { type: "text"; text: { content: string } }[] = [];
+  for (let i = 0; i < content.length && chunks.length < 10; i += 2000) {
+    chunks.push({ type: "text", text: { content: content.slice(i, i + 2000) } });
+  }
+  return chunks.length ? chunks : [{ type: "text" as const, text: { content: "" } }];
+};
 
 export interface PinRow {
   name: string;
@@ -81,4 +88,70 @@ export async function listPinsByStatus(status: Status) {
     page_size: 100,
   });
   return res.results;
+}
+
+type NotionPage = {
+  id: string;
+  properties: Record<string, {
+    title?: { plain_text: string }[];
+    rich_text?: { plain_text: string }[];
+    select?: { name: string } | null;
+  }>;
+};
+
+export interface PinSummary {
+  pageId: string;
+  name: string;
+  theme?: string;
+  trend?: string;
+  board?: string;
+  status?: string;
+  pinTitle?: string;
+  pinDescription?: string;
+}
+
+function pageToSummary(page: NotionPage): PinSummary {
+  const p = page.properties;
+  const text = (prop?: { title?: { plain_text: string }[]; rich_text?: { plain_text: string }[] }) =>
+    (prop?.title ?? prop?.rich_text ?? []).map((t) => t.plain_text).join("");
+  return {
+    pageId: page.id,
+    name: text(p["Name"]),
+    theme: p["Theme"]?.select?.name,
+    trend: p["Trend"]?.select?.name,
+    board: p["Board"]?.select?.name,
+    status: p["Status"]?.select?.name,
+    pinTitle: text(p["Pin title"]),
+    pinDescription: text(p["Pin description"]),
+  };
+}
+
+export async function listAllPins(): Promise<PinSummary[]> {
+  const notion = notionClient();
+  const all: PinSummary[] = [];
+  let cursor: string | undefined;
+  do {
+    const res = await notion.databases.query({
+      database_id: dbId(),
+      start_cursor: cursor,
+      page_size: 100,
+    });
+    for (const page of res.results) all.push(pageToSummary(page as unknown as NotionPage));
+    cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
+  } while (cursor);
+  return all;
+}
+
+export async function pinsByStatus(status: Status): Promise<PinSummary[]> {
+  const results = await listPinsByStatus(status);
+  return results.map((page) => pageToSummary(page as unknown as NotionPage));
+}
+
+// Update any subset of a pin row's properties (name/status included when given).
+export async function updatePin(pageId: string, patch: Partial<PinRow>): Promise<void> {
+  const notion = notionClient();
+  const full = toNotionProperties({ name: "x", status: "Idea", ...patch });
+  if (patch.name === undefined) delete (full as Record<string, unknown>)["Name"];
+  if (patch.status === undefined) delete (full as Record<string, unknown>)["Status"];
+  await notion.pages.update({ page_id: pageId, properties: full as never });
 }
