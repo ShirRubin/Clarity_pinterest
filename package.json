@@ -1,0 +1,22 @@
+{
+  "name": "clarity-pinterest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Clarity Bucket Lists — Pinterest content pipeline (idea → list → design → review → publish → stats)",
+  "scripts": {
+    "clarity": "tsx src/cli.ts",
+    "setup-notion": "tsx scripts/setup-notion.ts",
+    "backfill": "tsx scripts/backfill-to-notion.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@notionhq/client": "^2.2.15",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}
