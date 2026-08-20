@@ -5,7 +5,7 @@ import { BOARDS, type Board } from "../src/schema.js";
 
 const SLUG_TO_BOARD: Record<string, Board> = {
   "travel-festivals": "Travel & Festivals",
-  "books-learning-culture": "Books, Learning & Culture",
+  "books-learning-culture": "Books · Learning & Culture",
   "tv-movie-bucket-lists": "TV & Movie Bucket Lists",
   "aesthetic-life-lists": "Aesthetic Life Lists",
   "smart-creative-projects": "Smart & Creative Projects",

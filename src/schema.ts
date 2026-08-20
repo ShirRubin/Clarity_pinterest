@@ -17,7 +17,8 @@ export const BOARDS = [
   "TV & Movie Bucket Lists",
   "Aesthetic Life Lists",
   "Travel & Festivals",
-  "Books, Learning & Culture",
+  // Live Pinterest board is "Books, Learning & Culture" — Notion select options forbid commas.
+  "Books · Learning & Culture",
   "Smart & Creative Projects",
   "Manifest & Magic Life",
   "Luxury & Lifestyle",
