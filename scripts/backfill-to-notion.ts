@@ -12,6 +12,7 @@ interface BackfillPin {
   board: Board;
   pinUrl: string;
   imageUrl?: string;
+  publishedDate?: string;
 }
 
 const pins: BackfillPin[] = JSON.parse(
@@ -47,6 +48,7 @@ for (const pin of pins) {
     pinDescription: pin.description,
     pinUrl: pin.pinUrl,
     imageUrl: pin.imageUrl,
+    publishedDate: pin.publishedDate,
   });
   created++;
   console.log(`+ ${pin.title}`);
