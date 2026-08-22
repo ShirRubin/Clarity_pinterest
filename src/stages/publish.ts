@@ -73,6 +73,10 @@ export async function runPublish(limit = 10): Promise<void> {
       `Post ONE variant now; save the other for a later day. Each variant counts`,
       `as a fresh pin, but never pin the same destination URL twice within 72h.`,
       ``,
+      `TAGGED TOPICS: always add 10 (the max) in the pin builder. The taxonomy has no`,
+      `"bucket list"/"self care" topics — search concrete nouns from the list items`,
+      `(tea, baking, candles, movie night...) plus vibe topics (Cozy Living, Autumn Day).`,
+      ``,
       `After posting: paste the live pin's URL into the row's "Pin URL" in Notion.`,
     ].join("\n");
     await writeFile(path.join(packDir, "post.txt"), post, "utf8");
