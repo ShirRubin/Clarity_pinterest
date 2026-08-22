@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@notionhq/client": "^2.2.15",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "playwright-core": "^1.62.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

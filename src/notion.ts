@@ -108,6 +108,7 @@ export interface PinSummary {
   status?: string;
   pinTitle?: string;
   pinDescription?: string;
+  listItems?: string;
 }
 
 function pageToSummary(page: NotionPage): PinSummary {
@@ -123,7 +124,51 @@ function pageToSummary(page: NotionPage): PinSummary {
     status: p["Status"]?.select?.name,
     pinTitle: text(p["Pin title"]),
     pinDescription: text(p["Pin description"]),
+    listItems: text(p["List items"]),
   };
+}
+
+// --- File uploads (raw fetch: @notionhq/client 2.x predates the file-upload API) ---
+
+const NOTION_VERSION = "2022-06-28";
+
+/** Upload a local file to Notion; returns the file_upload id to attach to a files property. */
+export async function uploadFileToNotion(filePath: string, filename: string): Promise<string> {
+  const { readFile } = await import("node:fs/promises");
+  const headers = {
+    Authorization: `Bearer ${process.env.NOTION_TOKEN}`,
+    "Notion-Version": NOTION_VERSION,
+  };
+
+  const created = await fetch("https://api.notion.com/v1/file_uploads", {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ filename, content_type: "image/png" }),
+  });
+  if (!created.ok) throw new Error(`file_uploads create failed (${created.status}): ${await created.text()}`);
+  const { id, upload_url } = (await created.json()) as { id: string; upload_url: string };
+
+  const form = new FormData();
+  form.append("file", new Blob([await readFile(filePath)], { type: "image/png" }), filename);
+  const sent = await fetch(upload_url, { method: "POST", headers, body: form });
+  if (!sent.ok) throw new Error(`file upload send failed (${sent.status}): ${await sent.text()}`);
+  return id;
+}
+
+/** Attach uploaded files to a page's "Pin image" property (replaces existing attachments). */
+export async function attachPinImages(
+  pageId: string,
+  uploads: { id: string; name: string }[],
+): Promise<void> {
+  const notion = notionClient();
+  await notion.pages.update({
+    page_id: pageId,
+    properties: {
+      "Pin image": {
+        files: uploads.map((u) => ({ type: "file_upload", name: u.name, file_upload: { id: u.id } })),
+      },
+    } as never,
+  });
 }
 
 export async function listAllPins(): Promise<PinSummary[]> {
