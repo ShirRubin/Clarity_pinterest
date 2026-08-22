@@ -39,8 +39,28 @@ Propose exactly ${count} new bucket-list ideas. Mix: some riding a trend tag, so
 Reply with ONLY a JSON array, each element:
 {"name": "working title of the list", "theme": one of ${JSON.stringify(THEMES)}, "trend": one of ${JSON.stringify(TRENDS)}, "board": one of ${JSON.stringify(BOARDS)}, "seasonWindow": "YYYY-MM-DD" or null, "rationale": "one sentence on why this will get saves"}`;
 
+  // Enums here mean the model can only return select values Notion already knows.
+  const schema = {
+    type: "array",
+    items: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        theme: { type: "string", enum: [...THEMES] },
+        trend: { type: "string", enum: [...TRENDS] },
+        board: { type: "string", enum: [...BOARDS] },
+        seasonWindow: { type: ["string", "null"], description: "YYYY-MM-DD or null" },
+        rationale: { type: "string" },
+      },
+      required: ["name", "theme", "trend", "board", "seasonWindow", "rationale"],
+      additionalProperties: false,
+    },
+    minItems: count,
+    maxItems: count,
+  };
+
   console.log(`Generating ${count} ideas...`);
-  const ideas = await generateJSON<IdeaOut[]>(system, user);
+  const ideas = await generateJSON<IdeaOut[]>(system, user, schema);
 
   let created = 0;
   for (const idea of ideas) {

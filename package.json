@@ -10,7 +10,6 @@
     "backfill": "tsx scripts/backfill-to-notion.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.120.0",
     "@notionhq/client": "^2.2.15",
     "dotenv": "^16.4.5"
   },

@@ -10,6 +10,20 @@ interface DraftOut {
   keywords: string[];
 }
 
+// maxLength on pinTitle enforces Pinterest's 100-char limit at generation time,
+// so titles are written to fit rather than truncated mid-word afterwards.
+const DRAFT_SCHEMA = {
+  type: "object",
+  properties: {
+    listItems: { type: "array", items: { type: "string" }, minItems: 10, maxItems: 15 },
+    pinTitle: { type: "string", maxLength: 100 },
+    pinDescription: { type: "string", maxLength: 500 },
+    keywords: { type: "array", items: { type: "string" }, minItems: 4, maxItems: 8 },
+  },
+  required: ["listItems", "pinTitle", "pinDescription", "keywords"],
+  additionalProperties: false,
+};
+
 export async function runDraft(limit = 10): Promise<void> {
   const ideas = await pinsByStatus("Idea");
   if (!ideas.length) {
@@ -34,7 +48,7 @@ Reply with ONLY a JSON object:
 {"listItems": ["**...** — ...", ...], "pinTitle": "<100 chars, keyword-led", "pinDescription": "2-3 sentences + CTA", "keywords": ["...", ...]}`;
 
     try {
-      const draft = await generateJSON<DraftOut>(system, user);
+      const draft = await generateJSON<DraftOut>(system, user, DRAFT_SCHEMA);
       const title = draft.pinTitle?.slice(0, 100) ?? idea.name;
       await updatePin(idea.pageId, {
         status: "Drafted",
