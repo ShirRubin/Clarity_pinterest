@@ -34,6 +34,7 @@ export interface PinRow {
   listItems?: string;
   pinTitle?: string;
   pinDescription?: string;
+  altText?: string;
   keywords?: string[];
   imageUrl?: string;
   canvaLink?: string;
@@ -58,6 +59,7 @@ export function toNotionProperties(row: PinRow): Record<string, unknown> {
   if (row.listItems) p["List items"] = { rich_text: rt(row.listItems) };
   if (row.pinTitle) p["Pin title"] = { rich_text: rt(row.pinTitle) };
   if (row.pinDescription) p["Pin description"] = { rich_text: rt(row.pinDescription) };
+  if (row.altText) p["Alt text"] = { rich_text: rt(row.altText) };
   if (row.keywords?.length) p["Keywords"] = { multi_select: row.keywords.map((name) => ({ name })) };
   if (row.imageUrl)
     p["Pin image"] = { files: [{ type: "external", name: "pin", external: { url: row.imageUrl } }] };
@@ -108,6 +110,7 @@ export interface PinSummary {
   status?: string;
   pinTitle?: string;
   pinDescription?: string;
+  altText?: string;
   listItems?: string;
 }
 
@@ -124,6 +127,7 @@ function pageToSummary(page: NotionPage): PinSummary {
     status: p["Status"]?.select?.name,
     pinTitle: text(p["Pin title"]),
     pinDescription: text(p["Pin description"]),
+    altText: text(p["Alt text"]),
     listItems: text(p["List items"]),
   };
 }

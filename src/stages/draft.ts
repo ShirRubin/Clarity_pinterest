@@ -7,6 +7,7 @@ interface DraftOut {
   listItems: string[];
   pinTitle: string;
   pinDescription: string;
+  altText: string;
   keywords: string[];
 }
 
@@ -18,9 +19,10 @@ const DRAFT_SCHEMA = {
     listItems: { type: "array", items: { type: "string" }, minItems: 10, maxItems: 15 },
     pinTitle: { type: "string", maxLength: 100 },
     pinDescription: { type: "string", maxLength: 500 },
+    altText: { type: "string", maxLength: 160 },
     keywords: { type: "array", items: { type: "string" }, minItems: 4, maxItems: 8 },
   },
-  required: ["listItems", "pinTitle", "pinDescription", "keywords"],
+  required: ["listItems", "pinTitle", "pinDescription", "altText", "keywords"],
   additionalProperties: false,
 };
 
@@ -44,8 +46,10 @@ Requirements:
 - The FINAL item is the open slot: "#<n> — your turn. What would you add?" (comment bait, always last).
 ${SEO_RULES}
 
+The pin image will be a pastel checklist graphic showing the list title and the bold action heads — write altText describing THAT image.
+
 Reply with ONLY a JSON object:
-{"listItems": ["**...** — ...", ...], "pinTitle": "<100 chars, keyword-led", "pinDescription": "2-3 sentences + CTA", "keywords": ["...", ...]}`;
+{"listItems": ["**...** — ...", ...], "pinTitle": "40-60 chars, keyword in first 40", "pinDescription": "2-3 sentences + CTA, then 3-5 hashtags at the end", "altText": "80-140 chars describing the pin image", "keywords": ["...", ...]}`;
 
     try {
       const draft = await generateJSON<DraftOut>(system, user, DRAFT_SCHEMA);
@@ -55,6 +59,7 @@ Reply with ONLY a JSON object:
         listItems: draft.listItems.map((item, i) => `${i + 1}. ${item}`).join("\n"),
         pinTitle: title,
         pinDescription: draft.pinDescription,
+        altText: draft.altText?.slice(0, 160),
         keywords: (draft.keywords ?? []).slice(0, 8).map((k) => k.slice(0, 100)),
       });
       console.log(`✓ Drafted: ${title}`);

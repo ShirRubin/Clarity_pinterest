@@ -76,6 +76,7 @@ export const DB_PROPERTIES = {
   "List items": { rich_text: {} },
   "Pin title": { rich_text: {} },
   "Pin description": { rich_text: {} },
+  "Alt text": { rich_text: {} },
   Keywords: { multi_select: { options: [] as { name: string }[] } },
   "Pin image": { files: {} },
   "Canva link": { url: {} },
