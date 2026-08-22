@@ -10,6 +10,20 @@ import { TEMPLATE_NAMES } from "../render/renderPin.js";
 
 const PROFILE_URL = "https://www.pinterest.com/ClarityBucketLists/";
 
+// Until the blog is live, each pin links to ITS BOARD's URL, not the profile:
+// destinations stay unique per board, so the "never the same URL twice in 72h"
+// cadence rule survives posting several pins in one day. Slugs match data/rss/.
+const BOARD_URLS: Record<string, string> = {
+  "TV & Movie Bucket Lists": `${PROFILE_URL}tv-movie-bucket-lists/`,
+  "Aesthetic Life Lists": `${PROFILE_URL}aesthetic-life-lists/`,
+  "Travel & Festivals": `${PROFILE_URL}travel-festivals/`,
+  "Books · Learning & Culture": `${PROFILE_URL}books-learning-culture/`,
+  "Smart & Creative Projects": `${PROFILE_URL}smart-creative-projects/`,
+  "Manifest & Magic Life": `${PROFILE_URL}manifest-magic-life/`,
+  "Luxury & Lifestyle": `${PROFILE_URL}luxury-lifestyle/`,
+  "Career & Learn New Skills": `${PROFILE_URL}career-learn-new-skills/`,
+};
+
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
 
@@ -53,7 +67,7 @@ export async function runPublish(limit = 10): Promise<void> {
       row.altText ?? "",
       ``,
       `BOARD: ${row.board ?? "(pick manually)"}`,
-      `DESTINATION LINK: ${PROFILE_URL}   <- swap for the blog post URL once the blog is live`,
+      `DESTINATION LINK: ${(row.board && BOARD_URLS[row.board]) || PROFILE_URL}   <- swap for the blog post URL once the blog is live`,
       ``,
       `IMAGES: ${variants.join(", ")}`,
       `Post ONE variant now; save the other for a later day. Each variant counts`,
@@ -66,7 +80,7 @@ export async function runPublish(limit = 10): Promise<void> {
     await updatePin(row.pageId, {
       status: "Published",
       publishedDate: today,
-      destinationLink: PROFILE_URL,
+      destinationLink: (row.board && BOARD_URLS[row.board]) || PROFILE_URL,
     });
     packed++;
     console.log(`✓ Pack ready: ${packDir}`);
