@@ -59,8 +59,10 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 
 function fillTemplate(html: string, content: PinContent): string {
   const { heads, openSlot } = parseListItems(content.listItems);
-  const pal = paletteFor(content.theme, content.board);
-  const emoji = emojiFor(content.theme, content.board);
+  // Seeded by name: each list gets its own palette variant + subject emoji,
+  // stable across re-renders and identical across a list's own templates.
+  const pal = paletteFor(content.theme, content.board, content.name);
+  const emoji = emojiFor(content.theme, content.board, content.name);
   const main = titleMain(content.name);
 
   // Long titles shrink so they never wrap past two lines.
