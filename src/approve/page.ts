@@ -70,8 +70,11 @@ for (const pin of pins) {
   cards.appendChild(el);
 }
 async function decide(el, pin, decision) {
+  if (el.dataset.busy === "1") return;
   const err = el.querySelector(".err");
   err.textContent = "";
+  el.dataset.busy = "1";
+  el.querySelectorAll("button").forEach(b => b.disabled = true);
   try {
     const res = await fetch("/decide", {
       method: "POST",
@@ -88,6 +91,9 @@ async function decide(el, pin, decision) {
     if (next && next.classList && next.classList.contains("card")) next.focus();
   } catch (e) {
     err.textContent = "Notion said no: " + e.message + " — try again.";
+  } finally {
+    el.dataset.busy = "";
+    el.querySelectorAll("button").forEach(b => b.disabled = false);
   }
 }
 document.addEventListener("keydown", (ev) => {

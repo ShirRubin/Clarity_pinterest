@@ -24,7 +24,9 @@ export function createApproveServer(
   onDecision: OnDecision,
   onAllDecided?: () => void,
 ): http.Server {
+  // Note: callers must not construct with an empty pins array if they rely on onAllDecided.
   const remaining = new Set(pins.map((p) => p.pageId));
+  const inFlight = new Set<string>();
   return http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url === "/") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
@@ -48,12 +50,20 @@ export function createApproveServer(
         res.end(JSON.stringify({ error: "unknown pin or bad decision" }));
         return;
       }
+      if (inFlight.has(pageId)) {
+        res.writeHead(409, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "decision already in flight" }));
+        return;
+      }
+      inFlight.add(pageId);
       try {
         await onDecision(pageId, decision, note || undefined);
       } catch (err) {
         res.writeHead(500, { "content-type": "application/json" });
         res.end(JSON.stringify({ error: String(err) }));
         return;
+      } finally {
+        inFlight.delete(pageId);
       }
       remaining.delete(pageId);
       res.writeHead(200, { "content-type": "application/json" });

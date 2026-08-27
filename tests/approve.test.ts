@@ -75,3 +75,23 @@ test("a failing callback returns 500 and keeps the pin pending for retry", async
   assert.deepEqual(await second.json(), { ok: true, remaining: 0 });
   server.close();
 });
+
+test("onAllDecided fires after the last decision", async () => {
+  let callbackFired = false;
+  const server = createApproveServer([pin("p1"), pin("p2")], async () => {}, () => {
+    callbackFired = true;
+  });
+  const port = await listen(server);
+  await fetch(`http://127.0.0.1:${port}/decide`, {
+    method: "POST",
+    body: JSON.stringify({ pageId: "p1", decision: "approve" }),
+  });
+  await fetch(`http://127.0.0.1:${port}/decide`, {
+    method: "POST",
+    body: JSON.stringify({ pageId: "p2", decision: "reject" }),
+  });
+  // Wait for the 500ms setTimeout in onAllDecided
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  assert.equal(callbackFired, true);
+  server.close();
+});
