@@ -7,7 +7,8 @@
   "scripts": {
     "clarity": "tsx src/cli.ts",
     "setup-notion": "tsx scripts/setup-notion.ts",
-    "backfill": "tsx scripts/backfill-to-notion.ts"
+    "backfill": "tsx scripts/backfill-to-notion.ts",
+    "test": "tsx --test tests/schedule.test.ts tests/approve.test.ts"
   },
   "dependencies": {
     "@notionhq/client": "^2.2.15",
