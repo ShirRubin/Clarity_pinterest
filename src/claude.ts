@@ -67,7 +67,13 @@ export async function generateJSON<T>(
   system: string,
   user: string,
   schema?: Record<string, unknown>,
+  opts?: { allowFileRead?: boolean },
 ): Promise<T> {
+  // allowFileRead lets the model view local files named in the prompt (e.g. a pin
+  // image to transcribe). Everything else stays locked down.
+  const disallowed = opts?.allowFileRead
+    ? "Bash,Edit,Write,Glob,Grep,WebFetch,WebSearch,Task"
+    : "Bash,Edit,Write,Read,Glob,Grep,WebFetch,WebSearch,Task";
   const args = [
     "-p",
     "--output-format",
@@ -76,7 +82,7 @@ export async function generateJSON<T>(
     MODEL,
     "--disable-slash-commands",
     "--disallowed-tools",
-    "Bash,Edit,Write,Read,Glob,Grep,WebFetch,WebSearch,Task",
+    disallowed,
     "--system-prompt",
     `${system}\n\nReply with ONLY the requested JSON. No prose, no explanation, no code fences.`,
   ];

@@ -9,6 +9,8 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium } from "playwright-core";
 import { listAllPins, updatePin, type PinSummary } from "../notion.js";
+import { generateJSON } from "../claude.js";
+import { tmpdir } from "node:os";
 
 const BLOG_DIR = process.env.CLARITY_BLOG_DIR ?? path.join("..", "Clarity_blog");
 const POSTS_DIR = path.join(BLOG_DIR, "src", "content", "posts");
@@ -80,29 +82,88 @@ async function writeWebCover(srcPng: string, outJpg: string): Promise<void> {
   }
 }
 
-function postMarkdown(row: PinSummary, slug: string, coverPath: string | undefined): string {
-  const title = shortTitle(row.name);
-  const category = THEME_CATEGORY[row.theme ?? ""] ?? "Lists";
-  const intro = stripHashtags(row.pinDescription ?? "").replace(/"/g, "'");
-  const items = (row.listItems ?? "").trim();
-  const itemCount = items.split("\n").filter((l) => /^\d+\./.test(l)).length;
-  const words = items.split(/\s+/).length;
+// Live boards -> blog categories for backfill pins (theme is often unset on those rows)
+const BOARD_CATEGORY: Record<string, string> = {
+  "TV & Movie Bucket Lists": "Entertainment",
+  "Aesthetic Life Lists": "Self-Care",
+  "Travel & Festivals": "Travel",
+  "Books · Learning & Culture": "Books",
+  "Smart & Creative Projects": "Creative Projects",
+  "Manifest & Magic Life": "Self-Care",
+  "Luxury & Lifestyle": "Lifestyle",
+  "Career & Learn New Skills": "Career",
+};
+
+interface BackfillPost {
+  title: string;
+  intro: string;
+  items: string[];
+}
+
+const BACKFILL_SCHEMA = {
+  type: "object",
+  properties: {
+    title: { type: "string", maxLength: 60 },
+    intro: { type: "string", maxLength: 300 },
+    items: { type: "array", items: { type: "string" }, minItems: 8, maxItems: 16 },
+  },
+  required: ["title", "intro", "items"],
+  additionalProperties: false,
+};
+
+// The 60 live pins have no list text in Notion — the items exist only ON the image.
+// Claude reads the downloaded pin image, transcribes the real items, and writes the post.
+async function generateBackfillPost(row: PinSummary, imagePath: string): Promise<BackfillPost> {
+  const system = `You write posts for Clarity Bucket Lists (clarity-lists.com), a cozy bucket-list blog. Voice: warm, direct, a little playful; second person; no hashtags, no emoji walls (one emoji max).`;
+  const user = `Read the pin image at ${path.resolve(imagePath)} — it is a checklist graphic from our Pinterest account.
+
+Write the blog post for it:
+- "title": a clean short post title (e.g. "Theme Party Bucket List"), Title Case, no colon, max 60 chars.
+- "intro": 2-3 sentences introducing the list. Ground it in this pin description: "${(row.pinDescription ?? "").replace(/"/g, "'")}". No hashtags.
+- "items": transcribe the checklist items EXACTLY as they appear on the image (same order, fix obvious OCR-style typos only), then format each as "**Item text** — one helpful sentence expanding it." Keep every item from the image; do not invent extra items unless the image has fewer than 8, in which case add fitting ones to reach 10.`;
+  return generateJSON<BackfillPost>(system, user, BACKFILL_SCHEMA, { allowFileRead: true });
+}
+
+async function downloadImage(url: string, dest: string): Promise<void> {
+  // pinimg 403s bare fetches — send browser-ish headers
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+      Referer: "https://www.pinterest.com/",
+      Accept: "image/avif,image/webp,image/png,image/jpeg,*/*",
+    },
+  });
+  if (!res.ok) throw new Error(`download failed ${res.status}: ${url}`);
+  await writeFile(dest, Buffer.from(await res.arrayBuffer()));
+}
+
+interface PostFields {
+  title: string;
+  category: string;
+  intro: string;
+  cover?: { path: string; alt: string };
+  date: string;
+  items: string; // numbered markdown lines
+}
+
+function buildMarkdown(f: PostFields): string {
+  const itemCount = f.items.split("\n").filter((l) => /^\d+\./.test(l)).length;
+  const words = f.items.split(/\s+/).length;
   const readTime = `${Math.max(2, Math.round(words / 200))} min`;
-  const date = (row.publishedDate ?? new Date().toISOString()).slice(0, 10);
   const fm = [
     "---",
-    `title: "${title.replace(/"/g, "'")}"`,
-    `category: "${category}"`,
-    `intro: "${intro}"`,
-    ...(coverPath ? [`coverImage: "${coverPath}"`, `coverAlt: "${(row.altText ?? title).replace(/"/g, "'")}"`] : []),
-    `date: ${date}`,
+    `title: "${f.title.replace(/"/g, "'")}"`,
+    `category: "${f.category}"`,
+    `intro: "${f.intro.replace(/"/g, "'")}"`,
+    ...(f.cover ? [`coverImage: "${f.cover.path}"`, `coverAlt: "${f.cover.alt.replace(/"/g, "'")}"`] : []),
+    `date: ${f.date}`,
     `readTime: "${readTime}"`,
     `itemCount: ${itemCount}`,
     "affiliates: true",
     "---",
   ].join("\n");
-  // frontmatter intro already renders in the post hero — don't repeat it as a body lead
-  return `${fm}\n\n## The List\n\n${items}\n`;
+  // frontmatter intro already renders in the post hero — no repeated body lead
+  return `${fm}\n\n## The List\n\n${f.items}\n`;
 }
 
 export async function runBlogpost(limit = 20): Promise<void> {
@@ -111,40 +172,105 @@ export async function runBlogpost(limit = 20): Promise<void> {
   }
   await mkdir(COVERS_DIR, { recursive: true });
 
-  const rows = (await listAllPins()).filter(
+  const eligible = (await listAllPins()).filter(
     (r) =>
       (r.status === "Approved" || r.status === "Published") &&
-      (r.listItems ?? "").trim().length > 0,
+      ((r.listItems ?? "").trim().length > 0 ||
+        (r.source === "backfill" && r.imageUrls.length > 0)),
   );
 
   let written = 0;
-  for (const row of rows) {
+  for (const row of eligible) {
     if (written >= limit) break;
-    const slug = slugify(shortTitle(row.name));
-    const postPath = path.join(POSTS_DIR, `${slug}.md`);
-    if (await exists(postPath)) continue; // never clobber an existing post
+    // Backfill rows ALWAYS take the backfill path — a rerun may find the
+    // transcribed items we saved to Notion, but their slug/title/cover logic differs.
+    const isPipelineRow = row.source !== "backfill" && (row.listItems ?? "").trim().length > 0;
 
-    // Cover: web-sized JPEG from the first design variant, if we have one locally
-    let coverWeb: string | undefined;
-    const designPng = await findDesignPng(row.name);
-    if (designPng) {
-      const coverFile = path.join(COVERS_DIR, `${slug}.jpg`);
-      if (!(await exists(coverFile))) await writeWebCover(designPng, coverFile);
-      coverWeb = `/images/covers/pins/${slug}.jpg`;
+    if (isPipelineRow) {
+      // ---- pipeline row: list text lives in Notion, design PNG lives in exports/ ----
+      const slug = slugify(shortTitle(row.name));
+      const postPath = path.join(POSTS_DIR, `${slug}.md`);
+      if (await exists(postPath)) continue; // never clobber an existing post
+
+      let cover: PostFields["cover"];
+      const designPng = await findDesignPng(row.name);
+      if (designPng) {
+        const coverFile = path.join(COVERS_DIR, `${slug}.jpg`);
+        if (!(await exists(coverFile))) await writeWebCover(designPng, coverFile);
+        cover = { path: `/images/covers/pins/${slug}.jpg`, alt: row.altText ?? shortTitle(row.name) };
+      }
+
+      await writeFile(
+        postPath,
+        buildMarkdown({
+          title: shortTitle(row.name),
+          category: THEME_CATEGORY[row.theme ?? ""] ?? "Lists",
+          intro: stripHashtags(row.pinDescription ?? ""),
+          cover,
+          date: (row.publishedDate ?? new Date().toISOString()).slice(0, 10),
+          items: (row.listItems ?? "").trim(),
+        }),
+        "utf8",
+      );
+      await updatePin(row.pageId, { destinationLink: `${SITE}/posts/${slug}` });
+      console.log(`✓ ${slug}.md${cover ? " + cover" : " (no local design PNG)"} → Destination link set`);
+      written++;
+    } else {
+      // ---- backfill row: the LIVE pin. Its image is the design already on Pinterest;
+      // the list text exists only on that image, so Claude transcribes it. ----
+      // Skip only if the row's destination post actually exists on disk (self-heals
+      // rows left pointing at a renamed/deleted post)
+      if (row.destinationLink?.startsWith(SITE)) {
+        const linkedSlug = row.destinationLink.split("/").filter(Boolean).pop() ?? "";
+        if (await exists(path.join(POSTS_DIR, `${linkedSlug}.md`))) continue;
+      }
+      try {
+        const imageUrl = row.imageUrls[0];
+        const ext = imageUrl.includes(".png") ? ".png" : ".jpg";
+        const tmp = path.join(tmpdir(), `clarity-pin-${row.pageId.slice(0, 8)}${ext}`);
+        if (!(await exists(tmp))) await downloadImage(imageUrl, tmp);
+
+        const gen = await generateBackfillPost(row, tmp);
+        const slug = slugify(gen.title);
+        const postPath = path.join(POSTS_DIR, `${slug}.md`);
+
+        if (!(await exists(postPath))) {
+          const coverFile = path.join(COVERS_DIR, `${slug}.jpg`);
+          if (!(await exists(coverFile))) await writeWebCover(tmp, coverFile);
+          const items = gen.items.map((it, i) => `${i + 1}. ${it}`).join("\n");
+          await writeFile(
+            postPath,
+            buildMarkdown({
+              title: gen.title,
+              category: BOARD_CATEGORY[row.board ?? ""] ?? "Lists",
+              intro: stripHashtags(gen.intro),
+              cover: { path: `/images/covers/pins/${slug}.jpg`, alt: `${gen.title} — the original Clarity pin checklist` },
+              date: (row.publishedDate ?? new Date().toISOString()).slice(0, 10),
+              items,
+            }),
+            "utf8",
+          );
+          // keep the transcribed list on the row too — future designs/regens can reuse it
+          await updatePin(row.pageId, {
+            destinationLink: `${SITE}/posts/${slug}`,
+            listItems: items,
+          });
+          console.log(`✓ ${slug}.md (backfill, ${gen.items.length} items transcribed from the live pin) → Destination link set`);
+        } else {
+          // same-topic pin: point it at the existing post rather than duplicating it
+          await updatePin(row.pageId, { destinationLink: `${SITE}/posts/${slug}` });
+          console.log(`→ "${row.name.slice(0, 45)}" linked to existing ${slug}.md`);
+        }
+        written++;
+      } catch (err) {
+        console.warn(`✗ backfill "${row.name.slice(0, 50)}": ${(err as Error).message}`);
+      }
     }
-
-    await writeFile(postPath, postMarkdown(row, slug, coverWeb), "utf8");
-
-    // Phase D wiring: the pin's destination is now its own post
-    const postUrl = `${SITE}/posts/${slug}`;
-    await updatePin(row.pageId, { destinationLink: postUrl });
-    console.log(`✓ ${slug}.md${coverWeb ? " + cover" : " (no local design PNG — no cover)"} → Destination link set`);
-    written++;
   }
 
   console.log(
     written === 0
-      ? "Nothing to do — every Approved/Published list already has a post."
+      ? "Nothing to do — every eligible list already has a post."
       : `\n${written} post(s) written to ${POSTS_DIR}. Rebuild the blog (npm run build) and run npm run pdfs there.`,
   );
 }
