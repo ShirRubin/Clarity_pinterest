@@ -33,12 +33,14 @@ const slugify = (s: string) =>
 const destFor = (row: PinSummary) => (row.board && BOARD_URLS[row.board]) || PROFILE_URL;
 
 // Scheduled-but-unposted calendar = the pack dirs on disk.
+// exports/packs/ is the calendar of record for scheduled-but-unposted pins — deleting it loses the schedule (Notion only holds each row's earliest variant date).
 async function readCalendarFromPacks(): Promise<ScheduledEntry[]> {
   const dir = path.join("exports", "packs");
   let names: string[] = [];
   try {
     names = await readdir(dir);
-  } catch {
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
     return [];
   }
   const out: ScheduledEntry[] = [];
@@ -100,7 +102,8 @@ export async function runPublish(limit = 10): Promise<void> {
       }
       // Legacy 2-part format (date--slug) is ignored
     }
-  } catch {
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
     // packs dir doesn't exist yet
   }
 
@@ -108,7 +111,7 @@ export async function runPublish(limit = 10): Promise<void> {
   const existing: ScheduledEntry[] = [
     ...all
       .filter((r) => r.source === "pipeline" && r.pinUrl && r.publishedDate)
-      .map((r) => ({ date: r.publishedDate!, destUrl: r.destinationLink ?? destFor(r) })),
+      .map((r) => ({ date: r.publishedDate!.slice(0, 10), destUrl: r.destinationLink ?? destFor(r) })),
     ...(await readCalendarFromPacks()),
   ];
 
