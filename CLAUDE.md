@@ -5,7 +5,7 @@ Automated content pipeline for pinterest.com/ClarityBucketLists: idea → bucket
 ## Commands
 
 ```bash
-npm run clarity -- <cmd>   # ideas | draft | design | review | publish | stats | run | approve
+npm run clarity -- <cmd>   # ideas | draft | design | review | publish | blogpost | stats | run | approve
 npm run setup-notion       # one-time: creates the "Clarity Pins" DB (already done)
 npm run backfill           # idempotent import of data/backfill.json into Notion
 npx tsx scripts/parse-rss.ts   # rebuild data/backfill.json from data/rss/*.rss
