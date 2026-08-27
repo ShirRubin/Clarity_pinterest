@@ -84,6 +84,7 @@ export const DB_PROPERTIES = {
   "Pin URL": { url: {} },
   "Pinterest pin ID": { rich_text: {} },
   "Published date": { date: {} },
+  "Scheduled date": { date: {} },
   "Season window": { date: {} },
   Impressions: { number: {} },
   Saves: { number: {} },
