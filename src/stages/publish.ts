@@ -86,6 +86,24 @@ export async function runPublish(limit = 10): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
   const all = await listAllPins();
 
+  // Pre-scan packs dir to find already-packed variants (new format only).
+  const alreadyPacked = new Map<string, string>(); // "slug--template" -> date
+  const dir = path.join("exports", "packs");
+  try {
+    const names = await readdir(dir);
+    for (const name of names) {
+      const parts = name.split("--");
+      if (parts.length === 3) {
+        // New format: date--slug--template
+        const [date, slug, template] = parts;
+        alreadyPacked.set(`${slug}--${template}`, date);
+      }
+      // Legacy 2-part format (date--slug) is ignored
+    }
+  } catch {
+    // packs dir doesn't exist yet
+  }
+
   // Existing calendar: live pipeline pins + scheduled packs on disk.
   const existing: ScheduledEntry[] = [
     ...all
@@ -109,14 +127,38 @@ export async function runPublish(limit = 10): Promise<void> {
   // One queue item per variant PNG — every variant is its own fresh pin.
   const queue: QueueItem[] = [];
   const rowsById = new Map<string, PinSummary>();
+  const packedPerRow = new Map<string, Set<string>>(); // pageId -> Set of packed templates
+  const firstDatePerRow = new Map<string, string>(); // pageId -> earliest date
+
   for (const row of rows) {
     rowsById.set(row.pageId, row);
-    for (const t of TEMPLATE_NAMES) queue.push({ id: `${row.pageId}#${t}`, destUrl: destFor(row) });
+    const slug = slugify(row.name);
+    const packedTemplates = new Set<string>();
+    let earliestDate: string | undefined;
+
+    for (const t of TEMPLATE_NAMES) {
+      const key = `${slug}--${t}`;
+      if (alreadyPacked.has(key)) {
+        // Already packed; don't queue it
+        packedTemplates.add(t);
+        const existingDate = alreadyPacked.get(key)!;
+        if (!earliestDate || existingDate < earliestDate) {
+          earliestDate = existingDate;
+        }
+      } else {
+        queue.push({ id: `${row.pageId}#${t}`, destUrl: destFor(row) });
+      }
+    }
+
+    packedPerRow.set(row.pageId, packedTemplates);
+    if (earliestDate) {
+      firstDatePerRow.set(row.pageId, earliestDate);
+    }
   }
+
   const assigned = assignDates(existing, queue, today);
 
   let packed = 0;
-  const firstDate = new Map<string, string>();
   for (const a of assigned) {
     const [pageId, template] = a.id.split("#");
     const row = rowsById.get(pageId)!;
@@ -132,20 +174,38 @@ export async function runPublish(limit = 10): Promise<void> {
     await mkdir(packDir, { recursive: true });
     await cp(src, path.join(packDir, `${template}.png`));
     await writeFile(path.join(packDir, "post.txt"), postText(row, a.date, template, a.destUrl), "utf8");
-    const prev = firstDate.get(pageId);
-    if (!prev || a.date < prev) firstDate.set(pageId, a.date);
+
+    // Track successfully packed template
+    const packedSet = packedPerRow.get(pageId)!;
+    packedSet.add(template);
+
+    // Track earliest date
+    const currentEarliest = firstDatePerRow.get(pageId);
+    if (!currentEarliest || a.date < currentEarliest) {
+      firstDatePerRow.set(pageId, a.date);
+    }
+
     packed++;
     console.log(`✓ ${a.date}  ${slug} (${template})`);
   }
 
-  for (const [pageId, date] of firstDate) {
-    const row = rowsById.get(pageId)!;
-    await updatePin(pageId, {
-      status: "Published",
-      publishedDate: today,
-      scheduledDate: date,
-      destinationLink: destFor(row),
-    });
+  for (const [pageId, packedSet] of packedPerRow) {
+    if (packedSet.size === TEMPLATE_NAMES.length) {
+      const row = rowsById.get(pageId)!;
+      const date = firstDatePerRow.get(pageId)!;
+      await updatePin(pageId, {
+        status: "Published",
+        publishedDate: today,
+        scheduledDate: date,
+        destinationLink: destFor(row),
+      });
+    } else if (packedSet.size > 0) {
+      const row = rowsById.get(pageId)!;
+      const slug = slugify(row.name);
+      console.warn(
+        `⚠ ${slug}: only ${packedSet.size}/${TEMPLATE_NAMES.length} variants packed — row left unscheduled for a future run`,
+      );
+    }
   }
   console.log(`\n${packed} pack(s) scheduled in exports/packs/ — load them in the next batch posting session.`);
 }
