@@ -6,6 +6,7 @@ import { runIdeas } from "./stages/ideas.js";
 import { runDraft } from "./stages/draft.js";
 import { runDesign } from "./stages/design.js";
 import { runReview } from "./stages/review.js";
+import { runApprove } from "./stages/approve.js";
 import { runPublish } from "./stages/publish.js";
 
 const arg = process.argv[3] ? parseInt(process.argv[3], 10) : undefined;
@@ -15,7 +16,8 @@ const commands: Record<string, { desc: string; run: () => Promise<void> }> = {
   draft: { desc: "Idea → Drafted: write list, pin title, description, keywords (arg: limit, default 10)", run: () => runDraft(arg ?? 10) },
   design: { desc: "Drafted → Designed: render pin image variants + upload to Notion (arg: limit, default 5)", run: () => runDesign(arg ?? 5) },
   review: { desc: "Designed → In Review: stage for the Notion review queue", run: () => runReview(arg ?? 50) },
-  publish: { desc: "Approved → Published: write export packs to exports/packs/ (API posting in Phase 4)", run: () => runPublish(arg ?? 10) },
+  approve: { desc: "In Review → Approved/Rejected via local review page (arg: port, default 4178)", run: () => runApprove(arg ?? 4178) },
+  publish: { desc: "Approved → Published: schedule + write per-variant packs to exports/packs/ (API posting in Phase 4)", run: () => runPublish(arg ?? 10) },
   stats: { desc: "Sync impressions/saves/clicks for Published pins", run: notYet("Phase 4") },
   run: {
     desc: "Full pipeline: ideas → draft → design → review (arg: idea count, default 3)",

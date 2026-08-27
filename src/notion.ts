@@ -42,6 +42,7 @@ export interface PinRow {
   pinUrl?: string;
   pinterestPinId?: string;
   publishedDate?: string; // YYYY-MM-DD
+  scheduledDate?: string; // YYYY-MM-DD — when the pin should go live on Pinterest
   seasonWindow?: string; // YYYY-MM-DD
   notes?: string;
 }
@@ -68,6 +69,7 @@ export function toNotionProperties(row: PinRow): Record<string, unknown> {
   if (row.pinUrl) p["Pin URL"] = { url: row.pinUrl };
   if (row.pinterestPinId) p["Pinterest pin ID"] = { rich_text: rt(row.pinterestPinId) };
   if (row.publishedDate) p["Published date"] = { date: { start: row.publishedDate } };
+  if (row.scheduledDate) p["Scheduled date"] = { date: { start: row.scheduledDate } };
   if (row.seasonWindow) p["Season window"] = { date: { start: row.seasonWindow } };
   if (row.notes) p["Notes"] = { rich_text: rt(row.notes) };
   return p;
@@ -98,6 +100,9 @@ type NotionPage = {
     title?: { plain_text: string }[];
     rich_text?: { plain_text: string }[];
     select?: { name: string } | null;
+    url?: string | null;
+    date?: { start: string } | null;
+    files?: { file?: { url: string }; external?: { url: string } }[];
   }>;
 };
 
@@ -112,6 +117,12 @@ export interface PinSummary {
   pinDescription?: string;
   altText?: string;
   listItems?: string;
+  source?: string;
+  destinationLink?: string;
+  pinUrl?: string;
+  scheduledDate?: string;
+  publishedDate?: string;
+  imageUrls: string[];
 }
 
 function pageToSummary(page: NotionPage): PinSummary {
@@ -129,6 +140,14 @@ function pageToSummary(page: NotionPage): PinSummary {
     pinDescription: text(p["Pin description"]),
     altText: text(p["Alt text"]),
     listItems: text(p["List items"]),
+    source: p["Source"]?.select?.name,
+    destinationLink: p["Destination link"]?.url ?? undefined,
+    pinUrl: p["Pin URL"]?.url ?? undefined,
+    scheduledDate: p["Scheduled date"]?.date?.start,
+    publishedDate: p["Published date"]?.date?.start,
+    imageUrls: (p["Pin image"]?.files ?? [])
+      .map((f) => f.file?.url ?? f.external?.url)
+      .filter((u): u is string => !!u),
   };
 }
 
