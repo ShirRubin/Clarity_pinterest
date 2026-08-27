@@ -49,6 +49,14 @@ export async function runApprove(port = 4178): Promise<void> {
       server.close();
     },
   );
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(`Port ${port} is busy — is another \`clarity approve\` still running? Try \`clarity approve ${port + 1}\`.`);
+    } else {
+      console.error(`Server error: ${err.message}`);
+    }
+    process.exitCode = 1;
+  });
   server.listen(port, "127.0.0.1", () => {
     const url = `http://127.0.0.1:${port}/`;
     console.log(`Review queue: ${url} (${pins.length} pins) — Ctrl+C quits without finishing.`);
