@@ -5,11 +5,13 @@ Automated content pipeline for pinterest.com/ClarityBucketLists: idea → bucket
 ## Commands
 
 ```bash
-npm run clarity -- <cmd>   # ideas | draft | design | review | publish | blogpost | stats | run | approve
+npm run clarity -- <cmd>   # queue | ideas | draft | design | review | publish | blogpost | stats | run | approve
+npm run clarity -- queue   # queue health: days of runway, overdue packs, lists to generate next
+npm run generate           # the unattended twice-weekly run (queue-aware; skips when the queue is healthy)
 npm run setup-notion       # one-time: creates the "Clarity Pins" DB (already done)
 npm run backfill           # idempotent import of data/backfill.json into Notion
 npx tsx scripts/parse-rss.ts   # rebuild data/backfill.json from data/rss/*.rss
-npm test                   # run the node:test suites (schedule + approve server)
+npm test                   # run the node:test suites (schedule + approve + queue)
 npx tsc --noEmit           # typecheck
 clarity approve            # opens the local review page (In Review → Approved/Rejected) at 127.0.0.1:4178
 ```
@@ -24,6 +26,8 @@ clarity approve            # opens the local review page (In Review → Approved
 - `src/render/` + `templates/` — HTML→PNG pin renderer, 1000×1500, 3–5 template variants per list (Phase 2).
 - `data/backfill.json` — the 60 pins scraped from the live profile (via board RSS feeds; logged-out board pages hide pin links, RSS is the reliable source: `https://www.pinterest.com/claritybucketlists/<board-slug>.rss`).
 - `exports/` — publish packs (git-ignored), Stage A posting until Pinterest API Standard access.
+- `src/queue.ts` — queue health. Runway is measured from `exports/packs/` directory names; the arithmetic half is pure and unit-tested. Drives `clarity queue` and the scheduled run.
+- `scripts/scheduled-run.ts` — the unattended job (`npm run generate`): checks queue health, exits without a single Claude call when the queue is healthy, otherwise runs ideas → draft → design → review and tees everything to `logs/`. **It never posts and never approves.** Install it with `powershell -ExecutionPolicy Bypass -File scripts/register-task.ps1` (Mon + Thu 02:00, current user; `-Unregister` removes it). Wakes the machine to run: this laptop is Modern Standby (S0) with wake timers **on for AC, off for battery**, so a plugged-in run fires at 02:00 and a battery run defers to the next logon via `StartWhenAvailable`.
 
 ## Environment (`.env`, git-ignored)
 

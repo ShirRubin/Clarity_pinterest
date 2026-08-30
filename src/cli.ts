@@ -9,10 +9,12 @@ import { runReview } from "./stages/review.js";
 import { runApprove } from "./stages/approve.js";
 import { runPublish } from "./stages/publish.js";
 import { runBlogpost } from "./stages/blogpost.js";
+import { runQueue } from "./queue.js";
 
 const arg = process.argv[3] ? parseInt(process.argv[3], 10) : undefined;
 
 const commands: Record<string, { desc: string; run: () => Promise<void> }> = {
+  queue: { desc: "Queue health: days of posting runway, overdue packs, and how many lists to generate next", run: () => runQueue() },
   ideas: { desc: "Generate new bucket-list ideas → rows in status Idea (arg: count, default 5)", run: () => runIdeas(arg ?? 5) },
   draft: { desc: "Idea → Drafted: write list, pin title, description, keywords (arg: limit, default 10)", run: () => runDraft(arg ?? 10) },
   design: { desc: "Drafted → Designed: render pin image variants + upload to Notion (arg: limit, default 5)", run: () => runDesign(arg ?? 5) },

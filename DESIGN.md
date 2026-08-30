@@ -22,6 +22,8 @@
 - `src/stages/publish.ts` skips variants that are already packed and only marks a row scheduled in Notion once every one of its variants has a pack — a partially packed row is left unscheduled and retried on a later run.
 - Tagged topics: fill all 10; concrete nouns from list items + vibe topics — the taxonomy has no "bucket list"/"self care".
 - Rhythm: batch posting sessions ~2×/week via Pinterest's native "Publish at a later date".
+- Queue target: keep **14 days** of dated packs ahead of today (`src/queue.ts`). `clarity queue` reports runway, overdue packs and lists in flight; overdue packs never count as cover.
+- Generation is queue-aware and capped at 6 lists/run — lists already between idea and approval count against the batch, so a backlog of unapproved work stops new generation instead of piling on top of it.
 
 ## Render facts
 - 2000×3000 PNG via playwright-core on installed Chrome/Edge (no browser download).

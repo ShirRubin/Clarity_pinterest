@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Clarity Bucket Lists — Pinterest content pipeline (idea → list → design → review → publish → stats)",
+  "description": "Clarity Bucket Lists \u2014 Pinterest content pipeline (idea \u2192 list \u2192 design \u2192 review \u2192 publish \u2192 stats)",
   "scripts": {
     "clarity": "tsx src/cli.ts",
+    "generate": "tsx scripts/scheduled-run.ts",
     "setup-notion": "tsx scripts/setup-notion.ts",
     "backfill": "tsx scripts/backfill-to-notion.ts",
-    "test": "tsx --test tests/schedule.test.ts tests/approve.test.ts"
+    "test": "tsx --test tests/schedule.test.ts tests/approve.test.ts tests/queue.test.ts"
   },
   "dependencies": {
     "@notionhq/client": "^2.2.15",
