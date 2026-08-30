@@ -4,7 +4,7 @@
 // is pointed at the post URL — the pin now lands readers on its own article
 // (landing-page relevance is a Pinterest ranking factor; see ../CLARITY_PLAN.md).
 // Existing post files are skipped, so reruns are cheap and non-destructive.
-import { access, mkdir, readdir, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium } from "playwright-core";
@@ -68,7 +68,7 @@ async function writeWebCover(srcPng: string, outJpg: string): Promise<void> {
       const img = document.querySelector("img")!;
       await (img as HTMLImageElement).decode();
       const el = img as HTMLImageElement;
-      const w = 900;
+      const w = Math.min(900, el.naturalWidth); // never upscale a 736px source
       const h = Math.round((el.naturalHeight / el.naturalWidth) * w);
       const canvas = document.createElement("canvas");
       canvas.width = w;
@@ -111,6 +111,15 @@ const BACKFILL_SCHEMA = {
   additionalProperties: false,
 };
 
+// A schema-forced reply can't refuse, so a failed image read comes back AS the
+// content ("Blocked — could not read pin image"). Detect it and fail the row
+// instead of publishing the refusal as a post (which once also hijacked the
+// "same-topic → link existing" path for every later failure).
+const looksBlocked = (gen: BackfillPost) =>
+  /blocked|cannot read|could not read|unable to (read|view|see)/i.test(
+    `${gen.title} ${gen.items[0] ?? ""}`,
+  );
+
 // The 60 live pins have no list text in Notion — the items exist only ON the image.
 // Claude reads the downloaded pin image, transcribes the real items, and writes the post.
 async function generateBackfillPost(row: PinSummary, imagePath: string): Promise<BackfillPost> {
@@ -121,7 +130,12 @@ Write the blog post for it:
 - "title": a clean short post title (e.g. "Theme Party Bucket List"), Title Case, no colon, max 60 chars.
 - "intro": 2-3 sentences introducing the list. Ground it in this pin description: "${(row.pinDescription ?? "").replace(/"/g, "'")}". No hashtags.
 - "items": transcribe the checklist items EXACTLY as they appear on the image (same order, fix obvious OCR-style typos only), then format each as "**Item text** — one helpful sentence expanding it." Keep every item from the image; do not invent extra items unless the image has fewer than 8, in which case add fitting ones to reach 10.`;
-  return generateJSON<BackfillPost>(system, user, BACKFILL_SCHEMA, { allowFileRead: true });
+  return generateJSON<BackfillPost>(system, user, BACKFILL_SCHEMA, {
+    allowFileRead: true,
+    // Without this the headless CLI silently denies the Read (tmpdir is outside
+    // its cwd) and the model fabricates a list instead of transcribing.
+    addDirs: [path.dirname(path.resolve(imagePath))],
+  });
 }
 
 async function downloadImage(url: string, dest: string): Promise<void> {
@@ -227,16 +241,36 @@ export async function runBlogpost(limit = 20): Promise<void> {
       try {
         const imageUrl = row.imageUrls[0];
         const ext = imageUrl.includes(".png") ? ".png" : ".jpg";
-        const tmp = path.join(tmpdir(), `clarity-pin-${row.pageId.slice(0, 8)}${ext}`);
-        if (!(await exists(tmp))) await downloadImage(imageUrl, tmp);
+        // Notion page ids created in one batch share a long common PREFIX — only the
+        // tail is unique. slice(0, 8) once collapsed all 60 rows onto one cached tmp
+        // file, feeding every transcription the same wrong image. Use the full id.
+        const tmpKey = row.pageId.replace(/-/g, "");
+        const tmp = path.join(tmpdir(), `clarity-pin-${tmpKey}${ext}`);
+        if (!(await exists(tmp))) {
+          try {
+            await downloadImage(imageUrl, tmp);
+          } catch {
+            // pinimg intermittently 403s /originals/ — the 736px variant stays up
+            // and is plenty for transcription + the ~900px web cover
+            await downloadImage(imageUrl.replace("/originals/", "/736x/"), tmp);
+          }
+        }
 
-        const gen = await generateBackfillPost(row, tmp);
+        // Transcribe from the 900-wide web version, not the multi-MB original —
+        // oversized images fail the CLI's image read (the "blocked" failure mode).
+        const tmpSmall = path.join(tmpdir(), `clarity-pin-${tmpKey}-web.jpg`);
+        if (!(await exists(tmpSmall))) await writeWebCover(tmp, tmpSmall);
+
+        const gen = await generateBackfillPost(row, tmpSmall);
+        if (looksBlocked(gen)) {
+          throw new Error("model could not read the pin image — row left for a retry");
+        }
         const slug = slugify(gen.title);
         const postPath = path.join(POSTS_DIR, `${slug}.md`);
 
         if (!(await exists(postPath))) {
           const coverFile = path.join(COVERS_DIR, `${slug}.jpg`);
-          if (!(await exists(coverFile))) await writeWebCover(tmp, coverFile);
+          if (!(await exists(coverFile))) await copyFile(tmpSmall, coverFile);
           const items = gen.items.map((it, i) => `${i + 1}. ${it}`).join("\n");
           await writeFile(
             postPath,

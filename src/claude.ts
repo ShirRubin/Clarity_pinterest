@@ -27,6 +27,7 @@ interface CliEnvelope {
   result?: string;
   total_cost_usd?: number;
   api_error_status?: number;
+  permission_denials?: unknown[];
 }
 
 function runCli(args: string[], stdin: string): Promise<string> {
@@ -67,10 +68,14 @@ export async function generateJSON<T>(
   system: string,
   user: string,
   schema?: Record<string, unknown>,
-  opts?: { allowFileRead?: boolean },
+  opts?: { allowFileRead?: boolean; addDirs?: string[] },
 ): Promise<T> {
   // allowFileRead lets the model view local files named in the prompt (e.g. a pin
   // image to transcribe). Everything else stays locked down.
+  // IMPORTANT: headless mode silently DENIES Read outside the CLI's working dir —
+  // and a schema-forced reply can't refuse, so the model fabricates plausible
+  // output instead. Any dir holding files the prompt references MUST be passed in
+  // addDirs, and a denied permission is treated as a hard failure below.
   const disallowed = opts?.allowFileRead
     ? "Bash,Edit,Write,Glob,Grep,WebFetch,WebSearch,Task"
     : "Bash,Edit,Write,Read,Glob,Grep,WebFetch,WebSearch,Task";
@@ -86,6 +91,7 @@ export async function generateJSON<T>(
     "--system-prompt",
     `${system}\n\nReply with ONLY the requested JSON. No prose, no explanation, no code fences.`,
   ];
+  for (const dir of opts?.addDirs ?? []) args.push("--add-dir", dir);
   // The API rejects a non-object top-level schema, so arrays ride inside {"result": …}.
   if (schema) {
     args.push(
@@ -109,6 +115,11 @@ export async function generateJSON<T>(
   }
   if (envelope.is_error) {
     throw new Error(`Claude CLI error${envelope.api_error_status ? ` (${envelope.api_error_status})` : ""}: ${envelope.result ?? envelope.subtype ?? "unknown"}`);
+  }
+  if (envelope.permission_denials?.length) {
+    throw new Error(
+      `Claude CLI denied ${envelope.permission_denials.length} permission(s) — a schema-forced reply after a denied file read is fabricated, not transcribed: ${JSON.stringify(envelope.permission_denials).slice(0, 300)}`,
+    );
   }
   const text = envelope.result ?? "";
   if (!text.trim()) throw new Error("Claude returned an empty result.");
