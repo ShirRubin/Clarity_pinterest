@@ -3,7 +3,7 @@ import { generateJSON } from "../claude.js";
 import { pinsByStatus, updatePin } from "../notion.js";
 import { BRAND_CONTEXT, SEO_RULES, VOICE_EXAMPLE } from "../prompts.js";
 
-interface DraftOut {
+export interface DraftOut {
   listItems: string[];
   pinTitle: string;
   pinDescription: string;
@@ -13,7 +13,7 @@ interface DraftOut {
 
 // maxLength on pinTitle enforces Pinterest's 100-char limit at generation time,
 // so titles are written to fit rather than truncated mid-word afterwards.
-const DRAFT_SCHEMA = {
+export const DRAFT_SCHEMA = {
   type: "object",
   properties: {
     listItems: { type: "array", items: { type: "string" }, minItems: 10, maxItems: 15 },

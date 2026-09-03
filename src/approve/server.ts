@@ -16,7 +16,9 @@ export interface ApprovePin {
   imageUrls: string[];
 }
 
-export type Decision = "approve" | "reject";
+export type Decision = "approve" | "reject" | "revise";
+
+const DECISIONS: readonly Decision[] = ["approve", "reject", "revise"];
 export type OnDecision = (pageId: string, decision: Decision, note?: string) => Promise<void>;
 
 export function createApproveServer(
@@ -45,9 +47,16 @@ export function createApproveServer(
         return;
       }
       const { pageId, decision, note } = parsed;
-      if (!pageId || !remaining.has(pageId) || (decision !== "approve" && decision !== "reject")) {
+      if (!pageId || !remaining.has(pageId) || !DECISIONS.includes(decision as Decision)) {
         res.writeHead(400, { "content-type": "application/json" });
         res.end(JSON.stringify({ error: "unknown pin or bad decision" }));
+        return;
+      }
+      // "revise" exists to carry feedback into the next draft — without a note
+      // there is nothing for `clarity revise` to act on, so refuse it here.
+      if (decision === "revise" && !note?.trim()) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "needs-changes requires a note saying what to change" }));
         return;
       }
       if (inFlight.has(pageId)) {
@@ -57,7 +66,7 @@ export function createApproveServer(
       }
       inFlight.add(pageId);
       try {
-        await onDecision(pageId, decision, note || undefined);
+        await onDecision(pageId, decision as Decision, note?.trim() || undefined);
       } catch (err) {
         res.writeHead(500, { "content-type": "application/json" });
         res.end(JSON.stringify({ error: String(err) }));

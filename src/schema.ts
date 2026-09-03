@@ -6,6 +6,7 @@ export const STATUSES = [
   "Drafted",
   "Designed",
   "In Review",
+  "Needs changes",
   "Approved",
   "Published",
   "Rejected",

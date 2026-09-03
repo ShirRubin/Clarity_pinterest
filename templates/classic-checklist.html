@@ -17,8 +17,11 @@
     display: flex; flex-direction: column; padding: 64px 64px 40px;
   }
   .deco {
-    position: absolute; right: -60px; bottom: 60px; font-size: 400px;
-    opacity: 0.14; transform: rotate(-8deg); line-height: 1;
+    /* 0.14 left pale emoji (🥂, ❄️) invisible on the lighter backgrounds — user
+       feedback 2026-09-02. 0.24 plus a deeper corner tuck reads clearly without
+       the saturated emoji (🎉, 🎄) crowding the last list rows. */
+    position: absolute; right: -110px; bottom: -30px; font-size: 400px;
+    opacity: 0.24; transform: rotate(-8deg); line-height: 1;
     font-family: "Segoe UI Emoji", sans-serif; pointer-events: none;
   }
   header { text-align: center; margin-bottom: 30px; position: relative; z-index: 1; }

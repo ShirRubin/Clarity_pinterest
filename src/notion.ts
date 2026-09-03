@@ -1,6 +1,6 @@
 import { Client } from "@notionhq/client";
 import "dotenv/config";
-import type { Board, Status } from "./schema.js";
+import { STATUSES, type Board, type Status } from "./schema.js";
 
 export function notionClient(): Client {
   const token = process.env.NOTION_TOKEN;
@@ -84,6 +84,29 @@ export async function createPin(row: PinRow): Promise<string> {
   return res.id;
 }
 
+/**
+ * Make sure every status in schema.ts exists as an option on the live DB's
+ * Status select. Notion rejects nothing here — it merges — so this is safe to
+ * call repeatedly, and it keeps schema.ts the single source of truth when a new
+ * status (e.g. "Needs changes") is added after the DB was created.
+ */
+export async function ensureStatusOptions(): Promise<void> {
+  const notion = notionClient();
+  const db = (await notion.databases.retrieve({ database_id: dbId() })) as unknown as {
+    properties: Record<string, { type?: string; select?: { options?: { name: string }[] } }>;
+  };
+  const existing = new Set((db.properties["Status"]?.select?.options ?? []).map((o) => o.name));
+  const missing = STATUSES.filter((s) => !existing.has(s));
+  if (!missing.length) return;
+  await notion.databases.update({
+    database_id: dbId(),
+    properties: {
+      Status: { select: { options: [...existing, ...missing].map((name) => ({ name })) } },
+    } as never,
+  });
+  console.log(`Notion Status options synced (added: ${missing.join(", ")}).`);
+}
+
 export async function listPinsByStatus(status: Status) {
   const notion = notionClient();
   const res = await notion.databases.query({
@@ -122,6 +145,7 @@ export interface PinSummary {
   pinUrl?: string;
   scheduledDate?: string;
   publishedDate?: string;
+  notes?: string;
   imageUrls: string[];
 }
 
@@ -145,6 +169,7 @@ function pageToSummary(page: NotionPage): PinSummary {
     pinUrl: p["Pin URL"]?.url ?? undefined,
     scheduledDate: p["Scheduled date"]?.date?.start,
     publishedDate: p["Published date"]?.date?.start,
+    notes: text(p["Notes"]),
     imageUrls: (p["Pin image"]?.files ?? [])
       .map((f) => f.file?.url ?? f.external?.url)
       .filter((u): u is string => !!u),

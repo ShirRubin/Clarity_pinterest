@@ -7,6 +7,7 @@ import { runDraft } from "./stages/draft.js";
 import { runDesign } from "./stages/design.js";
 import { runReview } from "./stages/review.js";
 import { runApprove } from "./stages/approve.js";
+import { runRevise } from "./stages/revise.js";
 import { runPublish } from "./stages/publish.js";
 import { runBlogpost } from "./stages/blogpost.js";
 import { runQueue } from "./queue.js";
@@ -19,7 +20,8 @@ const commands: Record<string, { desc: string; run: () => Promise<void> }> = {
   draft: { desc: "Idea → Drafted: write list, pin title, description, keywords (arg: limit, default 10)", run: () => runDraft(arg ?? 10) },
   design: { desc: "Drafted → Designed: render pin image variants + upload to Notion (arg: limit, default 5)", run: () => runDesign(arg ?? 5) },
   review: { desc: "Designed → In Review: stage for the Notion review queue", run: () => runReview(arg ?? 50) },
-  approve: { desc: "In Review → Approved/Rejected via local review page (arg: port, default 4178)", run: () => runApprove(arg ?? 4178) },
+  approve: { desc: "In Review → Approved / Needs changes / Rejected via local review page (arg: port, default 4178)", run: () => runApprove(arg ?? 4178) },
+  revise: { desc: "Needs changes → rewrite from your review notes, re-render, back to In Review (arg: limit, default 10)", run: () => runRevise(arg ?? 10) },
   publish: { desc: "Approved → Published: schedule + write per-variant packs to exports/packs/ (API posting in Phase 4)", run: () => runPublish(arg ?? 10) },
   blogpost: { desc: "Approved/Published lists → blog posts in Clarity_blog + Destination link → post URL (arg: limit, default 20)", run: () => runBlogpost(arg ?? 20) },
   stats: { desc: "Sync impressions/saves/clicks for Published pins", run: notYet("Phase 4") },

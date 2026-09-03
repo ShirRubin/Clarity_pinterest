@@ -9,7 +9,7 @@
     "generate": "tsx scripts/scheduled-run.ts",
     "setup-notion": "tsx scripts/setup-notion.ts",
     "backfill": "tsx scripts/backfill-to-notion.ts",
-    "test": "tsx --test tests/schedule.test.ts tests/approve.test.ts tests/queue.test.ts"
+    "test": "tsx --test tests/schedule.test.ts tests/approve.test.ts tests/queue.test.ts tests/revise.test.ts"
   },
   "dependencies": {
     "@notionhq/client": "^2.2.15",

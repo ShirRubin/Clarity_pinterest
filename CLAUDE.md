@@ -5,20 +5,23 @@ Automated content pipeline for pinterest.com/ClarityBucketLists: idea → bucket
 ## Commands
 
 ```bash
-npm run clarity -- <cmd>   # queue | ideas | draft | design | review | publish | blogpost | stats | run | approve
+npm run clarity -- <cmd>   # queue | ideas | draft | design | review | approve | revise | publish | blogpost | stats | run
 npm run clarity -- queue   # queue health: days of runway, overdue packs, lists to generate next
 npm run generate           # the unattended twice-weekly run (queue-aware; skips when the queue is healthy)
 npm run setup-notion       # one-time: creates the "Clarity Pins" DB (already done)
 npm run backfill           # idempotent import of data/backfill.json into Notion
 npx tsx scripts/parse-rss.ts   # rebuild data/backfill.json from data/rss/*.rss
-npm test                   # run the node:test suites (schedule + approve + queue)
+npm test                   # run the node:test suites (schedule + approve + queue + revise)
 npx tsc --noEmit           # typecheck
-clarity approve            # opens the local review page (In Review → Approved/Rejected) at 127.0.0.1:4178
+clarity approve            # opens the local review page (In Review → Approved / Needs changes / Rejected) at 127.0.0.1:4178
+clarity revise             # Needs changes → rewrites each list from your review notes, re-renders, back to In Review
 ```
 
 ## Architecture
 
-- **State machine**: the Notion `Status` select drives everything — `Idea → Drafted → Designed → In Review → Approved → Published` (+ `Rejected`, `Archived`). Each stage command picks up rows in its input status and advances them. The daily review happens via `clarity approve`'s local page (Notion flipping still works as a fallback).
+- **State machine**: the Notion `Status` select drives everything — `Idea → Drafted → Designed → In Review → Approved → Published` (+ `Needs changes`, `Rejected`, `Archived`). Each stage command picks up rows in its input status and advances them. The daily review happens via `clarity approve`'s local page (Notion flipping still works as a fallback).
+- **The revise loop** (third verdict on the review page): "Needs changes" parks a row in that status with your notes appended to `Notes` as `revise <date>: <what to fix>`. `clarity revise` feeds the CURRENT list + that feedback back to the model as a targeted edit (not a fresh list), returns the row to `Drafted`, then chains `design` + `review` so it lands back in the queue. The applied entry is retagged `revised <date>:` so a second pass only acts on newer feedback. Notes are **appended, never overwritten** — `appendNote` joins with ` | `.
+- `ensureStatusOptions()` in `notion.ts` syncs `STATUSES` into the live DB's Status select on every `clarity approve`, so adding a status to `schema.ts` is enough.
 - `src/schema.ts` — **single source of truth** for the DB schema, boards, themes, trends. Notion select options must not contain commas (the live board "Books, Learning & Culture" is stored as "Books · Learning & Culture").
 - `src/notion.ts` — client + typed `PinRow` accessors (`createPin`, `listPinsByStatus`).
 - `src/stages/*.ts` — one module per stage.

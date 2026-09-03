@@ -95,3 +95,51 @@ test("onAllDecided fires after the last decision", async () => {
   assert.equal(callbackFired, true);
   server.close();
 });
+
+test("a revise decision reaches the callback with its note", async () => {
+  const calls: unknown[][] = [];
+  const server = createApproveServer([pin("p1")], async (...a) => {
+    calls.push(a);
+  });
+  const port = await listen(server);
+  const res = await fetch(`http://127.0.0.1:${port}/decide`, {
+    method: "POST",
+    body: JSON.stringify({ pageId: "p1", decision: "revise", note: "items 3 and 7 are vague" }),
+  });
+  assert.equal(res.status, 200);
+  assert.deepEqual(calls, [["p1", "revise", "items 3 and 7 are vague"]]);
+  server.close();
+});
+
+test("revise without a note is refused — the rewrite has nothing to act on", async () => {
+  const calls: unknown[][] = [];
+  const server = createApproveServer([pin("p1")], async (...a) => {
+    calls.push(a);
+  });
+  const port = await listen(server);
+  for (const body of [
+    JSON.stringify({ pageId: "p1", decision: "revise" }),
+    JSON.stringify({ pageId: "p1", decision: "revise", note: "   " }),
+  ]) {
+    const res = await fetch(`http://127.0.0.1:${port}/decide`, { method: "POST", body });
+    assert.equal(res.status, 400);
+  }
+  assert.deepEqual(calls, []);
+  // still undecided, so a real decision is still accepted
+  const ok = await fetch(`http://127.0.0.1:${port}/decide`, {
+    method: "POST",
+    body: JSON.stringify({ pageId: "p1", decision: "revise", note: "shorten the title" }),
+  });
+  assert.equal(ok.status, 200);
+  server.close();
+});
+
+test("the page offers all three verdicts", async () => {
+  const server = createApproveServer([pin("p1")], async () => {});
+  const port = await listen(server);
+  const html = await (await fetch(`http://127.0.0.1:${port}/`)).text();
+  assert.match(html, /Approve \(A\)/);
+  assert.match(html, /Needs changes \(M\)/);
+  assert.match(html, /Reject \(R\)/);
+  server.close();
+});

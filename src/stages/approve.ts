@@ -1,10 +1,28 @@
-// Approve stage — In Review → Approved/Rejected via a local review page.
-// Serves the queue at 127.0.0.1:<port>, writes each decision straight to
-// Notion the moment it's clicked, and exits once every pin is decided.
-// Rejection notes land in the row's Notes so generation can learn later.
+// Approve stage — In Review → Approved / Needs changes / Rejected via a local
+// review page. Serves the queue at 127.0.0.1:<port>, writes each decision
+// straight to Notion the moment it's clicked, and exits once every pin is
+// decided. Notes are appended (never overwritten) so the row keeps its history;
+// a "Needs changes" note is what `clarity revise` reads to rewrite the list.
 import { exec } from "node:child_process";
-import { pinsByStatus, updatePin } from "../notion.js";
-import { createApproveServer, type ApprovePin } from "../approve/server.js";
+import { ensureStatusOptions, pinsByStatus, updatePin } from "../notion.js";
+import { createApproveServer, type ApprovePin, type Decision } from "../approve/server.js";
+import type { Status } from "../schema.js";
+
+const STATUS_FOR: Record<Decision, Status> = {
+  approve: "Approved",
+  reject: "Rejected",
+  revise: "Needs changes",
+};
+
+// `revise` is the marker `clarity revise` looks for; the others are history only.
+const MARKER_FOR: Record<Decision, string> = {
+  approve: "review",
+  reject: "review",
+  revise: "revise",
+};
+
+export const appendNote = (existing: string | undefined, entry: string): string =>
+  existing?.trim() ? `${existing.trim()} | ${entry}` : entry;
 
 function openBrowser(url: string): void {
   const cmd =
@@ -17,6 +35,7 @@ function openBrowser(url: string): void {
 }
 
 export async function runApprove(port = 4178): Promise<void> {
+  await ensureStatusOptions();
   const rows = await pinsByStatus("In Review");
   if (!rows.length) {
     console.log("No rows In Review — run `clarity review` first.");
@@ -35,16 +54,25 @@ export async function runApprove(port = 4178): Promise<void> {
   for (const p of pins) {
     if (!p.imageUrls.length) console.warn(`⚠ ${p.name} has no images — run \`clarity design\`?`);
   }
+  const notesByPage = new Map(rows.map((r) => [r.pageId, r.notes]));
   const today = new Date().toISOString().slice(0, 10);
+  let needsRevision = 0;
   const server = createApproveServer(
     pins,
     async (pageId, decision, note) => {
+      const entry = note ? `${MARKER_FOR[decision]} ${today}: ${note}` : undefined;
       await updatePin(pageId, {
-        status: decision === "approve" ? "Approved" : "Rejected",
-        ...(note ? { notes: `review ${today}: ${note}` } : {}),
+        status: STATUS_FOR[decision],
+        ...(entry ? { notes: appendNote(notesByPage.get(pageId), entry) } : {}),
       });
+      if (decision === "revise") needsRevision++;
     },
     () => {
+      if (needsRevision) {
+        console.log(
+          `${needsRevision} sent back for changes — run \`clarity revise\` to rewrite them from your notes.`,
+        );
+      }
       console.log("All decided — run `clarity publish` to schedule the approved pins.");
       server.close();
     },

@@ -67,6 +67,23 @@ const PALETTES: Record<string, Palette[]> = {
   ],
 };
 
+// Subject palettes: when the list's SUBJECT beats its board for colour. A
+// Christmas list living on the TV & Movie board is "Pop culture" by theme and
+// came out sky blue; festive red-and-green is what a saver expects (user
+// feedback 2026-09-02). Matched against the list name, first match wins.
+const SUBJECT_PALETTES: [RegExp, Palette][] = [
+  // Christmas: holly red title + pine green checkboxes on warm cream — red and
+  // green without leaving the pastel-background brand.
+  [/christmas|advent/i,
+    P("#F7ECE6", "#FDF6F2", "#C4453A", "#8E2A22", "#E7A79C", "#4F7D57", "#2E2320")],
+  // New Year: midnight indigo. Two earlier passes were rejected — champagne-gold
+  // on cream read washed out, and the higher-contrast gold read "yellow orange"
+  // (2026-09-02). Indigo keeps the midnight idea, clears both complaints, and
+  // leaves the colour pop to the 🎉 decoration.
+  [/new year|nye/i,
+    P("#E8E7F1", "#F5F5FA", "#3D3F86", "#2A2B5E", "#A9AAD4", "#4A4C7A", "#211F30")],
+];
+
 const BOARD_FALLBACK: Record<string, keyof typeof PALETTES> = {
   "TV & Movie Bucket Lists": "Pop culture",
   "Aesthetic Life Lists": "It-girl / Aesthetic",
@@ -114,6 +131,8 @@ function themeKey(theme?: string, board?: string): string {
 }
 
 export function paletteFor(theme?: string, board?: string, seed = ""): Palette {
+  const subject = SUBJECT_PALETTES.find(([re]) => re.test(seed));
+  if (subject) return subject[1];
   const key = themeKey(theme, board);
   const variants = PALETTES[key];
   return variants[variantIndex(key, seed, variants.length)];
@@ -123,6 +142,10 @@ export function paletteFor(theme?: string, board?: string, seed = ""): Palette {
 // Concrete subjects (a fandom, an activity) outrank season words: "Autumn
 // Reading" is a books list that happens to be autumnal, so it gets 📚 not 🍂.
 const EMOJI_KEYWORDS: [RegExp, string][] = [
+  // Christmas/New Year sit above the generic movie rule on purpose: a Christmas
+  // movie list is a Christmas list first (user feedback 2026-09-02).
+  [/christmas|advent/i, "🎄"],
+  [/new year|nye/i, "🎉"],
   [/twilight|vampire/i, "🦇"],
   [/bridgerton|regency/i, "👑"],
   [/stargaz|astro|dark.?sky|galaxy/i, "🔭"],
