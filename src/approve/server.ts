@@ -20,11 +20,14 @@ export type Decision = "approve" | "reject" | "revise";
 
 const DECISIONS: readonly Decision[] = ["approve", "reject", "revise"];
 export type OnDecision = (pageId: string, decision: Decision, note?: string) => Promise<void>;
+/** Resolve a freshly-signed URL for one pin image, by page and image index. */
+export type ResolveImage = (pageId: string, index: number) => Promise<string | undefined>;
 
 export function createApproveServer(
   pins: ApprovePin[],
   onDecision: OnDecision,
   onAllDecided?: () => void,
+  resolveImage?: ResolveImage,
 ): http.Server {
   // Note: callers must not construct with an empty pins array if they rely on onAllDecided.
   const remaining = new Set(pins.map((p) => p.pageId));
@@ -33,6 +36,31 @@ export function createApproveServer(
     if (req.method === "GET" && req.url === "/") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       res.end(renderApprovePage(pins));
+      return;
+    }
+    // Notion signs image URLs for an hour. Embedding them once meant every image
+    // 403'd on a review session left open longer than that, so the page points
+    // here and we re-sign on demand.
+    if (req.method === "GET" && req.url?.startsWith("/img/")) {
+      const m = /^\/img\/([^/?]+)\/(\d+)$/.exec(req.url);
+      if (!m || !resolveImage) {
+        res.writeHead(404);
+        res.end("no image");
+        return;
+      }
+      try {
+        const url = await resolveImage(m[1], Number(m[2]));
+        if (!url) {
+          res.writeHead(404);
+          res.end("no image");
+          return;
+        }
+        res.writeHead(302, { location: url, "cache-control": "no-store" });
+        res.end();
+      } catch {
+        res.writeHead(502);
+        res.end("image lookup failed");
+      }
       return;
     }
     if (req.method === "POST" && req.url === "/decide") {

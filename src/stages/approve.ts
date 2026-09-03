@@ -4,7 +4,7 @@
 // decided. Notes are appended (never overwritten) so the row keeps its history;
 // a "Needs changes" note is what `clarity revise` reads to rewrite the list.
 import { exec } from "node:child_process";
-import { ensureStatusOptions, pinsByStatus, updatePin } from "../notion.js";
+import { ensureStatusOptions, pinImageUrls, pinsByStatus, updatePin } from "../notion.js";
 import { createApproveServer, type ApprovePin, type Decision } from "../approve/server.js";
 import type { Status } from "../schema.js";
 
@@ -76,6 +76,8 @@ export async function runApprove(port = 4178): Promise<void> {
       console.log("All decided — run `clarity publish` to schedule the approved pins.");
       server.close();
     },
+    // Re-signed per request: Notion's file URLs expire after an hour.
+    async (pageId, index) => (await pinImageUrls(pageId))[index],
   );
   server.on("error", (err: NodeJS.ErrnoException) => {
     if (err.code === "EADDRINUSE") {

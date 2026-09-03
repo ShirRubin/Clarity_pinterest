@@ -176,6 +176,19 @@ function pageToSummary(page: NotionPage): PinSummary {
   };
 }
 
+/**
+ * Freshly-signed image URLs for one page. Notion signs file URLs with a 1-hour
+ * expiry, so a URL captured when a long-lived process started will 403 later —
+ * the review page re-fetches through this instead of embedding them once.
+ */
+export async function pinImageUrls(pageId: string): Promise<string[]> {
+  const notion = notionClient();
+  const page = (await notion.pages.retrieve({ page_id: pageId })) as unknown as NotionPage;
+  return (page.properties["Pin image"]?.files ?? [])
+    .map((f) => f.file?.url ?? f.external?.url)
+    .filter((u): u is string => !!u);
+}
+
 // --- File uploads (raw fetch: @notionhq/client 2.x predates the file-upload API) ---
 
 const NOTION_VERSION = "2022-06-28";

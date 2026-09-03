@@ -4,7 +4,11 @@
 import type { ApprovePin } from "./server.js";
 
 export function renderApprovePage(pins: ApprovePin[]): string {
-  const data = JSON.stringify(pins).replace(/</g, "\\u003c");
+  // Ship an image COUNT, never the URLs: Notion signs them for an hour, so the
+  // captured ones are stale by the time a long review session reaches them. The
+  // page requests /img/<pageId>/<i> and the server re-signs per request.
+  const forPage = pins.map(({ imageUrls, ...rest }) => ({ ...rest, imageCount: imageUrls.length }));
+  const data = JSON.stringify(forPage).replace(/</g, "\\u003c");
   return `<!doctype html>
 <html><head><meta charset="utf-8"><title>Clarity — review queue</title>
 <style>
@@ -60,7 +64,8 @@ for (const pin of pins) {
   const el = document.createElement("section");
   el.className = "card"; el.tabIndex = 0; el.dataset.id = pin.pageId;
   el.innerHTML =
-    '<div class="imgs">' + pin.imageUrls.map(u => '<img src="' + u + '">').join("") + '</div>' +
+    '<div class="imgs">' + Array.from({ length: pin.imageCount }, (_, i) =>
+      '<img loading="lazy" src="/img/' + pin.pageId + '/' + i + '">').join("") + '</div>' +
     '<span class="board">' + pin.board + '</span>' +
     '<h2>' + (pin.pinTitle || pin.name) + '</h2>' +
     '<p class="desc">' + pin.pinDescription + '</p>' +

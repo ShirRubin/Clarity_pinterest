@@ -143,3 +143,39 @@ test("the page offers all three verdicts", async () => {
   assert.match(html, /Reject \(R\)/);
   server.close();
 });
+
+test("images are served through the proxy, re-signed per request", async () => {
+  const withImage: ApprovePin = { ...pin("p1"), imageUrls: ["stale-url-1", "stale-url-2"] };
+  let calls = 0;
+  const server = createApproveServer([withImage], async () => {}, undefined, async (pageId, i) => {
+    calls++;
+    return `https://example.test/${pageId}/${i}.png?sig=fresh`;
+  });
+  const port = await listen(server);
+
+  // The page must NOT embed the captured URLs — they expire after an hour. It
+  // ships a count instead and builds /img/<pageId>/<i> srcs in the browser.
+  const html = await (await fetch(`http://127.0.0.1:${port}/`)).text();
+  assert.doesNotMatch(html, /stale-url-1/);
+  assert.doesNotMatch(html, /stale-url-2/);
+  assert.match(html, /"imageCount":2/);
+  assert.match(html, /src="\/img\//);
+
+  const res = await fetch(`http://127.0.0.1:${port}/img/p1/1`, { redirect: "manual" });
+  await res.text();
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.get("location"), "https://example.test/p1/1.png?sig=fresh");
+  assert.equal(calls, 1);
+  server.close();
+});
+
+test("a missing image is a 404, not a crash", async () => {
+  const server = createApproveServer([pin("p1")], async () => {}, undefined, async () => undefined);
+  const port = await listen(server);
+  for (const path of ["/img/p1/9", "/img/nonsense"]) {
+    const r = await fetch(`http://127.0.0.1:${port}${path}`);
+    await r.text();
+    assert.equal(r.status, 404);
+  }
+  server.close();
+});
