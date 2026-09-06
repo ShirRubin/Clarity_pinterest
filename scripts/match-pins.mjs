@@ -16,6 +16,23 @@ for (const r of rows) {
   byName.set(norm(r.name), r);
 }
 
+// Pre-pipeline pins whose posts were hand-written with a different slug — no Notion
+// title match possible, so map them explicitly (verified on disk 2026-09-06).
+const BY_ID = {
+  "1100356121462085246": "sister-goals",
+  "1100356121462075543": "coding-for-beginners",
+  "1100356121462050938": "theatre-kid-starter",
+  "1100356121461997941": "taylor-swift-bucket-list",
+  "1100356121461989988": "beyonce-bucket-list",
+  "1100356121461967790": "musical-movies",
+  "1100356121459136463": "shower-time-bucket-list",
+  "1100356121458726809": "instagram-posts-bucket-list",
+  "1100356121458624873": "tiktok-posts-bucket-list",
+  "1100356121455161925": "figma-bucket-list",
+  "1100356121455145079": "robotics-bucket-list",
+  "1100356121455108308": "canva-bucket-list",
+};
+
 const out = [];
 const miss = [];
 for (const line of readFileSync("exports/pinterest-pins.txt", "utf8").split("\n").filter(Boolean)) {
@@ -31,6 +48,7 @@ for (const line of readFileSync("exports/pinterest-pins.txt", "utf8").split("\n"
     r = [...byName.entries()].find(([n]) => n.replace(/^the /, "").startsWith(head))?.[1];
   }
   if (r) out.push({ kind, id, sched: sched ? +sched : null, title, to: r.to, via: r.name });
+  else if (BY_ID[id]) out.push({ kind, id, sched: null, title, to: `https://clarity-lists.com/posts/${BY_ID[id]}`, via: "explicit slug" });
   else miss.push({ kind, id, title });
 }
 writeFileSync("exports/relink-pins.json", JSON.stringify(out, null, 2));
