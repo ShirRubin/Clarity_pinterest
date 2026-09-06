@@ -98,3 +98,33 @@ test("past-due packs do not pad the runway", () => {
 test("VARIANTS_PER_LIST tracks the real template count", () => {
   assert.equal(VARIANTS_PER_LIST, TEMPLATE_NAMES.length);
 });
+
+// --- packs already submitted to Pinterest's native scheduler -----------------
+// Posted packs move to exports/posted/ by hand, but a pack dated in the future
+// is still holding that slot in Pinterest's scheduler. If the calendar ignores
+// them the next publish run double-books those days.
+
+test("submitted packs still count as forward cover", () => {
+  const r = runwayFromPackNames([], "2026-09-06", [pack("2026-09-20")]);
+  assert.equal(r.packsRemaining, 1);
+  assert.equal(r.lastScheduledDate, "2026-09-20");
+  assert.equal(r.daysOfRunway, 14);
+});
+
+test("submitted packs are never counted as past due", () => {
+  // Already-published pins are done, not a backlog demanding action.
+  const r = runwayFromPackNames([], "2026-09-06", [pack("2026-08-27"), pack("2026-09-01")]);
+  assert.equal(r.pastDue, 0);
+  assert.equal(r.packsRemaining, 0);
+});
+
+test("pending and submitted packs share one calendar", () => {
+  const r = runwayFromPackNames(
+    [pack("2026-09-04"), pack("2026-09-08")],
+    "2026-09-06",
+    [pack("2026-09-15")],
+  );
+  assert.equal(r.pastDue, 1);              // only the pending 09-04
+  assert.equal(r.packsRemaining, 2);       // 09-08 + 09-15
+  assert.equal(r.lastScheduledDate, "2026-09-15");
+});

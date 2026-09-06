@@ -1,10 +1,13 @@
 // Queue health — how far ahead the posting calendar runs, and how many new lists
 // the next generation run should make to keep it there.
 //
-// The calendar of record is exports/packs/ (see stages/publish.ts): one dated
-// directory per scheduled-but-unposted pin. Runway = days from today to the last
-// dated pack. Overdue packs are counted and reported but never treated as cover —
-// a pile of missed posts must not make the queue look healthy.
+// The calendar of record is exports/packs/ + exports/posted/ (see stages/publish.ts):
+// one dated directory per pin. A pack moves to posted/ by hand once it has been
+// handed to Pinterest's native scheduler, but a future-dated one is still holding
+// that day's slot, so both directories are read. Runway = days from today to the
+// last dated pack. Overdue *pending* packs are counted and reported but never
+// treated as cover — a pile of missed posts must not make the queue look healthy;
+// submitted packs are already dealt with and are never past due.
 //
 // The arithmetic half is pure so tests/queue.test.ts can pin it down; the async
 // half reads the packs directory and Notion.
@@ -39,19 +42,36 @@ export interface Runway {
   daysOfRunway: number;
 }
 
-/** Read the calendar out of `exports/packs/` directory names (`YYYY-MM-DD--slug--template`). */
-export function runwayFromPackNames(names: string[], today: string): Runway {
-  const dates: string[] = [];
+const datesOf = (names: string[]): string[] => {
+  const out: string[] = [];
   for (const name of names) {
     const m = /^(\d{4}-\d{2}-\d{2})--/.exec(name);
-    if (m) dates.push(m[1]);
+    if (m) out.push(m[1]);
   }
+  return out;
+};
+
+/**
+ * Read the calendar out of pack directory names (`YYYY-MM-DD--slug--template`).
+ * `pending` is exports/packs/ (still to hand to Pinterest); `submitted` is
+ * exports/posted/ (already in Pinterest's scheduler). Both hold their slot, but
+ * only a pending pack whose date has passed is past due.
+ */
+export function runwayFromPackNames(
+  pending: string[],
+  today: string,
+  submitted: string[] = [],
+): Runway {
+  const pendingDates = datesOf(pending);
+  const dates = [...pendingDates, ...datesOf(submitted)];
   if (!dates.length) return { packsRemaining: 0, pastDue: 0, daysOfRunway: 0 };
 
-  const pastDue = dates.filter((d) => d < today).length;
-  const last = dates.reduce((a, b) => (a > b ? a : b));
+  const pastDue = pendingDates.filter((d) => d < today).length;
+  const upcoming = dates.filter((d) => d >= today);
+  if (!upcoming.length) return { packsRemaining: 0, pastDue, daysOfRunway: 0 };
+  const last = upcoming.reduce((a, b) => (a > b ? a : b));
   return {
-    packsRemaining: dates.length - pastDue,
+    packsRemaining: upcoming.length,
     pastDue,
     lastScheduledDate: last,
     daysOfRunway: Math.max(0, Math.round((toMs(last) - toMs(today)) / DAY_MS)),
@@ -74,9 +94,9 @@ export interface QueueHealth extends Runway {
   needed: number;
 }
 
-async function packNames(): Promise<string[]> {
+async function packNames(dir: string): Promise<string[]> {
   try {
-    return await readdir(path.join("exports", "packs"));
+    return await readdir(path.join("exports", dir));
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
     return [];
@@ -84,7 +104,8 @@ async function packNames(): Promise<string[]> {
 }
 
 export async function queueHealth(today = new Date().toISOString().slice(0, 10)): Promise<QueueHealth> {
-  const runway = runwayFromPackNames(await packNames(), today);
+  const [pending, submitted] = await Promise.all([packNames("packs"), packNames("posted")]);
+  const runway = runwayFromPackNames(pending, today, submitted);
 
   const inFlight: Partial<Record<Status, number>> = {};
   for (const row of await listAllPins()) {

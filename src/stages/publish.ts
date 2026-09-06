@@ -32,27 +32,38 @@ const slugify = (s: string) =>
 
 const destFor = (row: PinSummary) => (row.board && BOARD_URLS[row.board]) || PROFILE_URL;
 
-// Scheduled-but-unposted calendar = the pack dirs on disk.
-// exports/packs/ is the calendar of record for scheduled-but-unposted pins — deleting it loses the schedule (Notion only holds each row's earliest variant date).
+// The posting calendar = the pack dirs on disk, across BOTH directories.
+// exports/packs/ holds pins not yet handed to Pinterest; exports/posted/ holds
+// ones already handed over. Posted packs are moved by hand after a batch session,
+// but a future-dated one is still occupying that slot in Pinterest's scheduler —
+// reading only packs/ made the calendar look empty and let a publish run stack a
+// fresh 3/day on top of pins already scheduled. Past-dated posted packs matter
+// too: they are live pins, so the 72h same-URL rule still has to see them.
+// Deleting either directory loses the schedule (Notion only holds each row's
+// earliest variant date).
+const CALENDAR_DIRS = ["packs", "posted"];
+
 async function readCalendarFromPacks(): Promise<ScheduledEntry[]> {
-  const dir = path.join("exports", "packs");
-  let names: string[] = [];
-  try {
-    names = await readdir(dir);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
-    return [];
-  }
   const out: ScheduledEntry[] = [];
-  for (const name of names) {
-    const m = /^(\d{4}-\d{2}-\d{2})--/.exec(name);
-    if (!m) continue;
+  for (const sub of CALENDAR_DIRS) {
+    const dir = path.join("exports", sub);
+    let names: string[] = [];
     try {
-      const txt = await readFile(path.join(dir, name, "post.txt"), "utf8");
-      const dest = /^DESTINATION LINK: (\S+)/m.exec(txt)?.[1];
-      if (dest) out.push({ date: m[1], destUrl: dest });
-    } catch {
-      // pack without post.txt — ignore
+      names = await readdir(dir);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+      continue;
+    }
+    for (const name of names) {
+      const m = /^(\d{4}-\d{2}-\d{2})--/.exec(name);
+      if (!m) continue;
+      try {
+        const txt = await readFile(path.join(dir, name, "post.txt"), "utf8");
+        const dest = /^DESTINATION LINK: (\S+)/m.exec(txt)?.[1];
+        if (dest) out.push({ date: m[1], destUrl: dest });
+      } catch {
+        // pack without post.txt — ignore
+      }
     }
   }
   return out;
