@@ -24,7 +24,7 @@ export const TARGET_RUNWAY_DAYS = 14;
 export const MAX_LISTS_PER_RUN = 6;
 
 /** Each approved list becomes one pin per template. Guarded against drift in tests. */
-export const VARIANTS_PER_LIST = 2;
+export const VARIANTS_PER_LIST = 4;
 
 /** Rows generated but not yet packed — they will become packs without new generation. */
 export const IN_FLIGHT_STATUSES: Status[] = ["Idea", "Drafted", "Designed", "In Review", "Approved"];

@@ -10,7 +10,9 @@ import { paletteFor, emojiFor } from "./palettes.js";
 const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "templates");
 
 // "soft-editorial" (serif) existed briefly — user rejected it on the Phase 2 pilot.
-export const TEMPLATE_NAMES = ["classic-checklist", "bold-panel"] as const;
+// Two more chosen 2026-09-06 from a six-candidate pilot (sticky-note, big-numbers won;
+// split-poster, pill-chips, night-mode, blog-sticker rejected and deleted).
+export const TEMPLATE_NAMES = ["classic-checklist", "bold-panel", "sticky-note", "big-numbers"] as const;
 export type TemplateName = (typeof TEMPLATE_NAMES)[number];
 
 export interface PinContent {

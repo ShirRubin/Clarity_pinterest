@@ -1,0 +1,76 @@
+<!doctype html>
+<!-- Big numbers (chosen 2026-09-06) — no checkboxes. Each item leads with a huge accent
+     numeral in a two-column grid, so the pin reads at thumbnail size and looks
+     nothing like the two list-with-boxes templates. Same brand fonts. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: "Fredoka"; src: url("fonts/Fredoka-700.woff2") format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Fredoka"; src: url("fonts/Fredoka-600.woff2") format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Patrick Hand SC"; src: url("fonts/PatrickHandSC-400.woff2") format("woff2"); font-weight: 400; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1000px; height: 1500px; }
+  .page {
+    width: 1000px; height: 1500px; overflow: hidden; position: relative;
+    background: linear-gradient(180deg, {{BG}} 0%, {{BG2}} 100%);
+    display: flex; flex-direction: column; padding: 72px 64px 40px;
+  }
+  .deco {
+    position: absolute; top: -40px; right: -60px; font-size: 300px; line-height: 1;
+    opacity: 0.16; transform: rotate(10deg); font-family: "Segoe UI Emoji", sans-serif;
+  }
+  header {
+    position: relative; z-index: 1; padding-bottom: 28px; margin-bottom: 24px;
+    border-bottom: 5px solid {{ACCENT}};
+  }
+  .title-sub {
+    font-family: "Fredoka"; font-weight: 600; text-transform: uppercase;
+    color: {{ACCENT}}; font-size: 30px; letter-spacing: 12px; margin-bottom: 10px;
+  }
+  .title-main {
+    font-family: "Fredoka"; font-weight: 700; text-transform: uppercase;
+    color: {{ACCENT_DARK}}; font-size: {{TITLE_SIZE}}px; line-height: 1.02; max-width: 760px;
+  }
+  .checklist {
+    list-style: none; counter-reset: item; flex: 1; position: relative; z-index: 1;
+    display: grid; grid-template-columns: 1fr 1fr; column-gap: 36px; row-gap: 8px;
+    align-content: space-evenly;
+  }
+  .checklist li { counter-increment: item; display: flex; align-items: flex-start; gap: 18px; }
+  .checklist li::before {
+    content: counter(item, decimal-leading-zero);
+    font-family: "Fredoka"; font-weight: 700; font-size: 74px; line-height: 0.9;
+    color: {{ACCENT}}; min-width: 96px;
+  }
+  .box { display: none; }
+  .item-text {
+    font-family: "Patrick Hand SC"; font-size: 33px; line-height: 1.06;
+    color: {{TEXT}}; text-transform: uppercase; padding-top: 8px;
+  }
+  .open-slot { grid-column: 1 / -1; justify-content: center; counter-increment: none; margin-top: 6px; }
+  .open-slot::before { content: none; }
+  .open-slot .item-text {
+    background: {{ACCENT}}; color: #fff; font-family: "Fredoka"; font-weight: 600;
+    font-size: 30px; text-transform: none; padding: 16px 36px; border-radius: 999px;
+  }
+  footer {
+    text-align: center; padding-top: 26px; position: relative; z-index: 1;
+    font-family: "Fredoka"; font-weight: 600; font-size: 32px; color: {{ACCENT_DARK}};
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="deco">{{EMOJI}}</div>
+    <header>
+      <div class="title-sub">Bucket List</div>
+      <div class="title-main">{{TITLE_MAIN}}</div>
+    </header>
+    <ul class="checklist">
+      {{ITEMS}}
+    </ul>
+    <footer>@claritybucketlists</footer>
+  </div>
+</body>
+</html>

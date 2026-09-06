@@ -4,7 +4,7 @@
 import "dotenv/config";
 import { runIdeas } from "./stages/ideas.js";
 import { runDraft } from "./stages/draft.js";
-import { runDesign } from "./stages/design.js";
+import { runDesign, runDesignTopUp } from "./stages/design.js";
 import { runReview } from "./stages/review.js";
 import { runApprove } from "./stages/approve.js";
 import { runRevise } from "./stages/revise.js";
@@ -19,6 +19,7 @@ const commands: Record<string, { desc: string; run: () => Promise<void> }> = {
   ideas: { desc: "Generate new bucket-list ideas → rows in status Idea (arg: count, default 5)", run: () => runIdeas(arg ?? 5) },
   draft: { desc: "Idea → Drafted: write list, pin title, description, keywords (arg: limit, default 10)", run: () => runDraft(arg ?? 10) },
   design: { desc: "Drafted → Designed: render pin image variants + upload to Notion (arg: limit, default 5)", run: () => runDesign(arg ?? 5) },
+  topup: { desc: "Render any template a not-yet-posted row is missing (after TEMPLATE_NAMES grows) and re-attach the full set (arg: limit, default 100)", run: () => runDesignTopUp(arg ?? 100) },
   review: { desc: "Designed → In Review: stage for the Notion review queue", run: () => runReview(arg ?? 50) },
   approve: { desc: "In Review → Approved / Needs changes / Rejected via local review page (arg: port, default 4178)", run: () => runApprove(arg ?? 4178) },
   revise: { desc: "Needs changes → rewrite from your review notes, re-render, back to In Review (arg: limit, default 10)", run: () => runRevise(arg ?? 10) },

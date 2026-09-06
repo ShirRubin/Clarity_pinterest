@@ -67,19 +67,19 @@ test("an empty queue is capped at the per-run maximum", () => {
 });
 
 test("a small gap asks for only what closes it", () => {
-  // 12 days of runway, 2 days short: 2 days x 3 pins = 6 packs / 2 variants = 3 lists.
+  // 12 days of runway, 2 days short: 2 days x 3 pins = 6 packs / 4 variants = 2 lists.
   const r = runwayFromPackNames([pack("2026-09-11")], "2026-08-30");
   assert.equal(r.daysOfRunway, 12);
-  assert.equal(listsNeeded(r, 0), 3);
+  assert.equal(listsNeeded(r, 0), 2);
 });
 
 test("lists already in flight count against what the run needs to make", () => {
-  const r = runwayFromPackNames([pack("2026-09-11")], "2026-08-30"); // needs 3
-  assert.equal(listsNeeded(r, 2), 1);
+  const r = runwayFromPackNames([pack("2026-09-11")], "2026-08-30"); // needs 2
+  assert.equal(listsNeeded(r, 1), 1);
 });
 
 test("more in flight than needed asks for nothing, never a negative", () => {
-  const r = runwayFromPackNames([pack("2026-09-11")], "2026-08-30"); // needs 3
+  const r = runwayFromPackNames([pack("2026-09-11")], "2026-08-30"); // needs 2
   assert.equal(listsNeeded(r, 9), 0);
 });
 

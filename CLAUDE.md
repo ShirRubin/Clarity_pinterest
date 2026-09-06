@@ -5,7 +5,7 @@ Automated content pipeline for pinterest.com/ClarityBucketLists: idea → bucket
 ## Commands
 
 ```bash
-npm run clarity -- <cmd>   # queue | ideas | draft | design | review | approve | revise | publish | blogpost | stats | run
+npm run clarity -- <cmd>   # queue | ideas | draft | design | topup | review | approve | revise | publish | blogpost | stats | run
 npm run clarity -- queue   # queue health: days of runway, overdue packs, lists to generate next
 npm run generate           # the unattended twice-weekly run (queue-aware; skips when the queue is healthy)
 npm run setup-notion       # one-time: creates the "Clarity Pins" DB (already done)
@@ -26,7 +26,7 @@ clarity revise             # Needs changes → rewrites each list from your revi
 - `src/notion.ts` — client + typed `PinRow` accessors (`createPin`, `listPinsByStatus`).
 - `src/stages/*.ts` — one module per stage.
 - `src/claude.ts` — **generation runs on the Claude Code CLI, not the Anthropic SDK.** It spawns `claude -p --output-format json --system-prompt … --json-schema …`, which authenticates with the user's Claude Max subscription, so no `ANTHROPIC_API_KEY` is needed and generation costs nothing beyond the subscription. Two constraints worth remembering: `--json-schema` requires a top-level **object**, so array results are wrapped in `{"result": …}` and unwrapped in `generateJSON`; and never pass `--bare`, which forces API-key auth and ignores the OAuth login.
-- `src/render/` + `templates/` — HTML→PNG pin renderer, 1000×1500, 3–5 template variants per list (Phase 2).
+- `src/render/` + `templates/` — HTML→PNG pin renderer, 1000×1500, **4 template variants per list** (`classic-checklist`, `bold-panel`, `sticky-note`, `big-numbers`; see `DESIGN.md`). After adding a template, run `clarity topup` so rows already past Drafted get the new variant — `publish` will not schedule a row until every template is packed.
 - `src/destination.ts` — where a pin sends the reader: the list's blog post on clarity-lists.com (Notion link → post on disk → board URL fallback with a warning). Shared by `publish` and `blogpost`; pure and unit-tested. Every pack written before 2026-09-06 linked to a board — `scripts/relink-pins.ts` (Notion + pack files) and `scripts/match-pins.mjs` (Pinterest pin → post) were the one-off migration.
 - `data/backfill.json` — the 99 live pins (60 via board RSS feeds, +39 on 2026-09-06 via `scripts/import-postless.ts` from Pinterest's own pin data) scraped from the live profile (via board RSS feeds; logged-out board pages hide pin links, RSS is the reliable source: `https://www.pinterest.com/claritybucketlists/<board-slug>.rss`).
 - `exports/` — publish packs (git-ignored), Stage A posting until Pinterest API Standard access.

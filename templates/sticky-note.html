@@ -1,0 +1,84 @@
+<!doctype html>
+<!-- Sticky note (chosen 2026-09-06) — the checklist lives on a slightly tilted paper
+     square held by a tape strip, gradient behind it, the subject emoji stuck on
+     the corner like a sticker. Planner / scrapbook feel. Same brand fonts. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: "Fredoka"; src: url("fonts/Fredoka-700.woff2") format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Fredoka"; src: url("fonts/Fredoka-600.woff2") format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Patrick Hand SC"; src: url("fonts/PatrickHandSC-400.woff2") format("woff2"); font-weight: 400; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1000px; height: 1500px; }
+  .page {
+    width: 1000px; height: 1500px; overflow: hidden; position: relative;
+    background: linear-gradient(160deg, {{BG}} 0%, {{BG2}} 100%);
+    display: flex; flex-direction: column; align-items: center; padding: 92px 60px 36px;
+  }
+  .paper {
+    position: relative; width: 880px; flex: 1; background: #fffdf8; border-radius: 18px;
+    transform: rotate(-1.6deg);
+    box-shadow: 0 30px 70px rgba(0,0,0,0.14), 0 4px 0 rgba(0,0,0,0.04);
+    padding: 96px 60px 52px; display: flex; flex-direction: column;
+  }
+  .tape {
+    position: absolute; top: -26px; left: 50%; width: 300px; height: 60px;
+    transform: translateX(-50%) rotate(2.5deg); border-radius: 4px; opacity: 0.92;
+    background: repeating-linear-gradient(45deg, {{ACCENT_SOFT}} 0 14px, rgba(255,255,255,0.55) 14px 28px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .sticker {
+    position: absolute; top: -44px; right: -34px; font-size: 120px; line-height: 1;
+    transform: rotate(12deg); font-family: "Segoe UI Emoji", sans-serif;
+    filter: drop-shadow(0 8px 12px rgba(0,0,0,0.18));
+  }
+  header { text-align: center; margin-bottom: 26px; }
+  .title-main {
+    font-family: "Fredoka"; font-weight: 700; text-transform: uppercase;
+    color: {{ACCENT}}; font-size: {{TITLE_SIZE}}px; line-height: 1.04;
+  }
+  .title-sub {
+    font-family: "Patrick Hand SC"; color: {{ACCENT_SOFT}}; font-size: 44px;
+    letter-spacing: 12px; text-transform: uppercase; margin-top: 8px;
+  }
+  .checklist {
+    list-style: none; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly;
+  }
+  .checklist li { display: flex; align-items: center; gap: 26px; }
+  .box {
+    flex: 0 0 42px; width: 42px; height: 42px; border: 3.5px solid {{CHECK}};
+    border-radius: 14px 9px 16px 8px; background: #fff; transform: rotate(-3deg);
+  }
+  .checklist li:nth-child(even) .box { transform: rotate(4deg); border-radius: 8px 15px 9px 14px; }
+  .item-text {
+    font-family: "Patrick Hand SC"; font-size: 38px; line-height: 1.08;
+    color: {{TEXT}}; text-transform: uppercase; padding-top: 2px;
+  }
+  .open-slot { justify-content: center; text-align: center; }
+  .open-slot .item-text {
+    color: {{ACCENT}}; font-family: "Fredoka"; font-weight: 600; font-size: 32px; text-transform: none;
+  }
+  footer {
+    text-align: center; padding-top: 30px;
+    font-family: "Fredoka"; font-weight: 600; font-size: 34px; color: {{ACCENT}};
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="paper">
+      <div class="tape"></div>
+      <div class="sticker">{{EMOJI}}</div>
+      <header>
+        <div class="title-main">{{TITLE_MAIN}}</div>
+        <div class="title-sub">Bucket List</div>
+      </header>
+      <ul class="checklist">
+        {{ITEMS}}
+      </ul>
+    </div>
+    <footer>@claritybucketlists</footer>
+  </div>
+</body>
+</html>
