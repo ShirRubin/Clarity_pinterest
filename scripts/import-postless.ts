@@ -28,6 +28,26 @@ const BOARD: Record<string, Board> = {
   "Manifest & Magic Life": "Manifest & Magic Life",
   "Luxury & Lifestyle": "Luxury & Lifestyle",
   "Career & Learn New Skills": "Career & Learn New Skills",
+  // Boards from the account's earlier era, folded into today's 8 (category follows the board)
+  "Healing & Glow-Up": "Aesthetic Life Lists",
+  "Wellness & Fitness": "Aesthetic Life Lists",
+  "Bestie & Family Goals": "Aesthetic Life Lists",
+  "Family related bucket lists (restored)": "Aesthetic Life Lists",
+  "Food Adventures": "Luxury & Lifestyle",
+};
+// "Pins by you" is Pinterest's catch-all, so those are routed by pin id
+const BOARD_BY_ID: Record<string, Board> = {
+  "1100356121465087591": "Aesthetic Life Lists", // 10-min movement
+  "1100356121459093715": "Aesthetic Life Lists", // mother-daughter
+  "1100356121458696845": "Luxury & Lifestyle", // breakfast ideas
+  "1100356121457690709": "Books · Learning & Culture", // girl pop albums
+  "1100356121457676232": "Books · Learning & Culture", // broadway & theatre
+  "1100356121455108094": "Smart & Creative Projects", // music goals
+  "1100356121455108080": "Aesthetic Life Lists", // eco friendly
+  "1100356121455000488": "Smart & Creative Projects", // gardening
+  "1100356121454465335": "Manifest & Magic Life", // bucket list for the mind
+  "1100356121454465020": "Aesthetic Life Lists", // aerial acrobatics
+  "1100356121454464748": "Aesthetic Life Lists", // pilates
 };
 
 const apply = process.argv.includes("--apply");
@@ -46,7 +66,7 @@ for (const p of pins) {
     console.warn(`⚠ no image for ${p.id} "${title.slice(0, 40)}" — skipped (nothing to transcribe)`);
     continue;
   }
-  const board = p.board ? BOARD[p.board] : undefined;
+  const board = BOARD_BY_ID[p.id] ?? (p.board ? BOARD[p.board] : undefined);
   if (p.board && !board) console.warn(`⚠ unknown board "${p.board}" on ${p.id} — row created without a board`);
   const entry = {
     title,
