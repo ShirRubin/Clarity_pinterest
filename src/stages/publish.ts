@@ -10,27 +10,24 @@ import path from "node:path";
 import { listAllPins, pinsByStatus, updatePin, type PinSummary } from "../notion.js";
 import { TEMPLATE_NAMES } from "../render/renderPin.js";
 import { assignDates, type QueueItem, type ScheduledEntry } from "../schedule.js";
+import { chooseDestination, postSlugForName, slugify } from "../destination.js";
 
-const PROFILE_URL = "https://www.pinterest.com/ClarityBucketLists/";
+const BLOG_DIR = process.env.CLARITY_BLOG_DIR ?? path.join("..", "Clarity_blog");
+const POSTS_DIR = path.join(BLOG_DIR, "src", "content", "posts");
 
-// Until the blog is live, each pin links to ITS BOARD's URL, not the profile:
-// destinations stay unique per board, so the 72h-per-URL rule still lets
-// several pins go out the same day. Slugs match data/rss/.
-const BOARD_URLS: Record<string, string> = {
-  "TV & Movie Bucket Lists": `${PROFILE_URL}tv-movie-bucket-lists/`,
-  "Aesthetic Life Lists": `${PROFILE_URL}aesthetic-life-lists/`,
-  "Travel & Festivals": `${PROFILE_URL}travel-festivals/`,
-  "Books · Learning & Culture": `${PROFILE_URL}books-learning-culture/`,
-  "Smart & Creative Projects": `${PROFILE_URL}smart-creative-projects/`,
-  "Manifest & Magic Life": `${PROFILE_URL}manifest-magic-life/`,
-  "Luxury & Lifestyle": `${PROFILE_URL}luxury-lifestyle/`,
-  "Career & Learn New Skills": `${PROFILE_URL}career-learn-new-skills/`,
-};
+const exists = (p: string) => access(p).then(() => true, () => false);
 
-const slugify = (s: string) =>
-  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
-
-const destFor = (row: PinSummary) => (row.board && BOARD_URLS[row.board]) || PROFILE_URL;
+// Blog post first, board URL only while the post is missing (src/destination.ts).
+// Every pipeline list should already have a post (`clarity blogpost`), so a
+// board fallback is a warning, not a normal path.
+async function destFor(row: PinSummary): Promise<string> {
+  const onDisk = await exists(path.join(POSTS_DIR, `${postSlugForName(row.name)}.md`));
+  const d = chooseDestination(row, onDisk);
+  if (d.source === "board") {
+    console.warn(`⚠ ${slugify(row.name)}: no blog post yet — linking to the board. Run \`clarity blogpost\` first.`);
+  }
+  return d.url;
+}
 
 // The posting calendar = the pack dirs on disk, across BOTH directories.
 // exports/packs/ holds pins not yet handed to Pinterest; exports/posted/ holds
@@ -85,7 +82,7 @@ function postText(row: PinSummary, date: string, template: string, dest: string)
     row.altText ?? "",
     ``,
     `BOARD: ${row.board ?? "(pick manually)"}`,
-    `DESTINATION LINK: ${dest}   <- swap for the blog post URL once the blog is live`,
+    `DESTINATION LINK: ${dest}`,
     ``,
     `TAGGED TOPICS: always add 10 (the max) in the pin builder. The taxonomy has no`,
     `"bucket list"/"self care" topics — search concrete nouns from the list items`,
@@ -122,7 +119,7 @@ export async function runPublish(limit = 10): Promise<void> {
   const existing: ScheduledEntry[] = [
     ...all
       .filter((r) => r.source === "pipeline" && r.pinUrl && r.publishedDate)
-      .map((r) => ({ date: r.publishedDate!.slice(0, 10), destUrl: r.destinationLink ?? destFor(r) })),
+      .map((r) => ({ date: r.publishedDate!.slice(0, 10), destUrl: r.destinationLink ?? chooseDestination(r, false).url })),
     ...(await readCalendarFromPacks()),
   ];
 
@@ -147,6 +144,7 @@ export async function runPublish(limit = 10): Promise<void> {
   for (const row of rows) {
     rowsById.set(row.pageId, row);
     const slug = slugify(row.name);
+    const dest = await destFor(row);
     const packedTemplates = new Set<string>();
     let earliestDate: string | undefined;
 
@@ -160,7 +158,7 @@ export async function runPublish(limit = 10): Promise<void> {
           earliestDate = existingDate;
         }
       } else {
-        queue.push({ id: `${row.pageId}#${t}`, destUrl: destFor(row) });
+        queue.push({ id: `${row.pageId}#${t}`, destUrl: dest });
       }
     }
 
@@ -211,7 +209,7 @@ export async function runPublish(limit = 10): Promise<void> {
         status: "Published",
         publishedDate: today,
         scheduledDate: date,
-        destinationLink: destFor(row),
+        destinationLink: await destFor(row),
       });
     } else if (packedSet.size > 0) {
       const row = rowsById.get(pageId)!;

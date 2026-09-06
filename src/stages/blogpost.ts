@@ -11,12 +11,12 @@ import { chromium } from "playwright-core";
 import { listAllPins, updatePin, type PinSummary } from "../notion.js";
 import { generateJSON } from "../claude.js";
 import { tmpdir } from "node:os";
+import { SITE, slugify, shortTitle } from "../destination.js";
 
 const BLOG_DIR = process.env.CLARITY_BLOG_DIR ?? path.join("..", "Clarity_blog");
 const POSTS_DIR = path.join(BLOG_DIR, "src", "content", "posts");
 const COVERS_DIR = path.join(BLOG_DIR, "public", "images", "covers", "pins");
 const DESIGNS_DIR = path.join("exports", "designs");
-const SITE = "https://clarity-lists.com";
 
 // Pipeline themes → blog categories (category pages auto-generate from these)
 const THEME_CATEGORY: Record<string, string> = {
@@ -31,11 +31,6 @@ const THEME_CATEGORY: Record<string, string> = {
   "Luxury & Lifestyle": "Lifestyle",
 };
 
-const slugify = (s: string) =>
-  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
-
-// "The Winter Arc Bucket List: 12 ways to ..." → title "The Winter Arc Bucket List"
-const shortTitle = (name: string) => name.split(":")[0].trim();
 
 // Pin description doubles as the post lead — hashtags belong on Pinterest only
 const stripHashtags = (s: string) => s.replace(/\s*#[\w-]+/g, "").trim();
