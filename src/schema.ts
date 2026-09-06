@@ -90,5 +90,8 @@ export const DB_PROPERTIES = {
   Impressions: { number: {} },
   Saves: { number: {} },
   Clicks: { number: {} },
+  // Set by scripts/import-analytics.ts — the end date of the CSV window the
+  // numbers above came from, so a stale row is obvious at a glance.
+  "Stats updated": { date: {} },
   Notes: { rich_text: {} },
 } as const;

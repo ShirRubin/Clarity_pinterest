@@ -1,6 +1,6 @@
 import { Client } from "@notionhq/client";
 import "dotenv/config";
-import { STATUSES, type Board, type Status } from "./schema.js";
+import { DB_PROPERTIES, STATUSES, type Board, type Status } from "./schema.js";
 
 export function notionClient(): Client {
   const token = process.env.NOTION_TOKEN;
@@ -44,6 +44,10 @@ export interface PinRow {
   publishedDate?: string; // YYYY-MM-DD
   scheduledDate?: string; // YYYY-MM-DD — when the pin should go live on Pinterest
   seasonWindow?: string; // YYYY-MM-DD
+  impressions?: number;
+  saves?: number;
+  clicks?: number;
+  statsUpdated?: string; // YYYY-MM-DD — end of the analytics window these numbers cover
   notes?: string;
 }
 
@@ -71,6 +75,11 @@ export function toNotionProperties(row: PinRow): Record<string, unknown> {
   if (row.publishedDate) p["Published date"] = { date: { start: row.publishedDate } };
   if (row.scheduledDate) p["Scheduled date"] = { date: { start: row.scheduledDate } };
   if (row.seasonWindow) p["Season window"] = { date: { start: row.seasonWindow } };
+  // 0 is meaningful here (a pin that truly got nothing), so test for undefined.
+  if (row.impressions !== undefined) p["Impressions"] = { number: row.impressions };
+  if (row.saves !== undefined) p["Saves"] = { number: row.saves };
+  if (row.clicks !== undefined) p["Clicks"] = { number: row.clicks };
+  if (row.statsUpdated) p["Stats updated"] = { date: { start: row.statsUpdated } };
   if (row.notes) p["Notes"] = { rich_text: rt(row.notes) };
   return p;
 }
@@ -107,6 +116,26 @@ export async function ensureStatusOptions(): Promise<void> {
   console.log(`Notion Status options synced (added: ${missing.join(", ")}).`);
 }
 
+/**
+ * Add any property in schema.ts that the live DB does not have yet. The DB was
+ * created once from DB_PROPERTIES, so a property added to schema.ts afterwards
+ * (e.g. "Stats updated") exists only in code until this runs. Existing
+ * properties are left untouched — Notion merges rather than replaces.
+ */
+export async function ensureSchemaProperties(): Promise<void> {
+  const notion = notionClient();
+  const db = (await notion.databases.retrieve({ database_id: dbId() })) as unknown as {
+    properties: Record<string, unknown>;
+  };
+  const missing = Object.entries(DB_PROPERTIES).filter(([name]) => !(name in db.properties));
+  if (!missing.length) return;
+  await notion.databases.update({
+    database_id: dbId(),
+    properties: Object.fromEntries(missing) as never,
+  });
+  console.log(`Notion schema synced (added: ${missing.map(([n]) => n).join(", ")}).`);
+}
+
 export async function listPinsByStatus(status: Status) {
   const notion = notionClient();
   const res = await notion.databases.query({
@@ -123,6 +152,7 @@ type NotionPage = {
     title?: { plain_text: string }[];
     rich_text?: { plain_text: string }[];
     select?: { name: string } | null;
+    number?: number | null;
     url?: string | null;
     date?: { start: string } | null;
     files?: { file?: { url: string }; external?: { url: string } }[];
@@ -145,6 +175,10 @@ export interface PinSummary {
   pinUrl?: string;
   scheduledDate?: string;
   publishedDate?: string;
+  impressions?: number;
+  saves?: number;
+  clicks?: number;
+  statsUpdated?: string;
   notes?: string;
   imageUrls: string[];
 }
@@ -169,6 +203,10 @@ function pageToSummary(page: NotionPage): PinSummary {
     pinUrl: p["Pin URL"]?.url ?? undefined,
     scheduledDate: p["Scheduled date"]?.date?.start,
     publishedDate: p["Published date"]?.date?.start,
+    impressions: p["Impressions"]?.number ?? undefined,
+    saves: p["Saves"]?.number ?? undefined,
+    clicks: p["Clicks"]?.number ?? undefined,
+    statsUpdated: p["Stats updated"]?.date?.start,
     notes: text(p["Notes"]),
     imageUrls: (p["Pin image"]?.files ?? [])
       .map((f) => f.file?.url ?? f.external?.url)
