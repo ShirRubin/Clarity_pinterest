@@ -27,26 +27,27 @@ async function destFor(row: PinSummary): Promise<string | undefined> {
   return d.source === "board" ? undefined : d.url;
 }
 
-// The posting calendar = every pack on disk, both directories (see src/packs.ts).
-async function readCalendarFromPacks(): Promise<ScheduledEntry[]> {
-  const all = [...(await readPacks("packs")), ...(await readPacks("posted"))];
-  return all.filter((p) => p.text.link).map((p) => ({ date: p.date, destUrl: p.text.link }));
-}
-
 export async function runPack(limit = 10): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
   const all = await listAllPins();
 
-  // Pre-scan packs dir to find already-packed variants.
+  // Read every pack on disk once — both directories (see src/packs.ts) — and
+  // reuse it below for both the already-packed pre-scan and the calendar.
+  const allPacks = [...(await readPacks("packs")), ...(await readPacks("posted"))];
+
+  // A variant counts as packed once it exists in EITHER directory: `clarity
+  // posted` moves one variant at a time from packs/ to posted/ while the row
+  // stays Approved until all 4 are posted, so a partially-posted row must not
+  // have its already-posted variants recreated here as fresh (duplicate) packs.
   const alreadyPacked = new Map<string, string>(); // "slug--template" -> date
-  for (const p of await readPacks("packs")) alreadyPacked.set(`${p.slug}--${p.template}`, p.date);
+  for (const p of allPacks) alreadyPacked.set(`${p.slug}--${p.template}`, p.date);
 
   // Existing calendar: live pipeline pins + scheduled packs on disk.
   const existing: ScheduledEntry[] = [
     ...all
       .filter((r) => r.source === "pipeline" && r.pinUrl && r.publishedDate)
       .map((r) => ({ date: r.publishedDate!.slice(0, 10), destUrl: r.destinationLink ?? chooseDestination(r, false).url })),
-    ...(await readCalendarFromPacks()),
+    ...allPacks.filter((p) => p.text.link).map((p) => ({ date: p.date, destUrl: p.text.link })),
   ];
 
   // A row is fully packed once every template variant is on disk — it stays
