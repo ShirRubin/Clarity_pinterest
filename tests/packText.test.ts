@@ -2,6 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { postText, parsePostText } from "../src/packText.js";
+import { splitPackName } from "../src/packs.js";
 
 const sample = {
   date: "2026-09-08",
@@ -57,4 +58,13 @@ test("parses a pre-milestone pack (no POST AT, no PAGE)", () => {
 test("reads a POSTED line appended by clarity posted", () => {
   const txt = postText(sample) + `\nPOSTED: 2026-09-08T10:12:00.000Z pin 3826344098274829184\n`;
   assert.deepEqual(parsePostText(txt).posted, { at: "2026-09-08T10:12:00.000Z", pinId: "3826344098274829184" });
+});
+
+test("splitPackName reads date, slug and template; rejects legacy two-part names", () => {
+  assert.deepEqual(
+    splitPackName("2026-09-08--the-handmade-gift-bucket-list-12-presents--classic-checklist"),
+    { date: "2026-09-08", slug: "the-handmade-gift-bucket-list-12-presents", template: "classic-checklist" },
+  );
+  assert.equal(splitPackName("2026-08-01--old-style-pack"), undefined);
+  assert.equal(splitPackName("not-a-pack"), undefined);
 });
