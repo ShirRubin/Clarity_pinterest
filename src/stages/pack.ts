@@ -17,16 +17,14 @@ const POSTS_DIR = path.join(BLOG_DIR, "src", "content", "posts");
 
 const exists = (p: string) => access(p).then(() => true, () => false);
 
-// Blog post first, board URL only while the post is missing (src/destination.ts).
-// Every pipeline list should already have a post (`clarity blogpost`), so a
-// board fallback is a warning, not a normal path.
-async function destFor(row: PinSummary): Promise<string> {
+// Blog post only (src/destination.ts) — a board URL is a dead end here: pack
+// skips a directory that already exists, so a board-linked pack could never
+// be repaired once the post shows up. A missing post means "not packable
+// yet", not "link to the board"; the caller skips the row entirely.
+async function destFor(row: PinSummary): Promise<string | undefined> {
   const onDisk = await exists(path.join(POSTS_DIR, `${postSlugForName(row.name)}.md`));
   const d = chooseDestination(row, onDisk);
-  if (d.source === "board") {
-    console.warn(`⚠ ${slugify(row.name)}: no blog post yet — linking to the board. Run \`clarity blogpost\` first.`);
-  }
-  return d.url;
+  return d.source === "board" ? undefined : d.url;
 }
 
 // The posting calendar = every pack on disk, both directories (see src/packs.ts).
@@ -71,13 +69,21 @@ export async function runPack(limit = 10): Promise<void> {
   // One queue item per variant PNG — every variant is its own fresh pin.
   const queue: QueueItem[] = [];
   const rowsById = new Map<string, PinSummary>();
+  const destByPageId = new Map<string, string>(); // pageId -> the post URL it was queued with
   const packedPerRow = new Map<string, Set<string>>(); // pageId -> Set of packed templates
   const firstDatePerRow = new Map<string, string>(); // pageId -> earliest date
+  let skipped = 0;
 
   for (const row of rows) {
-    rowsById.set(row.pageId, row);
     const slug = slugify(row.name);
     const dest = await destFor(row);
+    if (!dest) {
+      skipped++;
+      console.warn(`⚠ ${slug}: no blog post yet — skipped. Run \`clarity blogpost\` (or \`clarity ship\`) first.`);
+      continue;
+    }
+    rowsById.set(row.pageId, row);
+    destByPageId.set(row.pageId, dest);
     const packedTemplates = new Set<string>();
     let earliestDate: string | undefined;
 
@@ -156,11 +162,10 @@ export async function runPack(limit = 10): Promise<void> {
       // fully packed by an earlier run never reaches here (filtered out of
       // `rows` above), but a row completed by this run still needs the write.
       if (!newlyPacked.has(pageId)) continue;
-      const row = rowsById.get(pageId)!;
       const date = firstDatePerRow.get(pageId)!;
       await updatePin(pageId, {
         scheduledDate: date,
-        destinationLink: await destFor(row),
+        destinationLink: destByPageId.get(pageId)!,
       });
     } else if (packedSet.size > 0) {
       const row = rowsById.get(pageId)!;
@@ -170,5 +175,6 @@ export async function runPack(limit = 10): Promise<void> {
       );
     }
   }
-  console.log(`\n${packed} pack(s) written to exports/packs/ — run /clarity-post to put them on Pinterest.`);
+  const skippedNote = skipped ? ` (${skipped} row(s) skipped — missing blog post)` : "";
+  console.log(`\n${packed} pack(s) written to exports/packs/ — run /clarity-post to put them on Pinterest.${skippedNote}`);
 }
