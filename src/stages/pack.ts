@@ -1,15 +1,15 @@
-// Publish stage — Stage A (no Pinterest API): Approved → Published.
-// Each PNG variant becomes its own dated pack in exports/packs/ — the
-// scheduler (src/schedule.ts) assigns dates at 3/day with a 72h gap per
-// destination URL. The packs directory is the calendar of record for
-// scheduled-but-unposted pins; a row's Pin URL in Notion is the proof a
-// pin is actually live. Stage B (direct API posting) replaces this once
-// Pinterest Standard access lands.
-import { cp, mkdir, writeFile, access, readdir, readFile } from "node:fs/promises";
+// Pack stage — Approved → packs on disk (the row stays Approved).
+// Each PNG variant becomes its own dated + time-slotted pack in exports/packs/;
+// the scheduler (src/schedule.ts) assigns 3/day with a 72h gap per destination
+// URL. `clarity posted` moves a pack to exports/posted/ once it is in Pinterest's
+// scheduler and flips the row to Scheduled when all four variants are there.
+import { cp, mkdir, writeFile, access } from "node:fs/promises";
 import path from "node:path";
 import { listAllPins, pinsByStatus, updatePin, type PinSummary } from "../notion.js";
 import { TEMPLATE_NAMES } from "../render/renderPin.js";
-import { assignDates, type QueueItem, type ScheduledEntry } from "../schedule.js";
+import { postText } from "../packText.js";
+import { readPacks } from "../packs.js";
+import { assignDates, slotTime, type QueueItem, type ScheduledEntry } from "../schedule.js";
 import { chooseDestination, postSlugForName, slugify } from "../destination.js";
 
 const BLOG_DIR = process.env.CLARITY_BLOG_DIR ?? path.join("..", "Clarity_blog");
@@ -29,91 +29,19 @@ async function destFor(row: PinSummary): Promise<string> {
   return d.url;
 }
 
-// The posting calendar = the pack dirs on disk, across BOTH directories.
-// exports/packs/ holds pins not yet handed to Pinterest; exports/posted/ holds
-// ones already handed over. Posted packs are moved by hand after a batch session,
-// but a future-dated one is still occupying that slot in Pinterest's scheduler —
-// reading only packs/ made the calendar look empty and let a publish run stack a
-// fresh 3/day on top of pins already scheduled. Past-dated posted packs matter
-// too: they are live pins, so the 72h same-URL rule still has to see them.
-// Deleting either directory loses the schedule (Notion only holds each row's
-// earliest variant date).
-const CALENDAR_DIRS = ["packs", "posted"];
-
+// The posting calendar = every pack on disk, both directories (see src/packs.ts).
 async function readCalendarFromPacks(): Promise<ScheduledEntry[]> {
-  const out: ScheduledEntry[] = [];
-  for (const sub of CALENDAR_DIRS) {
-    const dir = path.join("exports", sub);
-    let names: string[] = [];
-    try {
-      names = await readdir(dir);
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
-      continue;
-    }
-    for (const name of names) {
-      const m = /^(\d{4}-\d{2}-\d{2})--/.exec(name);
-      if (!m) continue;
-      try {
-        const txt = await readFile(path.join(dir, name, "post.txt"), "utf8");
-        const dest = /^DESTINATION LINK: (\S+)/m.exec(txt)?.[1];
-        if (dest) out.push({ date: m[1], destUrl: dest });
-      } catch {
-        // pack without post.txt — ignore
-      }
-    }
-  }
-  return out;
+  const all = [...(await readPacks("packs")), ...(await readPacks("posted"))];
+  return all.filter((p) => p.text.link).map((p) => ({ date: p.date, destUrl: p.text.link }));
 }
 
-function postText(row: PinSummary, date: string, template: string, dest: string): string {
-  return [
-    `POST ON: ${date}   (native scheduler: toggle "Publish at a later date")`,
-    ``,
-    `IMAGE: ${template}.png`,
-    ``,
-    `TITLE (paste as pin title):`,
-    row.pinTitle ?? row.name,
-    ``,
-    `DESCRIPTION (paste as pin description):`,
-    row.pinDescription ?? "",
-    ``,
-    `ALT TEXT (paste into the pin's alt-text field):`,
-    row.altText ?? "",
-    ``,
-    `BOARD: ${row.board ?? "(pick manually)"}`,
-    `DESTINATION LINK: ${dest}`,
-    ``,
-    `TAGGED TOPICS: always add 10 (the max) in the pin builder. The taxonomy has no`,
-    `"bucket list"/"self care" topics — search concrete nouns from the list items`,
-    `(tea, baking, candles, movie night...) plus vibe topics (Cozy Living, Autumn Day).`,
-    ``,
-    `After posting: paste the live pin's URL into the row's "Pin URL" in Notion.`,
-  ].join("\n");
-}
-
-export async function runPublish(limit = 10): Promise<void> {
+export async function runPack(limit = 10): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
   const all = await listAllPins();
 
-  // Pre-scan packs dir to find already-packed variants (new format only).
+  // Pre-scan packs dir to find already-packed variants.
   const alreadyPacked = new Map<string, string>(); // "slug--template" -> date
-  const dir = path.join("exports", "packs");
-  try {
-    const names = await readdir(dir);
-    for (const name of names) {
-      const parts = name.split("--");
-      if (parts.length === 3) {
-        // New format: date--slug--template
-        const [date, slug, template] = parts;
-        alreadyPacked.set(`${slug}--${template}`, date);
-      }
-      // Legacy 2-part format (date--slug) is ignored
-    }
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
-    // packs dir doesn't exist yet
-  }
+  for (const p of await readPacks("packs")) alreadyPacked.set(`${p.slug}--${p.template}`, p.date);
 
   // Existing calendar: live pipeline pins + scheduled packs on disk.
   const existing: ScheduledEntry[] = [
@@ -123,13 +51,7 @@ export async function runPublish(limit = 10): Promise<void> {
     ...(await readCalendarFromPacks()),
   ];
 
-  // Queue: date-less Published rows first (packs exported before scheduling
-  // existed, still not live), then newly Approved rows.
-  const needsDate = all.filter(
-    (r) => r.source === "pipeline" && r.status === "Published" && !r.scheduledDate && !r.pinUrl,
-  );
-  const approved = await pinsByStatus("Approved");
-  const rows = [...needsDate, ...approved].slice(0, limit);
+  const rows = (await pinsByStatus("Approved")).slice(0, limit);
   if (!rows.length) {
     console.log("Nothing to schedule — approve some In Review rows first (`clarity approve`).");
     return;
@@ -185,7 +107,21 @@ export async function runPublish(limit = 10): Promise<void> {
     const packDir = path.join("exports", "packs", `${a.date}--${slug}--${template}`);
     await mkdir(packDir, { recursive: true });
     await cp(src, path.join(packDir, `${template}.png`));
-    await writeFile(path.join(packDir, "post.txt"), postText(row, a.date, template, a.destUrl), "utf8");
+    await writeFile(
+      path.join(packDir, "post.txt"),
+      postText({
+        date: a.date,
+        time: slotTime(a.slot),
+        pageId,
+        image: `${template}.png`,
+        title: row.pinTitle ?? row.name,
+        description: row.pinDescription ?? "",
+        alt: row.altText ?? "",
+        board: row.board ?? "(pick manually)",
+        link: a.destUrl,
+      }),
+      "utf8",
+    );
 
     // Track successfully packed template
     const packedSet = packedPerRow.get(pageId)!;
@@ -206,8 +142,6 @@ export async function runPublish(limit = 10): Promise<void> {
       const row = rowsById.get(pageId)!;
       const date = firstDatePerRow.get(pageId)!;
       await updatePin(pageId, {
-        status: "Published",
-        publishedDate: today,
         scheduledDate: date,
         destinationLink: await destFor(row),
       });
@@ -219,5 +153,5 @@ export async function runPublish(limit = 10): Promise<void> {
       );
     }
   }
-  console.log(`\n${packed} pack(s) scheduled in exports/packs/ — load them in the next batch posting session.`);
+  console.log(`\n${packed} pack(s) written to exports/packs/ — run /clarity-post to put them on Pinterest.`);
 }
