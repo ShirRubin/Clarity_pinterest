@@ -9,7 +9,7 @@
     "generate": "tsx scripts/scheduled-run.ts",
     "setup-notion": "tsx scripts/setup-notion.ts",
     "backfill": "tsx scripts/backfill-to-notion.ts",
-    "test": "tsx --test tests/schema.test.ts tests/schedule.test.ts tests/approve.test.ts tests/queue.test.ts tests/revise.test.ts tests/destination.test.ts tests/status.test.ts tests/packText.test.ts tests/posted.test.ts",
+    "test": "tsx --test tests/schema.test.ts tests/schedule.test.ts tests/approve.test.ts tests/queue.test.ts tests/revise.test.ts tests/destination.test.ts tests/status.test.ts tests/packText.test.ts tests/posted.test.ts tests/topics.test.ts",
     "analytics": "tsx scripts/import-analytics.ts"
   },
   "dependencies": {
