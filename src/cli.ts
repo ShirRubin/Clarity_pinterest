@@ -11,10 +11,12 @@ import { runRevise } from "./stages/revise.js";
 import { runPublish } from "./stages/publish.js";
 import { runBlogpost } from "./stages/blogpost.js";
 import { runQueue } from "./queue.js";
+import { runStatus } from "./status.js";
 
 const arg = process.argv[3] ? parseInt(process.argv[3], 10) : undefined;
 
 const commands: Record<string, { desc: string; run: () => Promise<void> }> = {
+  status: { desc: "Whole-project status card: what needs you, the calendar, the blog, and open tasks", run: () => runStatus() },
   queue: { desc: "Queue health: days of posting runway, overdue packs, and how many lists to generate next", run: () => runQueue() },
   ideas: { desc: "Generate new bucket-list ideas → rows in status Idea (arg: count, default 5)", run: () => runIdeas(arg ?? 5) },
   draft: { desc: "Idea → Drafted: write list, pin title, description, keywords (arg: limit, default 10)", run: () => runDraft(arg ?? 10) },
@@ -48,7 +50,7 @@ const cmd = process.argv[2];
 if (!cmd || !commands[cmd]) {
   console.log("clarity — Pinterest pipeline\n\nCommands:");
   for (const [name, { desc }] of Object.entries(commands)) {
-    console.log(`  ${name.padEnd(8)} ${desc}`);
+    console.log(`  ${name.padEnd(9)} ${desc}`);
   }
   process.exit(cmd ? 1 : 0);
 }

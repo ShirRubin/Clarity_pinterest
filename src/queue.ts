@@ -13,7 +13,7 @@
 // half reads the packs directory and Notion.
 import { readdir } from "node:fs/promises";
 import path from "node:path";
-import { listAllPins } from "./notion.js";
+import { listAllPins, type PinSummary } from "./notion.js";
 import { PINS_PER_DAY } from "./schedule.js";
 import type { Status } from "./schema.js";
 
@@ -94,7 +94,8 @@ export interface QueueHealth extends Runway {
   needed: number;
 }
 
-async function packNames(dir: string): Promise<string[]> {
+/** Pack directory names under exports/<dir>, or none when it does not exist yet. */
+export async function packNames(dir: string): Promise<string[]> {
   try {
     return await readdir(path.join("exports", dir));
   } catch (err) {
@@ -103,12 +104,19 @@ async function packNames(dir: string): Promise<string[]> {
   }
 }
 
-export async function queueHealth(today = new Date().toISOString().slice(0, 10)): Promise<QueueHealth> {
+/**
+ * `rows` lets a caller that has already queried Notion (clarity status) share the
+ * round trip instead of paying for a second one.
+ */
+export async function queueHealth(
+  today = new Date().toISOString().slice(0, 10),
+  rows?: PinSummary[],
+): Promise<QueueHealth> {
   const [pending, submitted] = await Promise.all([packNames("packs"), packNames("posted")]);
   const runway = runwayFromPackNames(pending, today, submitted);
 
   const inFlight: Partial<Record<Status, number>> = {};
-  for (const row of await listAllPins()) {
+  for (const row of rows ?? (await listAllPins())) {
     // Backfill rows are imported history, not pipeline output — they never become packs.
     if (row.source === "backfill") continue;
     const status = row.status as Status | undefined;

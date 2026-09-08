@@ -5,14 +5,15 @@ Automated content pipeline for pinterest.com/ClarityBucketLists: idea → bucket
 ## Commands
 
 ```bash
-npm run clarity -- <cmd>   # queue | ideas | draft | design | topup | review | approve | revise | publish | blogpost | stats | run
+npm run clarity -- <cmd>   # status | queue | ideas | draft | design | topup | review | approve | revise | publish | blogpost | stats | run
+npm run clarity -- status  # whole-project card: what needs you, calendar, blog, open tasks (the /clarity-status skill runs this)
 npm run clarity -- queue   # queue health: days of runway, overdue packs, lists to generate next
 npm run generate           # the unattended twice-weekly run (queue-aware; skips when the queue is healthy)
 npm run setup-notion       # one-time: creates the "Clarity Pins" DB (already done)
 npm run backfill           # idempotent import of data/backfill.json into Notion
 npm run analytics          # parse data/analytics/raw/*.csv -> snapshot JSON (add `-- --notion` to write stats)
 npx tsx scripts/parse-rss.ts   # rebuild data/backfill.json from data/rss/*.rss
-npm test                   # run the node:test suites (schedule + approve + queue + revise)
+npm test                   # run the node:test suites (schedule + approve + queue + revise + destination + status)
 npx tsc --noEmit           # typecheck
 clarity approve            # opens the local review page (In Review → Approved / Needs changes / Rejected) at 127.0.0.1:4178
 clarity revise             # Needs changes → rewrites each list from your review notes, re-renders, back to In Review
@@ -35,6 +36,7 @@ clarity revise             # Needs changes → rewrites each list from your revi
 - Pinterest's overview export gives **impressions only** at pin level; saves, pin clicks and outbound clicks exist only per board. Top Pins is capped at 50 rows and Top Boards at 6 months.
 - Pins published before the pipeline have no Notion row, so `import-analytics.ts` creates one (`Source: backfill`) after reading the title and board off the public pin page — cached in `data/analytics/pin-lookup.json`. Their legacy boards are not in `schema.ts`'s `BOARDS`, so the board name goes in `Notes` rather than inventing select options.
 - `ensureSchemaProperties()` in `notion.ts` adds any property present in `DB_PROPERTIES` but missing on the live DB (the same idea as `ensureStatusOptions`), so a new column in `schema.ts` reaches Notion on the next run.
+- `src/status.ts` — the `clarity status` card: the acute Notion queues, the posting calendar, blog build drift, and open tasks read live out of `../CLARITY_PLAN.md`. Pure derivation is unit-tested; the async half shares one `listAllPins()` round trip with `queueHealth`. The relink counter reads `done` flags in `exports/relink-pins.json` — **anything that relinks pins must set them** or the number never moves. Surfaced to Claude as the `/clarity-status` skill.
 - `src/queue.ts` — queue health. Runway is measured from `exports/packs/` directory names; the arithmetic half is pure and unit-tested. Drives `clarity queue` and the scheduled run.
 - `scripts/scheduled-run.ts` — the unattended job (`npm run generate`): checks queue health, exits without a single Claude call when the queue is healthy, otherwise runs ideas → draft → design → review and tees everything to `logs/`. **It never posts and never approves.** Install it with `powershell -ExecutionPolicy Bypass -File scripts/register-task.ps1` (Mon + Thu 02:00, current user; `-Unregister` removes it). Wakes the machine to run: this laptop is Modern Standby (S0) with wake timers **on for AC, off for battery**, so a plugged-in run fires at 02:00 and a battery run defers to the next logon via `StartWhenAvailable`.
 
