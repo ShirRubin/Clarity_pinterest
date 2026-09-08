@@ -22,6 +22,17 @@ export async function runReconcile(scheduledFile: string, createdFile: string, a
   console.log(formatReconcile(r));
   if (apply && r.alreadyLive.length) {
     console.log(`\nApplying ${r.alreadyLive.length} already-live pack(s):`);
-    for (const { pack, pin } of r.alreadyLive) await runPosted(pack.dir, pin.id);
+    let applied = 0;
+    let failed = 0;
+    for (const { pack, pin } of r.alreadyLive) {
+      try {
+        await runPosted(pack.dir, pin.id);
+        applied++;
+      } catch (err) {
+        failed++;
+        console.log(`✗ ${pack.dir}: ${(err as Error).message}`);
+      }
+    }
+    console.log(`applied ${applied}, failed ${failed}`);
   }
 }

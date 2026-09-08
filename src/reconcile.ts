@@ -23,21 +23,32 @@ export interface Reconciliation {
 const norm = (s: string) => s.trim().toLowerCase();
 const key = (title: string, date: string) => `${norm(title)}@${date}`;
 
+/** Which of two same-key candidates `byKey` should hold: never the 12:00 PM
+ *  duplicate over a legitimate slot, and never depend on input order. */
+function preferred(a: { pin: PinterestPin; hour: number }, b: { pin: PinterestPin; hour: number }) {
+  const aNoon = a.hour === 12;
+  const bNoon = b.hour === 12;
+  if (aNoon !== bNoon) return aNoon ? b : a; // prefer the non-noon pin
+  return a.pin.ts <= b.pin.ts ? a : b; // among equals, earliest ts wins
+}
+
 export function reconcile(pins: PinterestPin[], pending: PackInfo[], posted: PackInfo[], today: string): Reconciliation {
-  const byKey = new Map<string, PinterestPin>();
+  const byKey = new Map<string, { pin: PinterestPin; hour: number }>();
   const sameDayGroups = new Map<string, PinterestPin[]>();
   const noon: PinterestPin[] = [];
   for (const pin of pins) {
     const { date, hour } = localParts(pin.ts);
     const k = key(pin.title, date);
-    if (!byKey.has(k)) byKey.set(k, pin);
+    const candidate = { pin, hour };
+    const existing = byKey.get(k);
+    byKey.set(k, existing ? preferred(existing, candidate) : candidate);
     sameDayGroups.set(k, [...(sameDayGroups.get(k) ?? []), pin]);
     if (pin.kind === "scheduled" && hour === 12) noon.push(pin);
   }
 
   const alreadyLive = pending.flatMap((pack) => {
-    const pin = byKey.get(key(pack.text.title, pack.date));
-    return pin ? [{ pack, pin }] : [];
+    const found = byKey.get(key(pack.text.title, pack.date));
+    return found ? [{ pack, pin: found.pin }] : [];
   });
 
   const sameDay = [...sameDayGroups.entries()]

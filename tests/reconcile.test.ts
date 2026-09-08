@@ -62,3 +62,14 @@ test("formatReconcile names every problem with the URL to act on", () => {
 test("a clean state prints a clean line", () => {
   assert.match(formatReconcile(reconcile([], [], [], "2026-09-08")), /nothing to fix/);
 });
+
+test("when a noon duplicate and the legitimate pin share a key, alreadyLive tracks the legitimate one", () => {
+  const r = reconcile(
+    [pin("dup", "Tea Bucket List", at("2026-09-10", 12)), pin("real", "Tea Bucket List", at("2026-09-10", 9))],
+    [pack("packs", "2026-09-10", "Tea Bucket List")],
+    [],
+    "2026-09-08",
+  );
+  assert.equal(r.alreadyLive[0].pin.id, "real");
+  assert.deepEqual(r.noon.map((p) => p.id), ["dup"]);
+});
