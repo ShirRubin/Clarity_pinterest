@@ -68,3 +68,18 @@ test("splitPackName reads date, slug and template; rejects legacy two-part names
   assert.equal(splitPackName("2026-08-01--old-style-pack"), undefined);
   assert.equal(splitPackName("not-a-pack"), undefined);
 });
+
+test("round-trips multi-paragraph description with embedded blank line", () => {
+  const multiPara = {
+    date: "2026-09-08",
+    time: "09:00 AM",
+    pageId: "26b23760-024b-81e5-938d-e19a4e93f97c",
+    image: "classic-checklist.png",
+    title: "Multi Paragraph Test",
+    description: "Paragraph one.\n\nParagraph two.",
+    alt: "Test graphic",
+    board: "Test Board",
+    link: "https://clarity-lists.com/posts/test",
+  };
+  assert.deepEqual(parsePostText(postText(multiPara)), multiPara);
+});

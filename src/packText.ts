@@ -46,12 +46,30 @@ export function postText(t: Omit<PackText, "posted">): string {
   ].join("\n");
 }
 
-/** Text between a `HEADER:` line and the next blank line. */
+/** Text from a section header until the next recognized section marker, with trailing blank lines stripped. */
 function block(lines: string[], header: string): string {
   const i = lines.findIndex((l) => l.startsWith(header));
   if (i < 0) return "";
+
+  const markers = [
+    "TITLE", "DESCRIPTION", "ALT TEXT", "BOARD:", "DESTINATION LINK:",
+    "TAGGED TOPICS:", "After posting:", "POSTED:"
+  ];
+
   const out: string[] = [];
-  for (let j = i + 1; j < lines.length && lines[j] !== ""; j++) out.push(lines[j]);
+  for (let j = i + 1; j < lines.length; j++) {
+    // Check if this line starts with a recognized marker
+    if (markers.some(m => lines[j].startsWith(m))) {
+      break;
+    }
+    out.push(lines[j]);
+  }
+
+  // Strip trailing blank lines
+  while (out.length > 0 && out[out.length - 1] === "") {
+    out.pop();
+  }
+
   return out.join("\n");
 }
 
