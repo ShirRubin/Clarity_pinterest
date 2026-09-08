@@ -5,7 +5,11 @@ Automated content pipeline for pinterest.com/ClarityBucketLists: idea → bucket
 ## Commands
 
 ```bash
-npm run clarity -- <cmd>   # status | queue | ideas | draft | design | topup | review | approve | revise | publish | blogpost | stats | run
+npm run clarity -- <cmd>   # status | queue | ideas | draft | design | topup | review | approve | revise | ship | pack | post-plan | posted | reconcile | blogpost | stats | run
+clarity ship               # Approved → blog post + packs + blog deploy (everything after approval that needs no browser)
+clarity post-plan [--json] # packs to post, in order, inside Pinterest's 29-day window — what /clarity-post reads
+clarity posted <pack> <id> # after one pin is scheduled: move the pack, note the row, Scheduled once all 4 variants are up
+clarity reconcile <s.json> <c.json> [--apply]  # diff Pinterest's pin lists vs the packs; --apply marks already-live packs posted
 npm run clarity -- status  # whole-project card: what needs you, calendar, blog, open tasks (the /clarity-status skill runs this)
 npm run clarity -- queue   # queue health: days of runway, overdue packs, lists to generate next
 npm run generate           # the unattended twice-weekly run (queue-aware; skips when the queue is healthy)
@@ -13,7 +17,7 @@ npm run setup-notion       # one-time: creates the "Clarity Pins" DB (already do
 npm run backfill           # idempotent import of data/backfill.json into Notion
 npm run analytics          # parse data/analytics/raw/*.csv -> snapshot JSON (add `-- --notion` to write stats)
 npx tsx scripts/parse-rss.ts   # rebuild data/backfill.json from data/rss/*.rss
-npm test                   # run the node:test suites (schedule + approve + queue + revise + destination + status)
+npm test                   # run the node:test suites (schedule + approve + queue + revise + destination + status + schema + packText + posted + topics + postplan + reconcile)
 npx tsc --noEmit           # typecheck
 clarity approve            # opens the local review page (In Review → Approved / Needs changes / Rejected) at 127.0.0.1:4178
 clarity revise             # Needs changes → rewrites each list from your review notes, re-renders, back to In Review
@@ -21,15 +25,16 @@ clarity revise             # Needs changes → rewrites each list from your revi
 
 ## Architecture
 
-- **State machine**: the Notion `Status` select drives everything — `Idea → Drafted → Designed → In Review → Approved → Published` (+ `Needs changes`, `Rejected`, `Archived`). Each stage command picks up rows in its input status and advances them. The daily review happens via `clarity approve`'s local page (Notion flipping still works as a fallback).
+- **State machine**: the Notion `Status` select drives everything — `Idea → Drafted → Designed → In Review → Approved → Scheduled → Published` (+ `Needs changes`, `Rejected`, `Archived`). Each stage command picks up rows in its input status and advances them. The daily review happens via `clarity approve`'s local page (Notion flipping still works as a fallback).
+- **`Scheduled` vs `Published`**: `clarity posted` sets `Scheduled` when all four variants are in Pinterest's scheduler; `Published` means the first variant's date has passed (flipped by the nightly job — milestone 3). `pack` (ex-`publish`) never changes status.
 - **The revise loop** (third verdict on the review page): "Needs changes" parks a row in that status with your notes appended to `Notes` as `revise <date>: <what to fix>`. `clarity revise` feeds the CURRENT list + that feedback back to the model as a targeted edit (not a fresh list), returns the row to `Drafted`, then chains `design` + `review` so it lands back in the queue. The applied entry is retagged `revised <date>:` so a second pass only acts on newer feedback. Notes are **appended, never overwritten** — `appendNote` joins with ` | `.
 - `ensureStatusOptions()` in `notion.ts` syncs `STATUSES` into the live DB's Status select on every `clarity approve`, so adding a status to `schema.ts` is enough.
 - `src/schema.ts` — **single source of truth** for the DB schema, boards, themes, trends. Notion select options must not contain commas (the live board "Books, Learning & Culture" is stored as "Books · Learning & Culture").
 - `src/notion.ts` — client + typed `PinRow` accessors (`createPin`, `listPinsByStatus`).
 - `src/stages/*.ts` — one module per stage.
 - `src/claude.ts` — **generation runs on the Claude Code CLI, not the Anthropic SDK.** It spawns `claude -p --output-format json --system-prompt … --json-schema …`, which authenticates with the user's Claude Max subscription, so no `ANTHROPIC_API_KEY` is needed and generation costs nothing beyond the subscription. Two constraints worth remembering: `--json-schema` requires a top-level **object**, so array results are wrapped in `{"result": …}` and unwrapped in `generateJSON`; and never pass `--bare`, which forces API-key auth and ignores the OAuth login.
-- `src/render/` + `templates/` — HTML→PNG pin renderer, 1000×1500, **4 template variants per list** (`classic-checklist`, `bold-panel`, `sticky-note`, `big-numbers`; see `DESIGN.md`). After adding a template, run `clarity topup` so rows already past Drafted get the new variant — `publish` will not schedule a row until every template is packed.
-- `src/destination.ts` — where a pin sends the reader: the list's blog post on clarity-lists.com (Notion link → post on disk → board URL fallback with a warning). Shared by `publish` and `blogpost`; pure and unit-tested. Every pack written before 2026-09-06 linked to a board — `scripts/relink-pins.ts` (Notion + pack files) and `scripts/match-pins.mjs` (Pinterest pin → post) were the one-off migration.
+- `src/render/` + `templates/` — HTML→PNG pin renderer, 1000×1500, **4 template variants per list** (`classic-checklist`, `bold-panel`, `sticky-note`, `big-numbers`; see `DESIGN.md`). After adding a template, run `clarity topup` so rows already past Drafted get the new variant — `pack` will not schedule a row until every template is packed.
+- `src/destination.ts` — where a pin sends the reader: the list's blog post on clarity-lists.com (Notion link → post on disk → board URL fallback with a warning). Shared by `pack` and `blogpost`; pure and unit-tested. Every pack written before 2026-09-06 linked to a board — `scripts/relink-pins.ts` (Notion + pack files) and `scripts/match-pins.mjs` (Pinterest pin → post) were the one-off migration.
 - `data/backfill.json` — the 99 live pins (60 via board RSS feeds, +39 on 2026-09-06 via `scripts/import-postless.ts` from Pinterest's own pin data) scraped from the live profile (via board RSS feeds; logged-out board pages hide pin links, RSS is the reliable source: `https://www.pinterest.com/claritybucketlists/<board-slug>.rss`).
 - `exports/` — publish packs (git-ignored), Stage A posting until Pinterest API Standard access.
 - `scripts/import-analytics.ts` (`npm run analytics`) — **stats come in by hand, not by API.** The `PINTEREST_ACCESS_TOKEN` in `.env` returns `401` because the dev app is still on pending Trial, so the v5 analytics endpoints are closed to us. Instead: export from analytics.pinterest.com (Analytics → Overview → Export, and Audience insights → Export), drop the CSVs in `data/analytics/raw/`, and run the script. It writes a normalised `data/analytics/snapshot-<window-end>.json`, and with `-- --notion` it also fills `Impressions` + `Stats updated` on matching pin rows and rebuilds a summary page (boards, top pins, audience splits) under `NOTION_PARENT_PAGE_ID`. Idempotent — re-running updates in place and archives the old summary page for the same window.

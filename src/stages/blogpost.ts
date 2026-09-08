@@ -175,7 +175,7 @@ function buildMarkdown(f: PostFields): string {
   return `${fm}\n\n## The List\n\n${f.items}\n`;
 }
 
-export async function runBlogpost(limit = 20): Promise<void> {
+export async function runBlogpost(limit = 20): Promise<number> {
   if (!(await exists(POSTS_DIR))) {
     throw new Error(`Blog posts dir not found at ${POSTS_DIR} — set CLARITY_BLOG_DIR`);
   }
@@ -183,7 +183,7 @@ export async function runBlogpost(limit = 20): Promise<void> {
 
   const eligible = (await listAllPins()).filter(
     (r) =>
-      (r.status === "Approved" || r.status === "Published") &&
+      (r.status === "Approved" || r.status === "Scheduled" || r.status === "Published") &&
       ((r.listItems ?? "").trim().length > 0 ||
         (r.source === "backfill" && r.imageUrls.length > 0)),
   );
@@ -302,4 +302,5 @@ export async function runBlogpost(limit = 20): Promise<void> {
       ? "Nothing to do — every eligible list already has a post."
       : `\n${written} post(s) written to ${POSTS_DIR}. Rebuild the blog (npm run build) and run npm run pdfs there.`,
   );
+  return written;
 }
