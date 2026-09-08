@@ -55,6 +55,38 @@ test("an existing pin id/URL on the row is kept over the derived first-pack pin"
   });
 });
 
+test("only an existing Pin URL (no id on the row) is kept, and the id is parsed from it", () => {
+  const p = postedTransition({
+    postedTemplates: ["a", "b", "c", "d"],
+    totalTemplates: 4,
+    firstPinId: "111",
+    earliestPackDate: "2026-09-10",
+    existingPinUrl: "https://www.pinterest.com/pin/777/",
+  });
+  assert.deepEqual(p, {
+    status: "Scheduled",
+    pinUrl: "https://www.pinterest.com/pin/777/",
+    pinterestPinId: "777",
+    scheduledDate: "2026-09-10",
+  });
+});
+
+test("only an existing pin id (no URL on the row) is kept, and the URL is derived from it", () => {
+  const p = postedTransition({
+    postedTemplates: ["a", "b", "c", "d"],
+    totalTemplates: 4,
+    firstPinId: "111",
+    earliestPackDate: "2026-09-10",
+    existingPinId: "555",
+  });
+  assert.deepEqual(p, {
+    status: "Scheduled",
+    pinUrl: "https://www.pinterest.com/pin/555/",
+    pinterestPinId: "555",
+    scheduledDate: "2026-09-10",
+  });
+});
+
 test("duplicate template names do not count twice", () => {
   const p = postedTransition({
     postedTemplates: ["a", "a", "b", "c"],

@@ -26,11 +26,26 @@ export function postedTransition(i: PostedInput): PostedPatch {
   // A pin id/URL already recorded on the row wins over the derived one — the
   // same keep-what's-there precedence as scheduledDate, so a re-run (or a
   // row whose earliest-posted marker was recovered later) never clobbers it.
-  const havePinned = i.existingPinUrl !== undefined && i.existingPinId !== undefined;
+  // Either field alone is enough to pin the row: a URL pasted by hand with no
+  // "Pinterest pin ID" column filled in must not be overwritten just because
+  // its sibling field is empty — the id is then parsed out of the URL, and a
+  // bare existing id derives its URL the normal way.
+  let finalPinUrl: string;
+  let finalPinId: string;
+  if (i.existingPinUrl !== undefined) {
+    finalPinUrl = i.existingPinUrl;
+    finalPinId = i.existingPinId ?? i.existingPinUrl.match(/\/pin\/(\d+)\//)?.[1] ?? i.firstPinId;
+  } else if (i.existingPinId !== undefined) {
+    finalPinId = i.existingPinId;
+    finalPinUrl = pinUrl(i.existingPinId);
+  } else {
+    finalPinId = i.firstPinId;
+    finalPinUrl = pinUrl(i.firstPinId);
+  }
   return {
     status: "Scheduled",
-    pinUrl: havePinned ? i.existingPinUrl : pinUrl(i.firstPinId),
-    pinterestPinId: havePinned ? i.existingPinId : i.firstPinId,
+    pinUrl: finalPinUrl,
+    pinterestPinId: finalPinId,
     scheduledDate: i.existingScheduledDate ?? i.earliestPackDate,
   };
 }
