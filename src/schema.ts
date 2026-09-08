@@ -8,6 +8,9 @@ export const STATUSES = [
   "In Review",
   "Needs changes",
   "Approved",
+  // All four variants sit in Pinterest's scheduler (set by `clarity posted`).
+  "Scheduled",
+  // The first variant's date has passed — it is live (flipped by the nightly job).
   "Published",
   "Rejected",
   "Archived",
@@ -26,6 +29,20 @@ export const BOARDS = [
   "Career & Learn New Skills",
 ] as const;
 export type Board = (typeof BOARDS)[number];
+
+// The board title exactly as Pinterest's pin builder shows it. Notion select
+// options forbid commas, so the one board with a comma is spelled with "·" in
+// Notion and mapped back here for the browser step.
+export const PINTEREST_BOARD_NAMES: Record<Board, string> = {
+  "TV & Movie Bucket Lists": "TV & Movie Bucket Lists",
+  "Aesthetic Life Lists": "Aesthetic Life Lists",
+  "Travel & Festivals": "Travel & Festivals",
+  "Books · Learning & Culture": "Books, Learning & Culture",
+  "Smart & Creative Projects": "Smart & Creative Projects",
+  "Manifest & Magic Life": "Manifest & Magic Life",
+  "Luxury & Lifestyle": "Luxury & Lifestyle",
+  "Career & Learn New Skills": "Career & Learn New Skills",
+};
 
 export const THEMES = [
   "Pop culture",
