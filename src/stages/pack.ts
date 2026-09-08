@@ -51,7 +51,18 @@ export async function runPack(limit = 10): Promise<void> {
     ...(await readCalendarFromPacks()),
   ];
 
-  const rows = (await pinsByStatus("Approved")).slice(0, limit);
+  // A row is fully packed once every template variant is on disk — it stays
+  // Approved (this stage never flips status), so it would otherwise keep
+  // reappearing here forever, burning a `limit` slot every run.
+  const isFullyPacked = (row: PinSummary) =>
+    TEMPLATE_NAMES.every((t) => alreadyPacked.has(`${slugify(row.name)}--${t}`));
+
+  const approved = await pinsByStatus("Approved");
+  const fullyPacked = approved.filter(isFullyPacked);
+  const rows = approved.filter((r) => !isFullyPacked(r)).slice(0, limit);
+  if (fullyPacked.length) {
+    console.log(`(${fullyPacked.length} approved rows already fully packed — waiting for /clarity-post)`);
+  }
   if (!rows.length) {
     console.log("Nothing to schedule — approve some In Review rows first (`clarity approve`).");
     return;
@@ -93,6 +104,7 @@ export async function runPack(limit = 10): Promise<void> {
   const assigned = assignDates(existing, queue, today);
 
   let packed = 0;
+  const newlyPacked = new Set<string>(); // pageIds this run actually wrote a variant for
   for (const a of assigned) {
     const [pageId, template] = a.id.split("#");
     const row = rowsById.get(pageId)!;
@@ -126,6 +138,7 @@ export async function runPack(limit = 10): Promise<void> {
     // Track successfully packed template
     const packedSet = packedPerRow.get(pageId)!;
     packedSet.add(template);
+    newlyPacked.add(pageId);
 
     // Track earliest date
     const currentEarliest = firstDatePerRow.get(pageId);
@@ -139,6 +152,10 @@ export async function runPack(limit = 10): Promise<void> {
 
   for (const [pageId, packedSet] of packedPerRow) {
     if (packedSet.size === TEMPLATE_NAMES.length) {
+      // Only write Notion when this run packed something new — a row already
+      // fully packed by an earlier run never reaches here (filtered out of
+      // `rows` above), but a row completed by this run still needs the write.
+      if (!newlyPacked.has(pageId)) continue;
       const row = rowsById.get(pageId)!;
       const date = firstDatePerRow.get(pageId)!;
       await updatePin(pageId, {
