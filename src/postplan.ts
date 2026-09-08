@@ -31,7 +31,21 @@ export interface PostPlan {
 
 const DAY_MS = 86_400_000;
 const toMs = (d: string) => Date.parse(`${d}T00:00:00Z`);
-const timeIndex = (t: string) => Math.max(0, (SLOT_TIMES as readonly string[]).indexOf(t));
+
+const minutesOf = (t: string): number => {
+  const match = t.match(/^(\d{1,2}):(\d{2})\s+(AM|PM)$/);
+  if (!match) return Number.MAX_SAFE_INTEGER;
+  let [, hourStr, minStr, ampm] = match;
+  let hour = parseInt(hourStr);
+  const min = parseInt(minStr);
+  if (ampm === "PM" && hour !== 12) hour += 12;
+  if (ampm === "AM" && hour === 12) hour = 0;
+  return hour * 60 + min;
+};
+
+const slotIndexOf = (t: string): number => {
+  return (SLOT_TIMES as readonly string[]).indexOf(t);
+};
 
 export function buildPostPlan(
   pending: PackInfo[],
@@ -41,18 +55,43 @@ export function buildPostPlan(
 ): PostPlan {
   const limit = toMs(today) + windowDays * DAY_MS;
   const inWindow = pending.filter((p) => toMs(p.date) <= limit);
-  const deferred = pending.filter((p) => toMs(p.date) > limit);
+  const deferred = pending
+    .filter((p) => toMs(p.date) > limit)
+    .sort((a, b) => a.date.localeCompare(b.date));
 
-  // Older packs carry no POST AT; give them slots by position within their day.
-  const perDay = new Map<string, number>();
+  // First pass: collect slot indexes taken by explicit times.
+  const takenByDay = new Map<string, Set<number>>();
+  for (const p of inWindow) {
+    if (p.text.time) {
+      const idx = slotIndexOf(p.text.time);
+      if (idx >= 0) {
+        const taken = takenByDay.get(p.date) ?? new Set();
+        taken.add(idx);
+        takenByDay.set(p.date, taken);
+      }
+    }
+  }
+
+  // Second pass: assign times and sort by time.
   const timed = [...inWindow]
     .sort((a, b) => a.date.localeCompare(b.date) || a.dir.localeCompare(b.dir))
     .map((p) => {
-      const used = perDay.get(p.date) ?? 0;
-      perDay.set(p.date, used + 1);
-      return { p, time: p.text.time ?? SLOT_TIMES[Math.min(used, SLOT_TIMES.length - 1)] };
+      if (p.text.time) {
+        return { p, time: p.text.time };
+      }
+      const taken = takenByDay.get(p.date) ?? new Set();
+      let slotIndex = 0;
+      while (slotIndex < SLOT_TIMES.length && taken.has(slotIndex)) {
+        slotIndex++;
+      }
+      if (slotIndex >= SLOT_TIMES.length) {
+        slotIndex = SLOT_TIMES.length - 1;
+      }
+      taken.add(slotIndex);
+      takenByDay.set(p.date, taken);
+      return { p, time: SLOT_TIMES[slotIndex] };
     })
-    .sort((a, b) => a.p.date.localeCompare(b.p.date) || timeIndex(a.time) - timeIndex(b.time));
+    .sort((a, b) => a.p.date.localeCompare(b.p.date) || minutesOf(a.time) - minutesOf(b.time));
 
   const entries = timed.map(({ p, time }, i) => ({
     n: i + 1,

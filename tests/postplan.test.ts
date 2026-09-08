@@ -64,3 +64,30 @@ test("formatPostPlan prints one block per entry and a deferred line", () => {
   assert.match(s, /topics: tea \| baking/);
   assert.match(s, /1 more pack waiting for the 29-day window/);
 });
+
+test("mixed explicit and fallback times on same day don't collide", () => {
+  const plan = buildPostPlan(
+    [pack("2026-09-08", "aaa"), pack("2026-09-08", "bbb", { time: "06:00 PM" }), pack("2026-09-08", "ccc")],
+    "2026-09-08",
+    () => [],
+  );
+  // aaa gets slot 0 (09:00 AM), bbb has slot 2 (06:00 PM), ccc gets slot 1 (01:00 PM)
+  // After sorting by time: aaa (09:00 AM), ccc (01:00 PM), bbb (06:00 PM)
+  assert.deepEqual(plan.entries.map((e) => [e.pack.split("--")[2], e.time]), [
+    ["aaa", "09:00 AM"],
+    ["ccc", "01:00 PM"],
+    ["bbb", "06:00 PM"],
+  ]);
+});
+
+test("packs with unknown times sort after known times", () => {
+  const plan = buildPostPlan(
+    [pack("2026-09-08", "b", { time: "11:30 PM" }), pack("2026-09-08", "a", { time: "09:00 AM" })],
+    "2026-09-08",
+    () => [],
+  );
+  assert.deepEqual(plan.entries.map((e) => [e.pack.split("--")[2], e.time]), [
+    ["a", "09:00 AM"],
+    ["b", "11:30 PM"],
+  ]);
+});
