@@ -1,7 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  readyToPublish,
   upcomingPins,
   blogDrift,
   relinkProgress,
@@ -11,41 +10,13 @@ import {
   severity,
   formatStatus,
   lastRunFrom,
+  partiallyPosted,
+  beyondWindow,
   ANALYTICS_STALE_DAYS,
   type ClarityStatus,
 } from "../src/status.js";
 
 const pack = (date: string, n = "some-list--classic-checklist") => `${date}--${n}`;
-
-// --- readyToPublish ----------------------------------------------------------
-// Mirrors the queue publish.ts actually builds: Approved rows, plus Published
-// rows that never got a date or a live URL (packed before scheduling existed).
-
-test("counts Approved rows as ready to publish", () => {
-  const rows = [
-    { status: "Approved", source: "pipeline" },
-    { status: "Approved", source: "pipeline" },
-    { status: "Drafted", source: "pipeline" },
-  ];
-  assert.equal(readyToPublish(rows), 2);
-});
-
-test("counts date-less, URL-less Published rows as still needing a publish", () => {
-  const rows = [
-    { status: "Published", source: "pipeline" },
-    { status: "Published", source: "pipeline", scheduledDate: "2026-09-08" },
-    { status: "Published", source: "pipeline", pinUrl: "https://pin.it/x" },
-  ];
-  assert.equal(readyToPublish(rows), 1);
-});
-
-test("ignores backfill rows, which are imported history and never get packed", () => {
-  const rows = [
-    { status: "Approved", source: "backfill" },
-    { status: "Published", source: "backfill" },
-  ];
-  assert.equal(readyToPublish(rows), 0);
-});
 
 // --- upcomingPins ------------------------------------------------------------
 
@@ -166,10 +137,13 @@ const clear: ClarityStatus = {
   today: "2026-09-07",
   inReview: 0,
   needsChanges: 0,
-  readyToPublish: 0,
+  approved: 0,
   packsWaiting: 0,
   packsOverdue: 0,
+  packsBeyondWindow: 0,
+  partiallyPosted: [],
   scheduledOnPinterest: 40,
+  scheduledRows: 40,
   runwayDays: 26,
   lastScheduledDate: "2026-10-03",
   upcoming: [{ date: "2026-09-07", count: 3 }],
@@ -200,17 +174,49 @@ test("overdue packs read red even when nothing else is pending", () => {
 });
 
 test("every acute queue contributes its own attention item", () => {
-  const s = { ...clear, inReview: 4, needsChanges: 1, readyToPublish: 2, packsWaiting: 6 };
+  const s = { ...clear, inReview: 4, needsChanges: 1, approved: 2, packsWaiting: 6 };
   assert.deepEqual(attentionItems(s), [
     "4 lists in review",
     "1 list needing changes",
-    "2 lists ready to publish",
+    "2 lists approved",
     "6 packs to post",
   ]);
 });
 
 test("the long-running relink task does not by itself make the board amber", () => {
   assert.equal(severity({ ...clear, relink: { done: 0, total: 140, remaining: 140 } }), "ok");
+});
+
+// --- partiallyPosted / beyondWindow -------------------------------------------
+
+test("partiallyPosted lists rows with some variants in posted/ and the rest still pending", () => {
+  const pending = ["2026-09-12--the-tea-bucket-list--big-numbers"];
+  const submitted = [
+    "2026-09-08--the-tea-bucket-list--classic-checklist",
+    "2026-09-09--the-tea-bucket-list--bold-panel",
+    "2026-09-10--the-tea-bucket-list--sticky-note",
+    "2026-09-08--the-done-list--classic-checklist", // fully posted rows are not partial
+  ];
+  assert.deepEqual(partiallyPosted(pending, submitted, 4), [{ slug: "the-tea-bucket-list", posted: 3, total: 4 }]);
+});
+
+test("beyondWindow counts pending packs past the scheduler window", () => {
+  const names = ["2026-09-08--a--x", "2026-10-07--b--x", "2026-10-08--c--x"];
+  assert.equal(beyondWindow(names, "2026-09-08", 29), 1);
+});
+
+test("the card names approved lists, partial rows and the window", () => {
+  const s = { ...clear, approved: 2, packsWaiting: 5, partiallyPosted: [{ name: "The Tea Bucket List", posted: 3, total: 4 }], packsBeyondWindow: 7 };
+  const card = formatStatus(s);
+  assert.match(card, /2  lists approved\s+\/clarity-post/);
+  assert.match(card, /5  packs to post\s+\/clarity-post/);
+  assert.match(card, /The Tea Bucket List — 3\/4 posted/);
+  assert.match(card, /7 packs waiting for the 29-day window/);
+});
+
+test("the card warns when Notion's Scheduled count and the posted packs disagree", () => {
+  const card = formatStatus({ ...clear, scheduledRows: 5, scheduledOnPinterest: 8 });
+  assert.match(card, /Notion says 5 lists scheduled, packs say 8 pins — run clarity reconcile/);
 });
 
 // --- formatStatus ------------------------------------------------------------
@@ -222,16 +228,16 @@ test("a clear board is announced as all clear", () => {
 });
 
 test("the card leads with the count of things waiting on you", () => {
-  const out = formatStatus({ ...clear, inReview: 4, readyToPublish: 2 });
+  const out = formatStatus({ ...clear, inReview: 4, approved: 2 });
   assert.match(out, /🟡/);
   assert.match(out, /2 things need you/);
 });
 
 test("each waiting queue names the command that clears it", () => {
-  const out = formatStatus({ ...clear, inReview: 4, needsChanges: 1, readyToPublish: 2 });
+  const out = formatStatus({ ...clear, inReview: 4, needsChanges: 1, approved: 2 });
   assert.match(out, /clarity approve/);
   assert.match(out, /clarity revise/);
-  assert.match(out, /clarity publish/);
+  assert.match(out, /\/clarity-post/);
 });
 
 test("unbuilt blog posts are reported with the redeploy command", () => {

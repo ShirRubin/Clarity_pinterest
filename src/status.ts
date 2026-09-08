@@ -13,6 +13,10 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { listAllPins } from "./notion.js";
 import { queueHealth, packNames, TARGET_RUNWAY_DAYS } from "./queue.js";
+import { splitPackName } from "./packs.js";
+import { SCHEDULER_WINDOW_DAYS } from "./postplan.js";
+import { TEMPLATE_NAMES } from "./render/renderPin.js";
+import { slugify } from "./destination.js";
 
 /** A Pinterest CSV export older than this is worth refreshing. */
 export const ANALYTICS_STALE_DAYS = 7;
@@ -41,11 +45,14 @@ export interface ClarityStatus {
   // Acute queues — each one is work only you can clear.
   inReview: number;
   needsChanges: number;
-  readyToPublish: number;
+  approved: number;
   packsWaiting: number;
   packsOverdue: number;
+  packsBeyondWindow: number;
+  partiallyPosted: { name: string; posted: number; total: number }[];
   // The calendar.
   scheduledOnPinterest: number;
+  scheduledRows: number;
   runwayDays: number;
   lastScheduledDate?: string;
   upcoming: DayCount[];
@@ -65,27 +72,6 @@ export interface ClarityStatus {
 
 // --- pure derivation ---------------------------------------------------------
 
-interface PublishableRow {
-  status?: string;
-  source?: string;
-  scheduledDate?: string;
-  pinUrl?: string;
-}
-
-/**
- * How many lists `clarity publish` would pick up. Mirrors the queue publish.ts
- * builds: Approved rows, plus Published rows that never got a date or a live URL
- * (packed before scheduling existed and still not posted). Backfill rows are
- * imported history and never become packs.
- */
-export function readyToPublish(rows: PublishableRow[]): number {
-  return rows.filter((r) => {
-    if (r.source === "backfill") return false;
-    if (r.status === "Approved") return true;
-    return r.status === "Published" && !r.scheduledDate && !r.pinUrl;
-  }).length;
-}
-
 const dateOf = (packName: string) => /^(\d{4}-\d{2}-\d{2})--/.exec(packName)?.[1];
 
 /**
@@ -104,6 +90,33 @@ export function upcomingPins(names: string[], today: string, days: number): DayC
     out.push({ date, count: counts.get(date) ?? 0 });
   }
   return out;
+}
+
+/** Rows with some variants in posted/ and at least one still in packs/. */
+export function partiallyPosted(
+  pending: string[],
+  submitted: string[],
+  total: number,
+): { slug: string; posted: number; total: number }[] {
+  const slugOf = (n: string) => splitPackName(n)?.slug;
+  const pendingSlugs = new Set(pending.map(slugOf).filter(Boolean));
+  const counts = new Map<string, Set<string>>();
+  for (const n of submitted) {
+    const p = splitPackName(n);
+    if (p) counts.set(p.slug, new Set([...(counts.get(p.slug) ?? []), p.template]));
+  }
+  return [...counts.entries()]
+    .filter(([slug, t]) => t.size < total && pendingSlugs.has(slug))
+    .map(([slug, t]) => ({ slug, posted: t.size, total }));
+}
+
+/** Pending packs dated past Pinterest's scheduler window — not postable yet. */
+export function beyondWindow(names: string[], today: string, windowDays: number): number {
+  const limit = toMs(today) + windowDays * DAY_MS;
+  return names.filter((n) => {
+    const d = dateOf(n);
+    return d !== undefined && toMs(d) > limit;
+  }).length;
 }
 
 /**
@@ -182,7 +195,7 @@ export function attentionItems(s: ClarityStatus): string[] {
   const items: string[] = [];
   if (s.inReview) items.push(`${plural(s.inReview, "list")} in review`);
   if (s.needsChanges) items.push(`${plural(s.needsChanges, "list")} needing changes`);
-  if (s.readyToPublish) items.push(`${plural(s.readyToPublish, "list")} ready to publish`);
+  if (s.approved) items.push(`${plural(s.approved, "list")} approved`);
   if (s.packsWaiting) items.push(`${plural(s.packsWaiting, "pack")} to post`);
   if (s.packsOverdue) items.push(`${plural(s.packsOverdue, "pack")} overdue`);
   return items;
@@ -230,8 +243,9 @@ export function formatStatus(s: ClarityStatus): string {
     if (s.packsOverdue) L.push(row(s.packsOverdue, "packs OVERDUE", "post these first"));
     if (s.inReview) L.push(row(s.inReview, "lists in review", "clarity approve"));
     if (s.needsChanges) L.push(row(s.needsChanges, "lists needing changes", "clarity revise"));
-    if (s.readyToPublish) L.push(row(s.readyToPublish, "lists ready to publish", "clarity publish"));
-    if (s.packsWaiting) L.push(row(s.packsWaiting, "packs to post by hand", "exports/packs/"));
+    if (s.approved) L.push(row(s.approved, "lists approved", "/clarity-post"));
+    if (s.packsWaiting) L.push(row(s.packsWaiting, "packs to post", "/clarity-post"));
+    for (const p of s.partiallyPosted) L.push(`        ${p.name} — ${p.posted}/${p.total} posted`);
   } else {
     L.push("        nothing — the review queue is empty");
   }
@@ -251,6 +265,12 @@ export function formatStatus(s: ClarityStatus): string {
       .map((d) => `${short(d.date)} ${d.count ? "●".repeat(d.count) : "–"}`)
       .join("   ");
     L.push(`        ${strip}`);
+  }
+  if (s.packsBeyondWindow) {
+    L.push(`        ${plural(s.packsBeyondWindow, "pack")} waiting for the ${SCHEDULER_WINDOW_DAYS}-day window`);
+  }
+  if (s.scheduledRows > 0 && s.scheduledRows !== s.scheduledOnPinterest) {
+    L.push(`        ⚠ Notion says ${s.scheduledRows} lists scheduled, packs say ${s.scheduledOnPinterest} pins — run clarity reconcile`);
   }
 
   L.push("", "🏭 PIPELINE");
@@ -402,14 +422,23 @@ export async function gatherStatus(
     return d !== undefined && d >= today;
   }).length;
 
+  const partial = partiallyPosted(pending, submitted, TEMPLATE_NAMES.length).map((p) => ({
+    name: rows.find((r) => r.source !== "backfill" && slugify(r.name) === p.slug)?.name ?? p.slug,
+    posted: p.posted,
+    total: p.total,
+  }));
+
   return {
     today,
     inReview: health.inFlight["In Review"] ?? 0,
     needsChanges: rows.filter((r) => r.status === "Needs changes" && r.source !== "backfill").length,
-    readyToPublish: readyToPublish(rows),
+    approved: rows.filter((r) => r.status === "Approved" && r.source !== "backfill").length,
     packsWaiting,
     packsOverdue: health.pastDue,
+    packsBeyondWindow: beyondWindow(pending, today, SCHEDULER_WINDOW_DAYS),
+    partiallyPosted: partial,
     scheduledOnPinterest,
+    scheduledRows: rows.filter((r) => r.status === "Scheduled").length,
     runwayDays: health.daysOfRunway,
     lastScheduledDate: health.lastScheduledDate,
     upcoming: upcomingPins(upcomingFrom, today, UPCOMING_DAYS),
