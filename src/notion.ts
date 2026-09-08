@@ -173,6 +173,7 @@ export interface PinSummary {
   source?: string;
   destinationLink?: string;
   pinUrl?: string;
+  pinterestPinId?: string;
   scheduledDate?: string;
   publishedDate?: string;
   impressions?: number;
@@ -201,6 +202,7 @@ function pageToSummary(page: NotionPage): PinSummary {
     source: p["Source"]?.select?.name,
     destinationLink: p["Destination link"]?.url ?? undefined,
     pinUrl: p["Pin URL"]?.url ?? undefined,
+    pinterestPinId: text(p["Pinterest pin ID"]) || undefined,
     scheduledDate: p["Scheduled date"]?.date?.start,
     publishedDate: p["Published date"]?.date?.start,
     impressions: p["Impressions"]?.number ?? undefined,

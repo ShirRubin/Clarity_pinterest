@@ -38,6 +38,23 @@ test("an existing Scheduled date is kept", () => {
   assert.equal(p.scheduledDate, "2026-09-08");
 });
 
+test("an existing pin id/URL on the row is kept over the derived first-pack pin", () => {
+  const p = postedTransition({
+    postedTemplates: ["a", "b", "c", "d"],
+    totalTemplates: 4,
+    firstPinId: "111",
+    earliestPackDate: "2026-09-10",
+    existingPinUrl: "https://www.pinterest.com/pin/999/",
+    existingPinId: "999",
+  });
+  assert.deepEqual(p, {
+    status: "Scheduled",
+    pinUrl: "https://www.pinterest.com/pin/999/",
+    pinterestPinId: "999",
+    scheduledDate: "2026-09-10",
+  });
+});
+
 test("duplicate template names do not count twice", () => {
   const p = postedTransition({
     postedTemplates: ["a", "a", "b", "c"],

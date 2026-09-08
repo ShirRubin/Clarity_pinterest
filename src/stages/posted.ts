@@ -39,18 +39,27 @@ export async function runPosted(packDir: string, pinId: string): Promise<void> {
   await appendFile(path.join(dest, "post.txt"), `\nPOSTED: ${new Date().toISOString()} pin ${pinId}\n`, "utf8");
   console.log(`✓ moved to exports/posted/${dir}`);
 
-  // 2. Everything of this row now in posted/ (including the one just moved).
+  // 2. Everything of this row now in posted/ (including the one just moved —
+  // its POSTED: line was appended above, before this re-read, so it is not a
+  // pack silently missing its marker like the ~51 pre-this-stage packs are).
   const posted = (await readPacks("posted")).filter((p) => rowFor(p, rows)?.pageId === row.pageId);
   const stillPending = pending.filter((p) => p.dir !== dir && rowFor(p, rows)?.pageId === row.pageId);
   const earliest = [...posted, ...stillPending].map((p) => p.date).sort()[0];
-  const first = [...posted].sort((a, b) => a.date.localeCompare(b.date) || a.dir.localeCompare(b.dir))[0];
+  // Packs posted before this stage existed have no POSTED: marker — never treat
+  // one of those as "first". The pack just moved always has one (see above), so
+  // `known` is never empty and `known[0]` is always defined.
+  const known = posted
+    .filter((p) => p.text.posted?.pinId)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.dir.localeCompare(b.dir));
 
   const patch = postedTransition({
     postedTemplates: posted.map((p) => p.template),
     totalTemplates: TEMPLATE_NAMES.length,
-    firstPinId: first.text.posted?.pinId ?? pinId,
+    firstPinId: known[0].text.posted!.pinId,
     earliestPackDate: earliest,
     existingScheduledDate: row.scheduledDate,
+    existingPinUrl: row.pinUrl,
+    existingPinId: row.pinterestPinId,
   });
 
   // 3. Notion: always a note; status only on the last variant.
