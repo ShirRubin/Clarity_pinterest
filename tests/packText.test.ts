@@ -83,3 +83,18 @@ test("round-trips multi-paragraph description with embedded blank line", () => {
   };
   assert.deepEqual(parsePostText(postText(multiPara)), multiPara);
 });
+
+test("round-trips description containing marker-like content without blank line separator", () => {
+  const markerLike = {
+    date: "2026-09-08",
+    time: "09:00 AM",
+    pageId: "26b23760-024b-81e5-938d-e19a4e93f97c",
+    image: "classic-checklist.png",
+    title: "Marker Test",
+    description: "BOARD: chalkboard style\nAfter posting: relax",
+    alt: "Test graphic",
+    board: "Test Board",
+    link: "https://clarity-lists.com/posts/test",
+  };
+  assert.deepEqual(parsePostText(postText(markerLike)), markerLike);
+});
