@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   runwayFromPackNames,
   listsNeeded,
+  inFlightFrom,
   MAX_LISTS_PER_RUN,
   TARGET_RUNWAY_DAYS,
   VARIANTS_PER_LIST,
@@ -127,4 +128,17 @@ test("pending and submitted packs share one calendar", () => {
   assert.equal(r.pastDue, 1);              // only the pending 09-04
   assert.equal(r.packsRemaining, 2);       // 09-08 + 09-15
   assert.equal(r.lastScheduledDate, "2026-09-15");
+});
+
+// --- inFlightFrom ---------------------------------------------------------------
+
+test("an Approved row whose packs exist is no longer in flight", () => {
+  const rows = [
+    { name: "The Handmade Gift Bucket List: 12 Presents", status: "Approved", source: "pipeline" },
+    { name: "The Tarot Beginner Bucket List: 12 Spreads", status: "Approved", source: "pipeline" },
+    { name: "Some Idea", status: "Idea", source: "pipeline" },
+    { name: "Old pin", status: "Approved", source: "backfill" },
+  ];
+  const packs = ["2026-09-08--the-handmade-gift-bucket-list-12-presents--classic-checklist"];
+  assert.deepEqual(inFlightFrom(rows, packs), { Approved: 1, Idea: 1 });
 });

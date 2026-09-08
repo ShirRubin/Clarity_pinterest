@@ -1,7 +1,7 @@
 // Queue health — how far ahead the posting calendar runs, and how many new lists
 // the next generation run should make to keep it there.
 //
-// The calendar of record is exports/packs/ + exports/posted/ (see stages/publish.ts):
+// The calendar of record is exports/packs/ + exports/posted/ (see stages/pack.ts):
 // one dated directory per pin. A pack moves to posted/ by hand once it has been
 // handed to Pinterest's native scheduler, but a future-dated one is still holding
 // that day's slot, so both directories are read. Runway = days from today to the
@@ -16,6 +16,8 @@ import path from "node:path";
 import { listAllPins, type PinSummary } from "./notion.js";
 import { PINS_PER_DAY } from "./schedule.js";
 import type { Status } from "./schema.js";
+import { slugify } from "./destination.js";
+import { splitPackName } from "./packs.js";
 
 /** Keep this many days of scheduled packs ahead of today. */
 export const TARGET_RUNWAY_DAYS = 14;
@@ -87,6 +89,26 @@ export function listsNeeded(runway: Runway, inFlightLists: number): number {
   return Math.max(0, Math.min(MAX_LISTS_PER_RUN, lists));
 }
 
+/**
+ * Rows still to become packs, by status. An Approved row whose packs are already
+ * on disk is counted by the runway, not here — otherwise it would count twice.
+ */
+export function inFlightFrom(
+  rows: Pick<PinSummary, "name" | "status" | "source">[],
+  packNames: string[],
+): Partial<Record<Status, number>> {
+  const packed = new Set(packNames.map((n) => splitPackName(n)?.slug).filter(Boolean));
+  const inFlight: Partial<Record<Status, number>> = {};
+  for (const row of rows) {
+    if (row.source === "backfill") continue;
+    const status = row.status as Status | undefined;
+    if (!status || !IN_FLIGHT_STATUSES.includes(status)) continue;
+    if (status === "Approved" && packed.has(slugify(row.name))) continue;
+    inFlight[status] = (inFlight[status] ?? 0) + 1;
+  }
+  return inFlight;
+}
+
 export interface QueueHealth extends Runway {
   /** Row counts per pipeline status, for the statuses that represent work in flight. */
   inFlight: Partial<Record<Status, number>>;
@@ -115,13 +137,7 @@ export async function queueHealth(
   const [pending, submitted] = await Promise.all([packNames("packs"), packNames("posted")]);
   const runway = runwayFromPackNames(pending, today, submitted);
 
-  const inFlight: Partial<Record<Status, number>> = {};
-  for (const row of rows ?? (await listAllPins())) {
-    // Backfill rows are imported history, not pipeline output — they never become packs.
-    if (row.source === "backfill") continue;
-    const status = row.status as Status | undefined;
-    if (status && IN_FLIGHT_STATUSES.includes(status)) inFlight[status] = (inFlight[status] ?? 0) + 1;
-  }
+  const inFlight = inFlightFrom(rows ?? (await listAllPins()), [...pending, ...submitted]);
   const inFlightLists = Object.values(inFlight).reduce((a, b) => a + b, 0);
 
   return { ...runway, inFlight, inFlightLists, needed: listsNeeded(runway, inFlightLists) };
