@@ -79,13 +79,24 @@ export function parsePinterestPins(
 
 /**
  * Pinterest's scheduled-pins endpoint can silently return a short page. If
- * we've already posted more packs (dated today or later) than the scheduled
- * list contains, its "missing" verdict can't be trusted — the fix is to
+ * we've already posted more packs than the scheduled + created pin counts
+ * together contain, the "missing" verdict can't be trusted — the fix is to
  * re-pull in slices, not to repost something that is actually still there.
+ *
+ * "Due" only counts posted packs dated strictly AFTER today: Pinterest drops
+ * a pin from the scheduled list the instant it publishes, so today's 09:00/
+ * 13:00/18:00 pins may already be live and gone from `scheduled` — that shows
+ * up as `created` growing, not as `scheduled` shrinking, which is why both
+ * counts are compared together rather than `scheduled` alone.
  */
-export function scheduledLooksTruncated(scheduledCount: number, posted: PackInfo[], today: string): boolean {
-  const due = posted.filter((p) => p.date >= today).length;
-  return scheduledCount < due;
+export function scheduledLooksTruncated(
+  scheduledCount: number,
+  createdCount: number,
+  posted: PackInfo[],
+  today: string,
+): boolean {
+  const due = posted.filter((p) => p.date > today).length;
+  return scheduledCount + createdCount < due;
 }
 
 const schedUrl = (id: string) => `https://www.pinterest.com/ClarityBucketLists/scheduled-pin/${id}/`;

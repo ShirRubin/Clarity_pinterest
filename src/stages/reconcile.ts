@@ -25,11 +25,11 @@ export async function runReconcile(scheduledFile: string, createdFile: string, a
   const r = reconcile(pins, pending, posted, today);
   console.log(formatReconcile(r));
 
-  const truncated = scheduledLooksTruncated(scheduled.length, posted, today);
+  const truncated = scheduledLooksTruncated(scheduled.length, created.length, posted, today);
   if (truncated) {
-    const due = posted.filter((p) => p.date >= today).length;
+    const due = posted.filter((p) => p.date > today).length;
     console.log(
-      `⚠ scheduled list looks truncated (${scheduled.length} pins vs ${due} posted packs) — re-pull in slices before trusting "missing"`,
+      `⚠ scheduled list looks truncated (${scheduled.length + created.length} pins vs ${due} posted packs due after today) — re-pull in slices before trusting "missing"`,
     );
   }
 

@@ -85,16 +85,39 @@ test("parsePinterestPins accepts a well-formed entry", () => {
 });
 
 // --- scheduledLooksTruncated ---------------------------------------------------
+// Pinterest drops a pin from the scheduled list the moment it publishes, so
+// "due" only counts posted packs dated strictly AFTER today — today's may
+// already be live and gone from `scheduled`. The scheduled + created pin
+// counts together are what's compared, since a published-today pin shows up
+// in `created`, not `scheduled`.
 
-test("scheduledLooksTruncated flags a scheduled list shorter than the posted packs due today or later", () => {
-  const posted = [pack("posted", "2026-09-08", "A"), pack("posted", "2026-09-09", "B")];
-  assert.equal(scheduledLooksTruncated(1, posted, "2026-09-08"), true);
-  assert.equal(scheduledLooksTruncated(2, posted, "2026-09-08"), false);
+test("scheduledLooksTruncated flags a scheduled+created total shorter than the posted packs due strictly after today", () => {
+  const posted = [pack("posted", "2026-09-09", "A"), pack("posted", "2026-09-10", "B")];
+  assert.equal(scheduledLooksTruncated(1, 0, posted, "2026-09-08"), true);
+  assert.equal(scheduledLooksTruncated(2, 0, posted, "2026-09-08"), false);
 });
 
-test("scheduledLooksTruncated ignores posted packs dated before today", () => {
-  const posted = [pack("posted", "2026-09-01", "Old")];
-  assert.equal(scheduledLooksTruncated(0, posted, "2026-09-08"), false);
+test("scheduledLooksTruncated ignores posted packs dated today or before — today's may already be live", () => {
+  const posted = [pack("posted", "2026-09-08", "Today"), pack("posted", "2026-09-01", "Old")];
+  assert.equal(scheduledLooksTruncated(0, 0, posted, "2026-09-08"), false);
+});
+
+test("today's pins having already gone live (scheduled 2 + created 1) against 3 posted-tomorrow packs is NOT truncated", () => {
+  const posted = [
+    pack("posted", "2026-09-09", "A"),
+    pack("posted", "2026-09-09", "B"),
+    pack("posted", "2026-09-09", "C"),
+  ];
+  assert.equal(scheduledLooksTruncated(2, 1, posted, "2026-09-08"), false);
+});
+
+test("no scheduled or created pins at all against 3 posted-tomorrow packs IS truncated", () => {
+  const posted = [
+    pack("posted", "2026-09-09", "A"),
+    pack("posted", "2026-09-09", "B"),
+    pack("posted", "2026-09-09", "C"),
+  ];
+  assert.equal(scheduledLooksTruncated(0, 0, posted, "2026-09-08"), true);
 });
 
 test("when a noon duplicate and the legitimate pin share a key, alreadyLive tracks the legitimate one", () => {
