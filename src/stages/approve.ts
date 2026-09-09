@@ -6,11 +6,7 @@
 import { exec } from "node:child_process";
 import { ensureStatusOptions, pinImageUrls, pinsByStatus, updatePin } from "../notion.js";
 import { createApproveServer, type ApprovePin } from "../approve/server.js";
-import { decisionPatch, appendNote } from "../approve/decide.js";
-
-// Re-exported for existing importers of this module (e.g. tests/revise.test.ts) —
-// the definition itself now lives in ../approve/decide.js.
-export { appendNote };
+import { decisionPatch } from "../approve/decide.js";
 
 function openBrowser(url: string): void {
   const cmd =

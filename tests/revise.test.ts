@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { pendingRequest, markApplied } from "../src/stages/revise.js";
-import { appendNote } from "../src/stages/approve.js";
+import { appendNote } from "../src/approve/decide.js";
 
 test("pendingRequest finds the note left by the review page", () => {
   assert.equal(

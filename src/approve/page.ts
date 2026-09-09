@@ -10,7 +10,7 @@ export function renderApprovePage(pins: ApprovePin[]): string {
   const forPage = pins.map(({ imageUrls, ...rest }) => ({ ...rest, imageCount: imageUrls.length }));
   const data = JSON.stringify(forPage).replace(/</g, "\\u003c");
   return `<!doctype html>
-<html><head><meta charset="utf-8"><title>Clarity — review queue</title>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Clarity — review queue</title>
 <style>
   :root { --paper:#faf7f2; --ink:#3a3340; --accent:#b8a1e3; --ok:#7fb69b; --no:#e39a9a; --maybe:#e8b87f; }
   * { box-sizing:border-box; margin:0; }
@@ -20,9 +20,6 @@ export function renderApprovePage(pins: ApprovePin[]): string {
   #progress { font-weight:600; color:var(--accent); }
   .card { max-width:960px; margin:0 auto 2rem; background:#fff; border-radius:16px; padding:1.2rem; box-shadow:0 2px 12px rgba(58,51,64,.08); outline:none; }
   .card:focus { box-shadow:0 0 0 3px var(--accent); }
-  .card.decided { opacity:.45; }
-  .imgs { display:flex; gap:1rem; margin-bottom:1rem; }
-  .imgs img { width:50%; border-radius:10px; background:#eee; }
   .board { display:inline-block; background:var(--accent); color:#fff; border-radius:999px; padding:.15rem .7rem; font-size:.8rem; margin-bottom:.4rem; }
   h2 { font-size:1.1rem; margin:.2rem 0 .4rem; }
   p.desc { font-size:.92rem; white-space:pre-wrap; }
@@ -39,6 +36,22 @@ export function renderApprovePage(pins: ApprovePin[]): string {
   .verdict { font-weight:700; }
   .err { color:#c0392b; font-size:.85rem; margin-top:.4rem; }
   #summary { max-width:960px; margin:0 auto; text-align:center; font-size:1.2rem; display:none; padding:2rem; }
+  .imgs { display:flex; gap:1rem; margin-bottom:1rem; overflow-x:auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling:touch; }
+  .imgs img { flex:0 0 50%; scroll-snap-align:start; border-radius:10px; background:#eee; }
+  textarea.note { display:none; }
+  textarea.note.open { display:block; }
+  .card.decided { opacity:1; }
+  .card.decided > *:not(.receipt) { display:none; }
+  .receipt { font-weight:700; padding:.4rem 0; }
+  @media (max-width: 700px) {
+    body { padding:1rem .6rem 5rem; }
+    header { margin-bottom:1rem; }
+    .card { border-radius:12px; padding:.9rem; margin-bottom:1.2rem; }
+    .imgs img { flex:0 0 88%; }
+    .actions { flex-direction:column; align-items:stretch; gap:.6rem; }
+    .actions button { width:100%; padding:.9rem 1rem; font-size:1.05rem; }
+    h2 { font-size:1.05rem; }
+  }
 </style></head><body>
 <header><h1>Clarity review queue</h1><div id="progress"></div></header>
 <main id="cards"></main>
@@ -49,7 +62,7 @@ let decided = 0, approved = 0, revised = 0;
 const cards = document.getElementById("cards");
 const progress = document.getElementById("progress");
 function updateProgress() {
-  progress.textContent = decided + " of " + pins.length + " decided";
+  progress.textContent = decided + " of " + pins.length;
   if (decided === pins.length) {
     const s = document.getElementById("summary");
     s.style.display = "block";
@@ -80,9 +93,19 @@ for (const pin of pins) {
     '<div class="hint">Needs changes keeps the list and rewrites it from your notes, then sends it back to this queue.</div>' +
     '<div class="err"></div>';
   el.querySelector(".approve").onclick = () => decide(el, pin, "approve");
-  el.querySelector(".revise").onclick = () => decide(el, pin, "revise");
+  el.querySelector(".revise").onclick = () => {
+    const note = el.querySelector(".note");
+    if (!note.classList.contains("open")) { revealNote(el); return; }
+    decide(el, pin, "revise");
+  };
   el.querySelector(".reject").onclick = () => decide(el, pin, "reject");
   cards.appendChild(el);
+}
+function revealNote(el) {
+  const note = el.querySelector(".note");
+  note.classList.add("open");
+  el.querySelector(".revise").textContent = "↻ Send back with this note";
+  note.focus();
 }
 const VERDICT = { approve: "✓ Approved", reject: "✗ Rejected", revise: "↻ Sent back for changes" };
 async function decide(el, pin, decision) {
@@ -105,15 +128,19 @@ async function decide(el, pin, decision) {
     });
     if (!res.ok) throw new Error((await res.json()).error || res.status);
     el.classList.add("decided");
-    el.querySelector(".actions").innerHTML =
-      '<span class="verdict">' + VERDICT[decision] + "</span>";
-    el.querySelector(".note").disabled = true;
+    const receipt = document.createElement("div");
+    receipt.className = "receipt";
+    receipt.textContent = VERDICT[decision] + " — " + (pin.pinTitle || pin.name);
+    el.appendChild(receipt);
     decided++;
     if (decision === "approve") approved++;
     if (decision === "revise") revised++;
     updateProgress();
     const next = el.nextElementSibling;
-    if (next && next.classList && next.classList.contains("card")) next.focus();
+    if (next && next.classList && next.classList.contains("card")) {
+      next.scrollIntoView({ behavior: "smooth", block: "start" });
+      next.focus({ preventScroll: true });
+    }
   } catch (e) {
     err.textContent = "Notion said no: " + e.message + " — try again.";
   } finally {
@@ -136,9 +163,15 @@ document.addEventListener("keydown", (ev) => {
   const pin = pins.find(p => p.pageId === el.dataset.id);
   if (ev.key === "a" || ev.key === "A") decide(el, pin, "approve");
   if (ev.key === "r" || ev.key === "R") decide(el, pin, "reject");
-  if (ev.key === "m" || ev.key === "M") decide(el, pin, "revise");
+  if (ev.key === "m" || ev.key === "M") el.querySelector(".revise").click();
 });
 updateProgress();
 if (cards.firstElementChild) cards.firstElementChild.focus();
 </script></body></html>`;
+}
+
+export function emptyQueuePage(): string {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clarity — review queue</title><style>body{font-family:"Segoe UI",system-ui,sans-serif;background:#faf7f2;color:#3a3340;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center;padding:2rem}h1{font-size:1.3rem}</style></head>
+<body><div><h1>Nothing to review</h1><p>The generator will top the queue up overnight. Come back tomorrow.</p></div></body></html>`;
 }

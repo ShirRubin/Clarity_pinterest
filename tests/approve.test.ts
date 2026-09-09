@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import type { AddressInfo } from "node:net";
 import type http from "node:http";
 import { createApproveServer, type ApprovePin } from "../src/approve/server.js";
+import { renderApprovePage, emptyQueuePage } from "../src/approve/page.js";
 
 const pin = (id: string): ApprovePin => ({
   pageId: id,
@@ -178,4 +179,29 @@ test("a missing image is a 404, not a crash", async () => {
     assert.equal(r.status, 404);
   }
   server.close();
+});
+
+test("the page is phone-first: viewport meta, snap-scrolling variant strip, stacked full-width actions", () => {
+  const html = renderApprovePage([pin("p1")]);
+  assert.match(html, /<meta name="viewport" content="width=device-width, initial-scale=1">/);
+  assert.match(html, /scroll-snap-type:\s*x mandatory/);
+  assert.match(html, /@media \(max-width: 700px\)/);
+  assert.match(html, /\.actions button \{[^}]*width:\s*100%/);
+});
+
+test("the note box is hidden until Needs changes is tapped, and the header counts N of M", () => {
+  const html = renderApprovePage([pin("p1"), pin("p2")]);
+  assert.match(html, /textarea\.note \{[^}]*display:\s*none/);
+  assert.match(html, /revealNote\(/);
+  assert.match(html, /" of " \+ pins\.length/);
+});
+
+test("a decided card collapses to a receipt and the next card scrolls into view", () => {
+  const html = renderApprovePage([pin("p1")]);
+  assert.match(html, /classList\.add\("decided"\)/);
+  assert.match(html, /scrollIntoView\(/);
+});
+
+test("emptyQueuePage says there is nothing to review", () => {
+  assert.match(emptyQueuePage(), /Nothing to review/);
 });
