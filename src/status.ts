@@ -12,11 +12,11 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { listAllPins } from "./notion.js";
-import { queueHealth, packNames, TARGET_RUNWAY_DAYS } from "./queue.js";
-import { splitPackName } from "./packs.js";
+import { queueHealth, TARGET_RUNWAY_DAYS } from "./queue.js";
+import { readPacks, splitPackName } from "./packs.js";
 import { SCHEDULER_WINDOW_DAYS } from "./postplan.js";
 import { TEMPLATE_NAMES } from "./render/renderPin.js";
-import { slugify } from "./destination.js";
+import { rowForPack } from "./rowForPack.js";
 
 /** A Pinterest CSV export older than this is worth refreshing. */
 export const ANALYTICS_STALE_DAYS = 7;
@@ -53,6 +53,7 @@ export interface ClarityStatus {
   // The calendar.
   scheduledOnPinterest: number;
   scheduledRows: number;
+  scheduledLists: number;
   runwayDays: number;
   lastScheduledDate?: string;
   upcoming: DayCount[];
@@ -108,6 +109,24 @@ export function partiallyPosted(
   return [...counts.entries()]
     .filter(([slug, t]) => t.size < total && pendingSlugs.has(slug))
     .map(([slug, t]) => ({ slug, posted: t.size, total }));
+}
+
+/**
+ * Distinct lists (slugs) among posted packs dated today or later. One Notion
+ * row becomes 4 packs (one per template variant), so counting posted packs
+ * directly against Notion's `Scheduled` row count fires a false agreement
+ * warning as soon as a single row has any variant posted — this counts the
+ * lists the packs represent instead of the packs themselves.
+ */
+export function scheduledListsFrom(names: string[], today: string): number {
+  const slugs = new Set<string>();
+  for (const name of names) {
+    const d = dateOf(name);
+    if (d === undefined || d < today) continue;
+    const parts = splitPackName(name);
+    if (parts) slugs.add(parts.slug);
+  }
+  return slugs.size;
 }
 
 /** Pending packs dated past Pinterest's scheduler window — not postable yet. */
@@ -269,8 +288,8 @@ export function formatStatus(s: ClarityStatus): string {
   if (s.packsBeyondWindow) {
     L.push(`        ${plural(s.packsBeyondWindow, "pack")} waiting for the ${SCHEDULER_WINDOW_DAYS}-day window`);
   }
-  if (s.scheduledRows > 0 && s.scheduledRows !== s.scheduledOnPinterest) {
-    L.push(`        ⚠ Notion says ${s.scheduledRows} lists scheduled, packs say ${s.scheduledOnPinterest} pins — run clarity reconcile`);
+  if (s.scheduledRows > 0 && s.scheduledRows !== s.scheduledLists) {
+    L.push(`        ⚠ Notion says ${s.scheduledRows} lists scheduled, packs say ${s.scheduledLists} lists — run clarity reconcile`);
   }
 
   L.push("", "🏭 PIPELINE");
@@ -386,11 +405,11 @@ export async function gatherStatus(
   const postsDir = path.join(BLOG, "src", "content", "posts");
   const builtDir = path.join(BLOG, "dist", "posts");
 
-  const [health, pending, submitted, postFiles, builtFiles, analyticsFiles, logFiles, plan, relink] =
+  const [health, pendingPacks, submittedPacks, postFiles, builtFiles, analyticsFiles, logFiles, plan, relink] =
     await Promise.all([
       queueHealth(today, rows),
-      packNames("packs"),
-      packNames("posted"),
+      readPacks("packs"),
+      readPacks("posted"),
       names(postsDir),
       names(builtDir),
       names(path.join("data", "analytics")),
@@ -398,6 +417,11 @@ export async function gatherStatus(
       readText(PLAN),
       readJson<{ done?: boolean }[]>(path.join("exports", "relink-pins.json"), []),
     ]);
+  // The rest of this function works off directory names, as before — readPacks
+  // (rather than queue.ts's packNames) is what makes each pack's PAGE: id
+  // available below for the partiallyPosted → row lookup.
+  const pending = pendingPacks.map((p) => p.dir);
+  const submitted = submittedPacks.map((p) => p.dir);
 
   const [newestPostMs, buildMs] = await Promise.all([
     newestMtime(postsDir),
@@ -422,11 +446,11 @@ export async function gatherStatus(
     return d !== undefined && d >= today;
   }).length;
 
-  const partial = partiallyPosted(pending, submitted, TEMPLATE_NAMES.length).map((p) => ({
-    name: rows.find((r) => r.source !== "backfill" && slugify(r.name) === p.slug)?.name ?? p.slug,
-    posted: p.posted,
-    total: p.total,
-  }));
+  const partial = partiallyPosted(pending, submitted, TEMPLATE_NAMES.length).map((p) => {
+    const samplePack = submittedPacks.find((sp) => sp.slug === p.slug) ?? pendingPacks.find((sp) => sp.slug === p.slug);
+    const row = samplePack ? rowForPack(samplePack, rows) : undefined;
+    return { name: row?.name ?? p.slug, posted: p.posted, total: p.total };
+  });
 
   return {
     today,
@@ -439,6 +463,7 @@ export async function gatherStatus(
     partiallyPosted: partial,
     scheduledOnPinterest,
     scheduledRows: rows.filter((r) => r.status === "Scheduled").length,
+    scheduledLists: scheduledListsFrom(submitted, today),
     runwayDays: health.daysOfRunway,
     lastScheduledDate: health.lastScheduledDate,
     upcoming: upcomingPins(upcomingFrom, today, UPCOMING_DAYS),

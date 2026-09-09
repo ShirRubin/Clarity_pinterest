@@ -12,6 +12,7 @@ import {
   lastRunFrom,
   partiallyPosted,
   beyondWindow,
+  scheduledListsFrom,
   ANALYTICS_STALE_DAYS,
   type ClarityStatus,
 } from "../src/status.js";
@@ -143,7 +144,8 @@ const clear: ClarityStatus = {
   packsBeyondWindow: 0,
   partiallyPosted: [],
   scheduledOnPinterest: 40,
-  scheduledRows: 40,
+  scheduledRows: 10,
+  scheduledLists: 10,
   runwayDays: 26,
   lastScheduledDate: "2026-10-03",
   upcoming: [{ date: "2026-09-07", count: 3 }],
@@ -205,6 +207,26 @@ test("beyondWindow counts pending packs past the scheduler window", () => {
   assert.equal(beyondWindow(names, "2026-09-08", 29), 1);
 });
 
+// --- scheduledListsFrom -------------------------------------------------------
+// One row = 4 packs (one per template), so counting posted packs directly
+// overstates "lists scheduled" by ~4x — this counts distinct slugs instead.
+
+test("scheduledListsFrom counts distinct slugs among posted packs dated today or later", () => {
+  const names = [
+    "2026-09-08--the-tea-bucket-list--classic-checklist",
+    "2026-09-08--the-tea-bucket-list--bold-panel",
+    "2026-09-09--the-tea-bucket-list--sticky-note",
+    "2026-09-09--the-tea-bucket-list--big-numbers",
+    "2026-09-10--another-list--classic-checklist",
+  ];
+  assert.equal(scheduledListsFrom(names, "2026-09-08"), 2);
+});
+
+test("scheduledListsFrom ignores packs dated before today", () => {
+  const names = ["2026-09-06--old-list--classic-checklist", "2026-09-08--new-list--classic-checklist"];
+  assert.equal(scheduledListsFrom(names, "2026-09-08"), 1);
+});
+
 test("the card names approved lists, partial rows and the window", () => {
   const s = { ...clear, approved: 2, packsWaiting: 5, partiallyPosted: [{ name: "The Tea Bucket List", posted: 3, total: 4 }], packsBeyondWindow: 7 };
   const card = formatStatus(s);
@@ -214,9 +236,9 @@ test("the card names approved lists, partial rows and the window", () => {
   assert.match(card, /7 packs waiting for the 29-day window/);
 });
 
-test("the card warns when Notion's Scheduled count and the posted packs disagree", () => {
-  const card = formatStatus({ ...clear, scheduledRows: 5, scheduledOnPinterest: 8 });
-  assert.match(card, /Notion says 5 lists scheduled, packs say 8 pins — run clarity reconcile/);
+test("the card warns when Notion's Scheduled count and the posted packs' distinct lists disagree", () => {
+  const card = formatStatus({ ...clear, scheduledRows: 5, scheduledLists: 8 });
+  assert.match(card, /Notion says 5 lists scheduled, packs say 8 lists — run clarity reconcile/);
 });
 
 // --- formatStatus ------------------------------------------------------------
