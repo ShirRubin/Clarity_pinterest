@@ -8,7 +8,7 @@ import path from "node:path";
 import { listAllPins, updatePin, ensureStatusOptions } from "../notion.js";
 import { readPacks, splitPackName } from "../packs.js";
 import { postedTransition, postedDerivation, applyStatusGuard, pinUrl } from "../posted.js";
-import { appendNote } from "./approve.js";
+import { appendNote } from "../approve/decide.js";
 import { TEMPLATE_NAMES } from "../render/renderPin.js";
 import { rowForPack as rowFor } from "../rowForPack.js";
 

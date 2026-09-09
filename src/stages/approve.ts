@@ -5,24 +5,12 @@
 // a "Needs changes" note is what `clarity revise` reads to rewrite the list.
 import { exec } from "node:child_process";
 import { ensureStatusOptions, pinImageUrls, pinsByStatus, updatePin } from "../notion.js";
-import { createApproveServer, type ApprovePin, type Decision } from "../approve/server.js";
-import type { Status } from "../schema.js";
+import { createApproveServer, type ApprovePin } from "../approve/server.js";
+import { decisionPatch, appendNote } from "../approve/decide.js";
 
-const STATUS_FOR: Record<Decision, Status> = {
-  approve: "Approved",
-  reject: "Rejected",
-  revise: "Needs changes",
-};
-
-// `revise` is the marker `clarity revise` looks for; the others are history only.
-const MARKER_FOR: Record<Decision, string> = {
-  approve: "review",
-  reject: "review",
-  revise: "revise",
-};
-
-export const appendNote = (existing: string | undefined, entry: string): string =>
-  existing?.trim() ? `${existing.trim()} | ${entry}` : entry;
+// Re-exported for existing importers of this module (e.g. tests/revise.test.ts) —
+// the definition itself now lives in ../approve/decide.js.
+export { appendNote };
 
 function openBrowser(url: string): void {
   const cmd =
@@ -60,11 +48,7 @@ export async function runApprove(port = 4178): Promise<void> {
   const server = createApproveServer(
     pins,
     async (pageId, decision, note) => {
-      const entry = note ? `${MARKER_FOR[decision]} ${today}: ${note}` : undefined;
-      await updatePin(pageId, {
-        status: STATUS_FOR[decision],
-        ...(entry ? { notes: appendNote(notesByPage.get(pageId), entry) } : {}),
-      });
+      await updatePin(pageId, decisionPatch(decision, note, notesByPage.get(pageId), today));
       if (decision === "revise") needsRevision++;
     },
     () => {

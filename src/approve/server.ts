@@ -4,6 +4,8 @@
 // card state never gets ahead of Notion.
 import http from "node:http";
 import { renderApprovePage } from "./page.js";
+import { type Decision, isDecision } from "./decide.js";
+export type { Decision };
 
 export interface ApprovePin {
   pageId: string;
@@ -16,9 +18,6 @@ export interface ApprovePin {
   imageUrls: string[];
 }
 
-export type Decision = "approve" | "reject" | "revise";
-
-const DECISIONS: readonly Decision[] = ["approve", "reject", "revise"];
 export type OnDecision = (pageId: string, decision: Decision, note?: string) => Promise<void>;
 /** Resolve a freshly-signed URL for one pin image, by page and image index. */
 export type ResolveImage = (pageId: string, index: number) => Promise<string | undefined>;
@@ -75,7 +74,7 @@ export function createApproveServer(
         return;
       }
       const { pageId, decision, note } = parsed;
-      if (!pageId || !remaining.has(pageId) || !DECISIONS.includes(decision as Decision)) {
+      if (!pageId || !remaining.has(pageId) || !isDecision(decision)) {
         res.writeHead(400, { "content-type": "application/json" });
         res.end(JSON.stringify({ error: "unknown pin or bad decision" }));
         return;
