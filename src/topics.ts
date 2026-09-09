@@ -15,18 +15,54 @@ const VIBES: Record<string, string[]> = {
 
 const OPEN_SLOT = /your turn|what would you add/i;
 
+// A bare imperative ("Start", "Pour", "Book") followed by an article reads as
+// an instruction, not a topic — Pinterest's taxonomy wants the noun. Only an
+// exact-word match is dropped: "knitted" stays (it isn't "knit").
+const IMPERATIVES = new Set([
+  "start", "make", "pour", "knit", "book", "try", "take", "do", "watch", "read", "write", "host",
+  "learn", "build", "plan", "go", "visit", "bake", "cook", "drink", "taste", "pick", "set", "add",
+  "say", "sit", "fall", "brace", "board", "blend", "press", "bottle", "embroider", "hand-pour",
+  "compare", "order", "pair", "save", "rotate", "name", "lock", "choose", "put", "throw", "keep",
+  "find", "get", "have", "spend", "sign", "join", "run", "walk", "wear", "buy", "light", "hang",
+  "frame", "plant", "grow", "stitch", "sew", "paint", "draw", "mix", "roll",
+]);
+const ARTICLES = new Set(["a", "an", "the", "your", "one", "some"]);
+
+/** The bold head, cleaned to its first two nouns — or undefined for a head
+ *  that has nothing left worth tagging once the verb/article is dropped. */
+function headWords(head: string): string | undefined {
+  const words = head
+    .replace(/[^\p{L}\p{N}\s-]/gu, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.toLowerCase());
+  let i = 0;
+  if (IMPERATIVES.has(words[i])) i++;
+  if (ARTICLES.has(words[i])) i++;
+  const rest = words.slice(i, i + 2);
+  if (rest.length === 0) return undefined;
+  if (rest.length === 1 && rest[0].length <= 2) return undefined;
+  return rest.join(" ");
+}
+
 export function suggestTopics(listItems: string, theme?: string): string[] {
-  const out: string[] = [];
-  const push = (s: string) => {
-    const v = s.trim().toLowerCase();
-    if (v && !out.includes(v) && out.length < 10) out.push(v);
-  };
+  const vibes = VIBES[theme ?? ""] ?? [];
+  // Reserve the theme's vibe words first — a 12-item list otherwise fills all
+  // 10 slots with item heads and the vibes never make it in.
+  const maxHeads = Math.max(0, 10 - vibes.length);
+  const heads: string[] = [];
   for (const line of listItems.split(/\r?\n/)) {
+    if (heads.length >= maxHeads) break;
     if (OPEN_SLOT.test(line)) continue;
-    const head = /\*\*(.+?)\*\*/.exec(line)?.[1] ?? line.replace(/^\s*\d+[.)]\s*/, "").split(/[—–-]{1,2}\s/)[0];
-    const words = head.replace(/[^\p{L}\p{N}\s-]/gu, "").trim().split(/\s+/).slice(0, 2).join(" ");
-    push(words);
+    const headRaw = /\*\*(.+?)\*\*/.exec(line)?.[1] ?? line.replace(/^\s*\d+[.)]\s*/, "").split(/[—–-]{1,2}\s/)[0];
+    const words = headWords(headRaw);
+    if (words && !heads.includes(words)) heads.push(words);
   }
-  for (const v of VIBES[theme ?? ""] ?? []) push(v);
+  const out = [...heads];
+  for (const v of vibes) {
+    const val = v.trim().toLowerCase();
+    if (val && !out.includes(val)) out.push(val);
+  }
   return out;
 }
