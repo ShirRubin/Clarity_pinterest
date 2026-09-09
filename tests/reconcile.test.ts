@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { reconcile, formatReconcile, type PinterestPin } from "../src/reconcile.js";
+import { reconcile, formatReconcile, parsePinterestPins, scheduledLooksTruncated, type PinterestPin } from "../src/reconcile.js";
 import type { PackInfo } from "../src/packs.js";
 
 // 2026-09-10 09:00 Jerusalem = 06:00 UTC
@@ -61,6 +61,40 @@ test("formatReconcile names every problem with the URL to act on", () => {
 
 test("a clean state prints a clean line", () => {
   assert.match(formatReconcile(reconcile([], [], [], "2026-09-08")), /nothing to fix/);
+});
+
+// --- parsePinterestPins -------------------------------------------------------
+
+test("parsePinterestPins rejects an entry with a missing id or ts, naming the file and index", () => {
+  assert.throws(
+    () => parsePinterestPins([{ id: "1", ts: 1, title: "A" }, { title: "B", ts: 2 }], "scheduled", "scheduled.json"),
+    /scheduled\.json\[1\]/,
+  );
+});
+
+test("parsePinterestPins rejects an entry with a missing or empty title, naming the file and index", () => {
+  assert.throws(
+    () => parsePinterestPins([{ id: "1", ts: 1, title: "  " }], "scheduled", "scheduled.json"),
+    /scheduled\.json\[0\].*title/i,
+  );
+});
+
+test("parsePinterestPins accepts a well-formed entry", () => {
+  const out = parsePinterestPins([{ id: "1", ts: 100, title: "A" }], "scheduled", "f.json");
+  assert.deepEqual(out, [{ id: "1", title: "A", link: undefined, ts: 100, kind: "scheduled" }]);
+});
+
+// --- scheduledLooksTruncated ---------------------------------------------------
+
+test("scheduledLooksTruncated flags a scheduled list shorter than the posted packs due today or later", () => {
+  const posted = [pack("posted", "2026-09-08", "A"), pack("posted", "2026-09-09", "B")];
+  assert.equal(scheduledLooksTruncated(1, posted, "2026-09-08"), true);
+  assert.equal(scheduledLooksTruncated(2, posted, "2026-09-08"), false);
+});
+
+test("scheduledLooksTruncated ignores posted packs dated before today", () => {
+  const posted = [pack("posted", "2026-09-01", "Old")];
+  assert.equal(scheduledLooksTruncated(0, posted, "2026-09-08"), false);
 });
 
 test("when a noon duplicate and the legitimate pin share a key, alreadyLive tracks the legitimate one", () => {

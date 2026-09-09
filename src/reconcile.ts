@@ -60,6 +60,34 @@ export function reconcile(pins: PinterestPin[], pending: PackInfo[], posted: Pac
   return { alreadyLive, noon, sameDay, missing };
 }
 
+/**
+ * Validate + normalize the raw JSON the /clarity-post browser snippet writes,
+ * naming the file and index of the first bad entry rather than failing on
+ * some later, harder-to-place symptom.
+ */
+export function parsePinterestPins(
+  raw: Partial<PinterestPin>[],
+  kind: PinterestPin["kind"],
+  label: string,
+): PinterestPin[] {
+  return raw.map((p, i) => {
+    if (!p.id || typeof p.ts !== "number") throw new Error(`${label}[${i}]: needs id and ts (unix seconds)`);
+    if (!p.title || !p.title.trim()) throw new Error(`${label}[${i}]: missing title`);
+    return { id: String(p.id), title: p.title, link: p.link, ts: p.ts, kind };
+  });
+}
+
+/**
+ * Pinterest's scheduled-pins endpoint can silently return a short page. If
+ * we've already posted more packs (dated today or later) than the scheduled
+ * list contains, its "missing" verdict can't be trusted — the fix is to
+ * re-pull in slices, not to repost something that is actually still there.
+ */
+export function scheduledLooksTruncated(scheduledCount: number, posted: PackInfo[], today: string): boolean {
+  const due = posted.filter((p) => p.date >= today).length;
+  return scheduledCount < due;
+}
+
 const schedUrl = (id: string) => `https://www.pinterest.com/ClarityBucketLists/scheduled-pin/${id}/`;
 
 export function formatReconcile(r: Reconciliation): string {
