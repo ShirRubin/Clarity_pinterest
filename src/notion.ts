@@ -1,6 +1,9 @@
 import { Client } from "@notionhq/client";
 import "dotenv/config";
 import { DB_PROPERTIES, STATUSES, type Board, type Status } from "./schema.js";
+import { pageToSummary, imageUrlsOf, type NotionPage, type PinSummary } from "./notionPage.js";
+
+export type { PinSummary, NotionPage } from "./notionPage.js";
 
 export function notionClient(): Client {
   const token = process.env.NOTION_TOKEN;
@@ -146,75 +149,6 @@ export async function listPinsByStatus(status: Status) {
   return res.results;
 }
 
-type NotionPage = {
-  id: string;
-  properties: Record<string, {
-    title?: { plain_text: string }[];
-    rich_text?: { plain_text: string }[];
-    select?: { name: string } | null;
-    number?: number | null;
-    url?: string | null;
-    date?: { start: string } | null;
-    files?: { file?: { url: string }; external?: { url: string } }[];
-  }>;
-};
-
-export interface PinSummary {
-  pageId: string;
-  name: string;
-  theme?: string;
-  trend?: string;
-  board?: string;
-  status?: string;
-  pinTitle?: string;
-  pinDescription?: string;
-  altText?: string;
-  listItems?: string;
-  source?: string;
-  destinationLink?: string;
-  pinUrl?: string;
-  pinterestPinId?: string;
-  scheduledDate?: string;
-  publishedDate?: string;
-  impressions?: number;
-  saves?: number;
-  clicks?: number;
-  statsUpdated?: string;
-  notes?: string;
-  imageUrls: string[];
-}
-
-function pageToSummary(page: NotionPage): PinSummary {
-  const p = page.properties;
-  const text = (prop?: { title?: { plain_text: string }[]; rich_text?: { plain_text: string }[] }) =>
-    (prop?.title ?? prop?.rich_text ?? []).map((t) => t.plain_text).join("");
-  return {
-    pageId: page.id,
-    name: text(p["Name"]),
-    theme: p["Theme"]?.select?.name,
-    trend: p["Trend"]?.select?.name,
-    board: p["Board"]?.select?.name,
-    status: p["Status"]?.select?.name,
-    pinTitle: text(p["Pin title"]),
-    pinDescription: text(p["Pin description"]),
-    altText: text(p["Alt text"]),
-    listItems: text(p["List items"]),
-    source: p["Source"]?.select?.name,
-    destinationLink: p["Destination link"]?.url ?? undefined,
-    pinUrl: p["Pin URL"]?.url ?? undefined,
-    pinterestPinId: text(p["Pinterest pin ID"]) || undefined,
-    scheduledDate: p["Scheduled date"]?.date?.start,
-    publishedDate: p["Published date"]?.date?.start,
-    impressions: p["Impressions"]?.number ?? undefined,
-    saves: p["Saves"]?.number ?? undefined,
-    clicks: p["Clicks"]?.number ?? undefined,
-    statsUpdated: p["Stats updated"]?.date?.start,
-    notes: text(p["Notes"]),
-    imageUrls: (p["Pin image"]?.files ?? [])
-      .map((f) => f.file?.url ?? f.external?.url)
-      .filter((u): u is string => !!u),
-  };
-}
 
 /**
  * Freshly-signed image URLs for one page. Notion signs file URLs with a 1-hour
@@ -224,9 +158,7 @@ function pageToSummary(page: NotionPage): PinSummary {
 export async function pinImageUrls(pageId: string): Promise<string[]> {
   const notion = notionClient();
   const page = (await notion.pages.retrieve({ page_id: pageId })) as unknown as NotionPage;
-  return (page.properties["Pin image"]?.files ?? [])
-    .map((f) => f.file?.url ?? f.external?.url)
-    .filter((u): u is string => !!u);
+  return imageUrlsOf(page);
 }
 
 // --- File uploads (raw fetch: @notionhq/client 2.x predates the file-upload API) ---
