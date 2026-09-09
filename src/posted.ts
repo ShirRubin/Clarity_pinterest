@@ -1,5 +1,7 @@
 // src/posted.ts — what changes on a Notion row after one more of its variants
 // lands in Pinterest's scheduler. Pure; the stage does the I/O.
+import type { PackInfo } from "./packs.js";
+
 export const pinUrl = (pinId: string) => `https://www.pinterest.com/pin/${pinId}/`;
 
 export interface PostedInput {
@@ -48,4 +50,41 @@ export function postedTransition(i: PostedInput): PostedPatch {
     pinterestPinId: finalPinId,
     scheduledDate: i.existingScheduledDate ?? i.earliestPackDate,
   };
+}
+
+export interface PostedDerivation {
+  /** The earliest-dated pack with a POSTED: marker's pin id — undefined only
+   *  when no pack for this row has one yet (should not happen once this pack
+   *  itself has just been marked, but the repair path can't assume that). */
+  firstPinId?: string;
+  earliestPackDate: string;
+}
+
+/**
+ * The two things `postedTransition` needs beyond the posted-template count:
+ * which pin id to record, and the earliest date across every pack for this
+ * row — posted or still pending. Packs posted before this stage existed (or
+ * mid-repair, see stages/posted.ts) may have no POSTED: marker; those are
+ * never candidates for "first".
+ */
+export function postedDerivation(postedPacks: PackInfo[], pendingPacks: PackInfo[]): PostedDerivation {
+  const earliestPackDate = [...postedPacks, ...pendingPacks].map((p) => p.date).sort()[0];
+  const known = postedPacks
+    .filter((p) => p.text.posted?.pinId)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.dir.localeCompare(b.dir));
+  return { firstPinId: known[0]?.text.posted?.pinId, earliestPackDate };
+}
+
+/**
+ * A row is only ever flipped to Scheduled here — never anything else — so the
+ * guard is narrow: withhold just the status change when the row's current
+ * status isn't Approved or Scheduled (someone moved it to Rejected/Archived/etc
+ * by hand), leaving the rest of the patch (pin id, URL, date) to be recorded
+ * as-is. The caller still appends its posting note either way.
+ */
+export function applyStatusGuard(patch: PostedPatch, currentStatus?: string): PostedPatch {
+  if (!patch.status) return patch;
+  if (currentStatus === "Approved" || currentStatus === "Scheduled") return patch;
+  const { status, ...rest } = patch;
+  return rest;
 }
