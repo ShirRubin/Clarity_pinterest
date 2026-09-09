@@ -17,7 +17,10 @@ const OPEN_SLOT = /your turn|what would you add/i;
 
 // A bare imperative ("Start", "Pour", "Book") followed by an article reads as
 // an instruction, not a topic — Pinterest's taxonomy wants the noun. Only an
-// exact-word match is dropped: "knitted" stays (it isn't "knit").
+// exact-word match is dropped: "knitted" stays (it isn't "knit"). The verb is
+// dropped ONLY when an article follows it ("Start a candle collection"): many
+// of these words double as nouns ("Board game night", "Plant swap", "Book
+// club night"), and without an article after them they ARE the noun.
 const IMPERATIVES = new Set([
   "start", "make", "pour", "knit", "book", "try", "take", "do", "watch", "read", "write", "host",
   "learn", "build", "plan", "go", "visit", "bake", "cook", "drink", "taste", "pick", "set", "add",
@@ -38,8 +41,9 @@ function headWords(head: string): string | undefined {
     .filter(Boolean)
     .map((w) => w.toLowerCase());
   let i = 0;
-  if (IMPERATIVES.has(words[i])) i++;
-  if (ARTICLES.has(words[i])) i++;
+  if (IMPERATIVES.has(words[i]) && ARTICLES.has(words[i + 1])) {
+    i += 2;
+  }
   const rest = words.slice(i, i + 2);
   if (rest.length === 0) return undefined;
   if (rest.length === 1 && rest[0].length <= 2) return undefined;

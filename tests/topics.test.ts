@@ -31,8 +31,14 @@ test("plain lines without bold still yield something", () => {
   assert.deepEqual(suggestTopics("1. Tea tasting at home\n2. Baking bread"), ["tea tasting", "baking bread"]);
 });
 
-test("a leading imperative verb and article are dropped from the head", () => {
+test("a leading imperative verb is dropped only when followed by an article", () => {
   assert.deepEqual(suggestTopics("1. **Start a candle collection** — one a month."), ["candle collection"]);
+});
+
+test("a noun-first head keeps its leading word — the verb list must not eat real nouns", () => {
+  assert.deepEqual(suggestTopics("1. **Board game night** — pick a classic."), ["board game"]);
+  assert.deepEqual(suggestTopics("1. **Plant swap** — bring one, take one."), ["plant swap"]);
+  assert.deepEqual(suggestTopics("1. **Book club night** — pick a classic."), ["book club"]);
 });
 
 test("vibes are reachable: a 12-item list reserves the theme's vibe words instead of losing them past 10 heads", () => {
