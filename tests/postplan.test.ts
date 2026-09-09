@@ -80,6 +80,18 @@ test("mixed explicit and fallback times on same day don't collide", () => {
   ]);
 });
 
+test("a posted pack's time reserves that day's slot, so a surviving untimed pending pack doesn't collide", () => {
+  const posted = pack("2026-09-08", "classic-checklist", { time: "09:00 AM" });
+  const plan = buildPostPlan([pack("2026-09-08", "bold-panel")], "2026-09-08", () => [], undefined, [posted]);
+  assert.deepEqual(plan.entries.map((e) => e.time), ["01:00 PM"]);
+});
+
+test("an explicit time without a leading zero still reserves its slot by clock value", () => {
+  const posted = pack("2026-09-08", "classic-checklist", { time: "9:00 AM" });
+  const plan = buildPostPlan([pack("2026-09-08", "bold-panel")], "2026-09-08", () => [], undefined, [posted]);
+  assert.deepEqual(plan.entries.map((e) => e.time), ["01:00 PM"]);
+});
+
 test("packs with unknown times sort after known times", () => {
   const plan = buildPostPlan(
     [pack("2026-09-08", "b", { time: "11:30 PM" }), pack("2026-09-08", "a", { time: "09:00 AM" })],

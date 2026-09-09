@@ -43,8 +43,12 @@ const minutesOf = (t: string): number => {
   return hour * 60 + min;
 };
 
+// Match by clock value, not exact string — "9:00 AM" and "09:00 AM" both mean
+// slot 0. A pack whose time doesn't parse to one of SLOT_TIMES reserves nothing.
 const slotIndexOf = (t: string): number => {
-  return (SLOT_TIMES as readonly string[]).indexOf(t);
+  const target = minutesOf(t);
+  if (target === Number.MAX_SAFE_INTEGER) return -1;
+  return (SLOT_TIMES as readonly string[]).findIndex((s) => minutesOf(s) === target);
 };
 
 export function buildPostPlan(
@@ -52,6 +56,7 @@ export function buildPostPlan(
   today: string,
   topicsFor: (p: PackInfo) => string[],
   windowDays = SCHEDULER_WINDOW_DAYS,
+  posted: PackInfo[] = [],
 ): PostPlan {
   const limit = toMs(today) + windowDays * DAY_MS;
   const inWindow = pending.filter((p) => toMs(p.date) <= limit);
@@ -59,18 +64,23 @@ export function buildPostPlan(
     .filter((p) => toMs(p.date) > limit)
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  // First pass: collect slot indexes taken by explicit times.
+  // First pass: collect slot indexes taken by explicit times — both from
+  // pending packs still to plan and from packs already posted this session.
+  // A session that stops mid-day leaves an untimed survivor in packs/; without
+  // this, replanning would hand it the slot the earlier pin already took.
+  // Posted packs with no POST AT (legacy, pre-dating this field) reserve nothing.
   const takenByDay = new Map<string, Set<number>>();
-  for (const p of inWindow) {
-    if (p.text.time) {
-      const idx = slotIndexOf(p.text.time);
-      if (idx >= 0) {
-        const taken = takenByDay.get(p.date) ?? new Set();
-        taken.add(idx);
-        takenByDay.set(p.date, taken);
-      }
+  const reserve = (date: string, time?: string) => {
+    if (!time) return;
+    const idx = slotIndexOf(time);
+    if (idx >= 0) {
+      const taken = takenByDay.get(date) ?? new Set();
+      taken.add(idx);
+      takenByDay.set(date, taken);
     }
-  }
+  };
+  for (const p of inWindow) reserve(p.date, p.text.time);
+  for (const p of posted) reserve(p.date, p.text.time);
 
   // Second pass: assign times and sort by time.
   const timed = [...inWindow]
