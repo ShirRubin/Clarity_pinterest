@@ -1,0 +1,14 @@
+{
+  // The phone review page. Deploy from this directory: `npx wrangler deploy`.
+  // Secrets (never here): NOTION_TOKEN, NOTION_DB_ID — `npx wrangler secret put <NAME>`.
+  "name": "clarity-review",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-02",
+  "routes": [{ "pattern": "review.clarity-lists.com", "custom_domain": true }],
+  "vars": {
+    // Filled in Task 7 from the Zero Trust dashboard.
+    "ACCESS_TEAM_DOMAIN": "REPLACE-ME",
+    "ACCESS_AUD": "REPLACE-ME"
+  },
+  "observability": { "enabled": true }
+}
