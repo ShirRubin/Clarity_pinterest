@@ -34,6 +34,7 @@ const post = (body: unknown) => new Request("https://review.clarity-lists.com/de
 test("GET / renders the queue with each pin's title and an image count, never the URLs", async () => {
   const res = await handleRequest(new Request("https://r/"), deps([row("p1"), row("p2")]));
   assert.equal(res.status, 200);
+  assert.equal(res.headers.get("cache-control"), "no-store");
   const html = await res.text();
   assert.match(html, /Title p1/);
   assert.match(html, /Title p2/);
@@ -87,6 +88,27 @@ test("a Notion failure is a 502 and the page can retry", async () => {
   const res = await handleRequest(post({ pageId: "p1", decision: "approve" }), d);
   assert.equal(res.status, 502);
   assert.match((await res.json() as { error: string }).error, /Notion 500/);
+});
+
+test("GET / when Notion is unreachable is a 502 page, not a crash", async () => {
+  const d = deps([row("p1")]);
+  d.listInReview = async () => {
+    throw new Error("Notion 500");
+  };
+  const res = await handleRequest(new Request("https://r/"), d);
+  assert.equal(res.status, 502);
+  assert.match(await res.text(), /unreachable/);
+});
+
+test("POST /decide when the stateless re-check hits a Notion failure is a 502, and nothing is written", async () => {
+  const d = deps([row("p1")]);
+  d.listInReview = async () => {
+    throw new Error("Notion 500");
+  };
+  const res = await handleRequest(post({ pageId: "p1", decision: "approve" }), d);
+  assert.equal(res.status, 502);
+  assert.match((await res.json() as { error: string }).error, /Notion 500/);
+  assert.deepEqual(d.updates, []);
 });
 
 test("unknown routes are 404; toApprovePin falls back to the name when there is no title", async () => {

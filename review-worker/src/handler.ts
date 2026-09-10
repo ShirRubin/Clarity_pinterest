@@ -28,13 +28,26 @@ export function toApprovePin(r: PinSummary): ApprovePin {
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
-const html = (body: string) => new Response(body, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
+const html = (body: string, status = 200) =>
+  new Response(body, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+const notionUnreachablePage = (err: unknown) =>
+  html(
+    `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clarity — review queue</title><style>body{font-family:"Segoe UI",system-ui,sans-serif;background:#faf7f2;color:#3a3340;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center;padding:2rem}h1{font-size:1.3rem}</style></head>
+<body><div><h1>Notion is unreachable right now — try again in a minute</h1><p>${(err as Error).message}</p></div></body></html>`,
+    502,
+  );
 
 export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Response> {
   const url = new URL(req.url);
 
   if (req.method === "GET" && url.pathname === "/") {
-    const rows = await deps.listInReview();
+    let rows: PinSummary[];
+    try {
+      rows = await deps.listInReview();
+    } catch (err) {
+      return notionUnreachablePage(err);
+    }
     return html(rows.length ? renderApprovePage(rows.map(toApprovePin)) : emptyQueuePage());
   }
 
@@ -60,7 +73,13 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
 
     // Stateless: confirm the pin is still In Review right now, so a second phone
     // or a retry after a timeout cannot decide it twice.
-    const row = (await deps.listInReview()).find((r) => r.pageId === pageId);
+    let inReview: PinSummary[];
+    try {
+      inReview = await deps.listInReview();
+    } catch (err) {
+      return json(502, { error: (err as Error).message });
+    }
+    const row = inReview.find((r) => r.pageId === pageId);
     if (!row) return json(404, { error: "that list is no longer in review" });
 
     const today = (deps.today ?? (() => new Date().toISOString().slice(0, 10)))();
