@@ -3,7 +3,7 @@
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { BOARDS, type Board } from "../src/schema.js";
 
-const SLUG_TO_BOARD: Record<string, Board> = {
+const SLUG_TO_BOARD: Record<string, string> = {
   "travel-festivals": "Travel & Festivals",
   "books-learning-culture": "Books · Learning & Culture",
   "tv-movie-bucket-lists": "TV & Movie Bucket Lists",
@@ -61,7 +61,7 @@ for (const file of readdirSync(rssDir).filter((f) => f.endsWith(".rss"))) {
       // RSS "title" is the pin's caption; use its first sentence as the row name.
       title: text.split(/[.!?]\s/)[0].slice(0, 120) || `Pin ${pinUrl.split("/").filter(Boolean).pop()}`,
       description: text,
-      board,
+      board: board as Board,
       pinUrl,
       // Upgrade thumbnail to the original-size image.
       imageUrl: imageUrl.replace("/236x/", "/originals/"),

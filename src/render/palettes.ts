@@ -127,13 +127,29 @@ const SUBJECT_PALETTES: [RegExp, Palette][] = [
 
 const BOARD_FALLBACK: Record<string, keyof typeof PALETTES> = {
   "TV & Movie Bucket Lists": "Pop culture",
-  "Aesthetic Life Lists": "It-girl / Aesthetic",
+  "Movie Bucket Lists": "Pop culture",
+  "Music Concerts & Theatre Bucket Lists": "Pop culture",
+  "Aesthetic Life Bucket Lists": "It-girl / Aesthetic",
+  "Self Care Bucket Lists": "It-girl / Aesthetic",
+  "Glow Up & That Girl Era Bucket Lists": "It-girl / Aesthetic",
+  "Digital Detox & Slow Living Bucket Lists": "It-girl / Aesthetic",
+  "Manifestation Bucket Lists & Rituals": "Manifestation",
   "Travel & Festivals": "Travel",
+  "Fall Bucket Lists": "Seasonal",
+  "Christmas & Winter Bucket Lists": "Seasonal",
+  "Party & Celebration Bucket Lists": "Luxury & Lifestyle",
+  "Family & Friends Bucket Lists": "It-girl / Aesthetic",
+  "Food & Drink Bucket Lists": "Luxury & Lifestyle",
   "Books · Learning & Culture": "Books & Learning",
+  "Creative Hobby Bucket Lists": "Creative projects",
+  "Luxury Lifestyle Bucket Lists": "Luxury & Lifestyle",
+  "Career & Learn New Skills": "Career & Skills",
+  "Coding & Tech Skills Bucket Lists": "Career & Skills",
+  // Pre-2026-09-16 names.
+  "Aesthetic Life Lists": "It-girl / Aesthetic",
   "Smart & Creative Projects": "Creative projects",
   "Manifest & Magic Life": "Manifestation",
   "Luxury & Lifestyle": "Luxury & Lifestyle",
-  "Career & Learn New Skills": "Career & Skills",
 };
 
 // FNV-1a — stable across runs so a list keeps its palette on re-render.

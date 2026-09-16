@@ -31,7 +31,7 @@ test("a Notion destination pointing at a board is ignored — the post on disk w
 
 test("no post yet falls back to the board URL", () => {
   const d = chooseDestination({ name: "The Winter Arc Bucket List", board: "Aesthetic Life Lists" }, false);
-  assert.deepEqual(d, { url: "https://www.pinterest.com/ClarityBucketLists/aesthetic-life-lists/", source: "board" });
+  assert.deepEqual(d, { url: "https://www.pinterest.com/ClarityBucketLists/aesthetic-life-bucket-lists/", source: "board" });
 });
 
 test("no post and an unknown board falls back to the profile", () => {

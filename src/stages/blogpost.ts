@@ -80,13 +80,29 @@ async function writeWebCover(srcPng: string, outJpg: string): Promise<void> {
 // Live boards -> blog categories for backfill pins (theme is often unset on those rows)
 const BOARD_CATEGORY: Record<string, string> = {
   "TV & Movie Bucket Lists": "Entertainment",
-  "Aesthetic Life Lists": "Self-Care",
+  "Movie Bucket Lists": "Entertainment",
+  "Music Concerts & Theatre Bucket Lists": "Entertainment",
+  "Aesthetic Life Bucket Lists": "Self-Care",
+  "Self Care Bucket Lists": "Self-Care",
+  "Glow Up & That Girl Era Bucket Lists": "Self-Care",
+  "Digital Detox & Slow Living Bucket Lists": "Self-Care",
+  "Manifestation Bucket Lists & Rituals": "Self-Care",
   "Travel & Festivals": "Travel",
   "Books · Learning & Culture": "Books",
+  "Creative Hobby Bucket Lists": "Creative Projects",
+  "Luxury Lifestyle Bucket Lists": "Lifestyle",
+  "Fall Bucket Lists": "Lifestyle",
+  "Christmas & Winter Bucket Lists": "Lifestyle",
+  "Party & Celebration Bucket Lists": "Lifestyle",
+  "Family & Friends Bucket Lists": "Lifestyle",
+  "Food & Drink Bucket Lists": "Lifestyle",
+  "Career & Learn New Skills": "Career",
+  "Coding & Tech Skills Bucket Lists": "Career",
+  // Pre-2026-09-16 names.
+  "Aesthetic Life Lists": "Self-Care",
   "Smart & Creative Projects": "Creative Projects",
   "Manifest & Magic Life": "Self-Care",
   "Luxury & Lifestyle": "Lifestyle",
-  "Career & Learn New Skills": "Career",
 };
 
 interface BackfillPost {

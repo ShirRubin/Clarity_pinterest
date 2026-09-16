@@ -19,7 +19,7 @@ interface PostlessPin {
 }
 
 // Pinterest board names → Notion Board options (Notion selects forbid commas)
-const BOARD: Record<string, Board> = {
+const BOARD: Record<string, string> = {
   "TV & Movie Bucket Lists": "TV & Movie Bucket Lists",
   "Aesthetic Life Lists": "Aesthetic Life Lists",
   "Travel & Festivals": "Travel & Festivals",
@@ -36,7 +36,7 @@ const BOARD: Record<string, Board> = {
   "Food Adventures": "Luxury & Lifestyle",
 };
 // "Pins by you" is Pinterest's catch-all, so those are routed by pin id
-const BOARD_BY_ID: Record<string, Board> = {
+const BOARD_BY_ID: Record<string, string> = {
   "1100356121465087591": "Aesthetic Life Lists", // 10-min movement
   "1100356121459093715": "Aesthetic Life Lists", // mother-daughter
   "1100356121458696845": "Luxury & Lifestyle", // breakfast ideas
@@ -88,7 +88,7 @@ for (const p of pins) {
       name: title,
       status: "Published",
       source: "backfill",
-      board,
+      board: board as Board,
       pinTitle: title,
       pinDescription: p.description,
       pinUrl,

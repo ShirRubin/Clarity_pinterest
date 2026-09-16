@@ -18,31 +18,37 @@ export const STATUSES = [
 export type Status = (typeof STATUSES)[number];
 
 export const BOARDS = [
+  // 19 public boards on Pinterest since 2026-09-16 (see CLARITY_PLAN.md §1.6).
+  // Notion select options forbid commas, so "Books, Learning & Culture" is
+  // spelled with "·" here and mapped back in PINTEREST_BOARD_NAMES.
   "TV & Movie Bucket Lists",
-  "Aesthetic Life Lists",
+  "Movie Bucket Lists",
+  "Aesthetic Life Bucket Lists",
+  "Self Care Bucket Lists",
+  "Glow Up & That Girl Era Bucket Lists",
+  "Digital Detox & Slow Living Bucket Lists",
+  "Manifestation Bucket Lists & Rituals",
+  "Luxury Lifestyle Bucket Lists",
   "Travel & Festivals",
-  // Live Pinterest board is "Books, Learning & Culture" — Notion select options forbid commas.
+  "Fall Bucket Lists",
+  "Christmas & Winter Bucket Lists",
+  "Party & Celebration Bucket Lists",
+  "Family & Friends Bucket Lists",
+  "Food & Drink Bucket Lists",
   "Books · Learning & Culture",
-  "Smart & Creative Projects",
-  "Manifest & Magic Life",
-  "Luxury & Lifestyle",
+  "Music Concerts & Theatre Bucket Lists",
+  "Creative Hobby Bucket Lists",
   "Career & Learn New Skills",
+  "Coding & Tech Skills Bucket Lists",
 ] as const;
 export type Board = (typeof BOARDS)[number];
 
 // The board title exactly as Pinterest's pin builder shows it. Notion select
 // options forbid commas, so the one board with a comma is spelled with "·" in
 // Notion and mapped back here for the browser step.
-export const PINTEREST_BOARD_NAMES: Record<Board, string> = {
-  "TV & Movie Bucket Lists": "TV & Movie Bucket Lists",
-  "Aesthetic Life Lists": "Aesthetic Life Lists",
-  "Travel & Festivals": "Travel & Festivals",
-  "Books · Learning & Culture": "Books, Learning & Culture",
-  "Smart & Creative Projects": "Smart & Creative Projects",
-  "Manifest & Magic Life": "Manifest & Magic Life",
-  "Luxury & Lifestyle": "Luxury & Lifestyle",
-  "Career & Learn New Skills": "Career & Learn New Skills",
-};
+export const PINTEREST_BOARD_NAMES: Record<Board, string> = Object.fromEntries(
+  BOARDS.map((b) => [b, b === "Books · Learning & Culture" ? "Books, Learning & Culture" : b]),
+) as Record<Board, string>;
 
 export const THEMES = [
   "Pop culture",
