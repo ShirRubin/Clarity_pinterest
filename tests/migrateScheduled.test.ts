@@ -97,22 +97,33 @@ test("Earliest posted pack dated today → Scheduled (not live yet)", () => {
   assert.equal(out[0].status, "Scheduled");
 });
 
-test("Rows with no packs or other statuses → ignored", () => {
+test("Rows in other statuses are ignored even with packs", () => {
   const rows = [
     row("p1", "No packs", "Published"),
-    row("p2", "Rejected", "Rejected"),
-    row("p3", "In Review", "In Review"),
+    row("p2", "Rejected row", "Rejected"),
+    row("p3", "In Review row", "In Review"),
   ];
-  const out = migrationDecisions(rows, [], [], "2026-09-16");
+  // Rejected row has a future posted pack (would produce decision if status allowed), In Review has pending
+  const posted = [pack("2026-09-25", "rejected-row", "bold-panel", "p2")];
+  const pending = [pack("2026-09-20", "in-review-row", "sticky-note", "p3", "packs")];
+  const out = migrationDecisions(rows, posted, pending, "2026-09-16");
+  // Status guard filters out Rejected and In Review; p1 skipped due to no packs
   assert.equal(out.length, 0);
 });
 
-test("Pending-only pack without PAGE id matches by slug → Approved", () => {
-  const rows = [row("p1", "Tea Bucket List", "Approved", "2026-09-20")];
-  const pending = [
-    pack("2026-09-20", "tea-bucket-list", "bold-panel", undefined, "packs"),
-    pack("2026-09-21", "tea-bucket-list", "classic-checklist", undefined, "packs"),
-  ];
+test("Pending-only pack without PAGE id matches by slug → decision", () => {
+  const rows = [row("p1", "Tea Bucket List", "Published")];
+  const pending = [pack("2026-09-20", "tea-bucket-list", "bold-panel", undefined, "packs")];
   const out = migrationDecisions(rows, [], pending, "2026-09-16");
-  assert.equal(out.length, 0); // already Approved with correct date
+  // Slug match must succeed; if it fails, row has no packs and is skipped (test would fail)
+  assert.equal(out.length, 1);
+  assert.deepEqual(out[0], {
+    pageId: "p1",
+    name: "Tea Bucket List",
+    from: "Published",
+    status: "Approved",
+    scheduledDate: "2026-09-20",
+    posted: 0,
+    total: 1,
+  });
 });
