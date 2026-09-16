@@ -17,18 +17,20 @@ npm run setup-notion       # one-time: creates the "Clarity Pins" DB (already do
 npm run backfill           # idempotent import of data/backfill.json into Notion
 npm run analytics          # parse data/analytics/raw/*.csv -> snapshot JSON (add `-- --notion` to write stats)
 npx tsx scripts/parse-rss.ts   # rebuild data/backfill.json from data/rss/*.rss
-npm test                   # run the node:test suites (schedule + approve + queue + revise + destination + status + schema + packText + posted + topics + postplan + reconcile + rowForPack + ship)
+npm test                   # run the node:test suites (schedule + approve + queue + revise + destination + status + schema + packText + posted + topics + postplan + reconcile + rowForPack + ship + notionPage + decide + review-notion + review-access + review-handler)
 npx tsc --noEmit           # typecheck
+npm run review:deploy      # deploy the phone review page (review-worker/) to review.clarity-lists.com
 clarity approve            # opens the local review page (In Review → Approved / Needs changes / Rejected) at 127.0.0.1:4178
 clarity revise             # Needs changes → rewrites each list from your review notes, re-renders, back to In Review
 ```
 
 ## Architecture
 
-- **State machine**: the Notion `Status` select drives everything — `Idea → Drafted → Designed → In Review → Approved → Scheduled → Published` (+ `Needs changes`, `Rejected`, `Archived`). Each stage command picks up rows in its input status and advances them. The daily review happens via `clarity approve`'s local page (Notion flipping still works as a fallback).
+- **State machine**: the Notion `Status` select drives everything — `Idea → Drafted → Designed → In Review → Approved → Scheduled → Published` (+ `Needs changes`, `Rejected`, `Archived`). Each stage command picks up rows in its input status and advances them. The daily review happens at **review.clarity-lists.com** (a Cloudflare Worker in `review-worker/`, behind Cloudflare Access — Google or one-time-PIN login for the two owner emails); `clarity approve` serves the same page locally as a fallback.
 - **`Scheduled` vs `Published`**: `clarity posted` sets `Scheduled` when all four variants are in Pinterest's scheduler; `Published` means the first variant's date has passed (flipped by the nightly job — milestone 3). `pack` (ex-`publish`) never changes status.
 - **The revise loop** (third verdict on the review page): "Needs changes" parks a row in that status with your notes appended to `Notes` as `revise <date>: <what to fix>`. `clarity revise` feeds the CURRENT list + that feedback back to the model as a targeted edit (not a fresh list), returns the row to `Drafted`, then chains `design` + `review` so it lands back in the queue. The applied entry is retagged `revised <date>:` so a second pass only acts on newer feedback. Notes are **appended, never overwritten** — `appendNote` joins with ` | `.
 - `ensureStatusOptions()` in `notion.ts` syncs `STATUSES` into the live DB's Status select on every `clarity approve`, so adding a status to `schema.ts` is enough.
+- `review-worker/` — the hosted review page. `src/index.ts` verifies the Access JWT (`src/access.ts`, RS256 against `https://<team>.cloudflareaccess.com/cdn-cgi/access/certs`) and serves `src/handler.ts`, which renders `../src/approve/page.ts` and writes verdicts through `../src/approve/decide.ts` — the same renderer and decision rules as the local page, so they cannot drift. Notion is called with plain fetch (`src/notion-fetch.ts`, mapping via `src/notionPage.ts`); no SDK in the bundle. Secrets `NOTION_TOKEN`/`NOTION_DB_ID` via `wrangler secret put`; vars `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` in `wrangler.jsonc`. Tests live in the root suite (`tests/review-*.test.ts`) and never touch the network.
 - `src/schema.ts` — **single source of truth** for the DB schema, boards, themes, trends. Notion select options must not contain commas (the live board "Books, Learning & Culture" is stored as "Books · Learning & Culture").
 - `src/notion.ts` — client + typed `PinRow` accessors (`createPin`, `listPinsByStatus`).
 - `src/stages/*.ts` — one module per stage.
