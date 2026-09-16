@@ -30,13 +30,18 @@ const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 const html = (body: string, status = 200) =>
   new Response(body, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
-const notionUnreachablePage = (err: unknown) =>
-  html(
+const notionUnreachablePage = (err: unknown) => {
+  // "try again in a minute" is the actionable half of this message; Notion
+  // controls `err.message` and we're on a public origin now, so the detail
+  // goes to the Worker log instead of into the page.
+  console.error("review-worker: Notion unreachable —", err);
+  return html(
     `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clarity — review queue</title><style>body{font-family:"Segoe UI",system-ui,sans-serif;background:#faf7f2;color:#3a3340;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center;padding:2rem}h1{font-size:1.3rem}</style></head>
-<body><div><h1>Notion is unreachable right now — try again in a minute</h1><p>${(err as Error).message}</p></div></body></html>`,
+<body><div><h1>Notion is unreachable right now — try again in a minute</h1></div></body></html>`,
     502,
   );
+};
 
 export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Response> {
   const url = new URL(req.url);
@@ -54,12 +59,28 @@ export async function handleRequest(req: Request, deps: HandlerDeps): Promise<Re
   if (req.method === "GET" && url.pathname.startsWith("/img/")) {
     const m = /^\/img\/([^/]+)\/(\d+)$/.exec(url.pathname);
     if (!m) return new Response("no image", { status: 404 });
-    const target = (await deps.imageUrls(m[1]))[Number(m[2])];
+    let urls: string[];
+    try {
+      urls = await deps.imageUrls(m[1]);
+    } catch (err) {
+      console.error("review-worker: image lookup failed —", err);
+      return new Response("image unavailable", { status: 502 });
+    }
+    const target = urls[Number(m[2])];
     if (!target) return new Response("no image", { status: 404 });
     return new Response(null, { status: 302, headers: { location: target, "cache-control": "no-store" } });
   }
 
   if (req.method === "POST" && url.pathname === "/decide") {
+    // Access authenticates via cookie, so without this a cross-site
+    // `<form enctype="text/plain">` submit (a "simple request" — no CORS
+    // preflight) could reach the decision path. `application/json` is not a
+    // CORS-safelisted content-type, so requiring it forces a preflight that
+    // blocks a cross-origin form post. The page's own fetch already sends it.
+    const contentType = req.headers.get("content-type") ?? "";
+    if (!contentType.toLowerCase().startsWith("application/json")) {
+      return json(415, { error: "expected application/json" });
+    }
     let body: { pageId?: unknown; decision?: unknown; note?: unknown };
     try {
       body = (await req.json()) as typeof body;

@@ -57,6 +57,26 @@ test("GET /img re-signs on every request and redirects with no-store", async () 
   assert.equal(missing.status, 404);
 });
 
+test("GET /img when the image lookup rejects is a 502, not a crash (Cloudflare 1101)", async () => {
+  const d = deps([row("p1")]);
+  d.imageUrls = async () => {
+    throw new Error("Notion 500");
+  };
+  const res = await handleRequest(new Request("https://r/img/p1/0"), d);
+  assert.equal(res.status, 502);
+  assert.deepEqual(d.updates, []);
+});
+
+test("POST /decide without an application/json content-type is refused with 415, before any Notion call", async () => {
+  const d = deps([row("p1")]);
+  const res = await handleRequest(
+    new Request("https://r/decide", { method: "POST", body: JSON.stringify({ pageId: "p1", decision: "approve" }) }),
+    d,
+  );
+  assert.equal(res.status, 415);
+  assert.deepEqual(d.updates, []);
+});
+
 test("POST /decide writes the decision patch to Notion before answering", async () => {
   const d = deps([row("p1")]);
   const res = await handleRequest(post({ pageId: "p1", decision: "revise", note: "items 3 and 7" }), d);
@@ -69,7 +89,10 @@ test("POST /decide refuses revise without a note, bad decisions, bad JSON", asyn
   const d = deps([row("p1")]);
   assert.equal((await handleRequest(post({ pageId: "p1", decision: "revise" }), d)).status, 400);
   assert.equal((await handleRequest(post({ pageId: "p1", decision: "publish" }), d)).status, 400);
-  assert.equal((await handleRequest(new Request("https://r/decide", { method: "POST", body: "{nope" }), d)).status, 400);
+  assert.equal(
+    (await handleRequest(new Request("https://r/decide", { method: "POST", body: "{nope", headers: { "content-type": "application/json" } }), d)).status,
+    400,
+  );
   assert.deepEqual(d.updates, []);
 });
 

@@ -68,6 +68,11 @@ function decodeOrThrow<T>(fn: () => T): T {
 }
 
 export async function verifyAccessJwt(token: string | null, opts: AccessOpts): Promise<AccessIdentity> {
+  // `[undefined].includes(undefined)` is true, so an unset `aud` (or
+  // `teamDomain`, which the iss check would otherwise compare against
+  // `undefined`) would make the claim checks below pass vacuously. Refuse
+  // outright rather than silently accepting every token.
+  if (!opts.aud || !opts.teamDomain) throw new Error("access: worker misconfigured");
   if (!token) throw new Error("access: no token");
   const parts = token.split(".");
   if (parts.length !== 3) throw new Error("access: malformed token");

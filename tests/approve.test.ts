@@ -202,6 +202,31 @@ test("a decided card collapses to a receipt and the next card scrolls into view"
   assert.match(html, /scrollIntoView\(/);
 });
 
+test("pin text is HTML-escaped before it reaches innerHTML — the Worker now serves this on a public origin", () => {
+  const evil: ApprovePin = {
+    ...pin("p1"),
+    board: '<script>alert(1)</script>',
+    pinTitle: '<img src=x onerror=alert(1)>',
+    pinDescription: 'a <b>bold</b> claim & "quotes"',
+    altText: "<svg onload=alert(1)>",
+    listItems: "1. <em>steal</em> cookies",
+  };
+  const html = renderApprovePage([evil]);
+  assert.doesNotMatch(html, /<script>alert\(1\)<\/script>/);
+  assert.doesNotMatch(html, /<img src=x onerror=alert\(1\)>/);
+  assert.doesNotMatch(html, /<svg onload=alert\(1\)>/);
+  assert.doesNotMatch(html, /<em>steal<\/em>/);
+  // The JSON data blob already escapes `<` on its own (`<`) — that alone
+  // doesn't prove the runtime interpolations are escaped, so assert the page
+  // script actually routes pin text through esc() before building innerHTML.
+  assert.match(html, /function esc\(/);
+  assert.match(html, /esc\(pin\.board\)/);
+  assert.match(html, /esc\(pin\.pinTitle \|\| pin\.name\)/);
+  assert.match(html, /esc\(pin\.pinDescription\)/);
+  assert.match(html, /esc\(pin\.altText\)/);
+  assert.match(html, /esc\(pin\.listItems\)/);
+});
+
 test("emptyQueuePage says there is nothing to review", () => {
   assert.match(emptyQueuePage(), /Nothing to review/);
 });

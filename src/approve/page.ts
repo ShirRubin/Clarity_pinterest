@@ -1,6 +1,8 @@
 // The review page: one self-contained HTML string — inline CSS/JS, no
-// build step, no CDN. Pin text is our own generated content rendered
-// into our own local page, so innerHTML is acceptable here.
+// build step, no CDN. Pin text is our own pipeline's LLM-generated
+// content, but the Cloudflare Worker now serves this page from a public
+// origin (behind Access) as well as the local server, so it is escaped
+// via esc() before going into innerHTML rather than trusted outright.
 import type { ApprovePin } from "./server.js";
 
 export function renderApprovePage(pins: ApprovePin[]): string {
@@ -61,6 +63,9 @@ const pins = ${data};
 let decided = 0, approved = 0, revised = 0;
 const cards = document.getElementById("cards");
 const progress = document.getElementById("progress");
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 function updateProgress() {
   progress.textContent = decided + " of " + pins.length;
   if (decided === pins.length) {
@@ -68,9 +73,7 @@ function updateProgress() {
     s.style.display = "block";
     const rejected = decided - approved - revised;
     s.textContent = approved + " approved, " + rejected + " rejected, " + revised +
-      " sent back for changes." +
-      (revised ? " Run clarity revise to rewrite those and put them back in this queue." : "") +
-      " Run clarity publish to schedule the approved ones. You can close this tab.";
+      " sent back for changes. All done — approved lists get packed and shipped by the daily job. You can close this tab.";
   }
 }
 for (const pin of pins) {
@@ -79,11 +82,11 @@ for (const pin of pins) {
   el.innerHTML =
     '<div class="imgs">' + Array.from({ length: pin.imageCount }, (_, i) =>
       '<img loading="lazy" src="/img/' + pin.pageId + '/' + i + '">').join("") + '</div>' +
-    '<span class="board">' + pin.board + '</span>' +
-    '<h2>' + (pin.pinTitle || pin.name) + '</h2>' +
-    '<p class="desc">' + pin.pinDescription + '</p>' +
-    '<p class="alt">alt: ' + pin.altText + '</p>' +
-    '<details><summary>List items</summary><pre>' + pin.listItems + '</pre></details>' +
+    '<span class="board">' + esc(pin.board) + '</span>' +
+    '<h2>' + esc(pin.pinTitle || pin.name) + '</h2>' +
+    '<p class="desc">' + esc(pin.pinDescription) + '</p>' +
+    '<p class="alt">alt: ' + esc(pin.altText) + '</p>' +
+    '<details><summary>List items</summary><pre>' + esc(pin.listItems) + '</pre></details>' +
     '<div class="actions">' +
       '<button class="approve">✓ Approve (A)</button>' +
       '<button class="revise">↻ Needs changes (M)</button>' +

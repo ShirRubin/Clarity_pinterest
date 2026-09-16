@@ -33,6 +33,14 @@ test("missing token is refused", async () => {
   await assert.rejects(verifyAccessJwt(null, opts), /access: no token/);
 });
 
+test("a worker with no configured aud is refused, even before looking at the token", async () => {
+  await assert.rejects(verifyAccessJwt(jwt(good()), { ...opts, aud: undefined as unknown as string }), /access: worker misconfigured/);
+});
+
+test("a worker with no configured teamDomain is refused, even before looking at the token", async () => {
+  await assert.rejects(verifyAccessJwt(jwt(good()), { ...opts, teamDomain: undefined as unknown as string }), /access: worker misconfigured/);
+});
+
 test("wrong audience is refused", async () => {
   await assert.rejects(verifyAccessJwt(jwt({ ...good(), aud: ["other"] }), opts), /access: aud/);
 });
