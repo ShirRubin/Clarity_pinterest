@@ -38,8 +38,18 @@ export function renderApprovePage(pins: ApprovePin[]): string {
   .verdict { font-weight:700; }
   .err { color:#c0392b; font-size:.85rem; margin-top:.4rem; }
   #summary { max-width:960px; margin:0 auto; text-align:center; font-size:1.2rem; display:none; padding:2rem; }
-  .imgs { display:flex; gap:1rem; margin-bottom:1rem; overflow-x:auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling:touch; }
-  .imgs img { flex:0 0 50%; scroll-snap-align:start; border-radius:10px; background:#eee; }
+  .imgs { display:flex; gap:1rem; margin-bottom:1rem; overflow-x:auto; overscroll-behavior-x:contain;
+    scroll-snap-type: x mandatory; -webkit-overflow-scrolling:touch; }
+  /* min-width:0 is load-bearing. These are 2000x3000 pin renders, and a flex
+     item's automatic minimum size is its intrinsic width — which wins over any
+     flex-basis. Without it every variant laid out at its full 2000px: the strip
+     was 3015px tall and the card 3637px on a 357px phone, so the pin filled five
+     screens and the Approve button was 3000px below the fold.
+     Sizing by height, not width, is what makes the review work: a 2:3 pin scaled
+     to a fraction of the viewport height is always whole and always above the
+     buttons, whatever the screen. */
+  .imgs img { flex:0 0 auto; min-width:0; height:58vh; width:auto; max-width:100%;
+    object-fit:contain; scroll-snap-align:start; border-radius:10px; background:#eee; }
   textarea.note { display:none; }
   textarea.note.open { display:block; }
   .card.decided { opacity:1; }
@@ -49,7 +59,7 @@ export function renderApprovePage(pins: ApprovePin[]): string {
     body { padding:1rem .6rem 5rem; }
     header { margin-bottom:1rem; }
     .card { border-radius:12px; padding:.9rem; margin-bottom:1.2rem; }
-    .imgs img { flex:0 0 88%; }
+    .imgs img { height:44vh; }
     .actions { flex-direction:column; align-items:stretch; gap:.6rem; }
     .actions button { width:100%; padding:.9rem 1rem; font-size:1.05rem; }
     h2 { font-size:1.05rem; }
