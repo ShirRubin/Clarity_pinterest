@@ -1,11 +1,16 @@
-// Unattended generation run — the job Windows Task Scheduler fires twice a week.
+// The nightly job — Windows Task Scheduler fires it every day at 02:00.
 // See scripts/register-task.ps1 to install it.
 //
-// It never posts and never approves: it tops the review queue up and stops.
-// Approving stays the human gate, exactly as it is in a manual `clarity run`.
-//
-// Queue-aware by design — if the calendar already runs far enough ahead it exits
-// without making a single Claude call, so it is safe to fire more often than needed.
+// It never posts and never approves. In order:
+//   1. revise   — "Needs changes" rows get the reviewer's note applied and go
+//                 back to In Review (so a note typed on the phone is in the
+//                 queue by morning);
+//   2. generate — only if queue health says the calendar is running short
+//                 (ideas → draft → design → review), exactly as before;
+//   3. flip     — Scheduled rows whose pins have all gone live → Published.
+//                 Date-based, no Pinterest call.
+// Steps 1 and 3 always run; step 2 is skipped (no Claude call) when the queue
+// is healthy, so the job is safe to fire more often than needed.
 //
 //   npm run generate        # decide the batch size from queue health
 //   npm run generate -- 2   # force 2 lists, ignoring queue health (for testing)
@@ -17,8 +22,11 @@ import { runIdeas } from "../src/stages/ideas.js";
 import { runDraft } from "../src/stages/draft.js";
 import { runDesign } from "../src/stages/design.js";
 import { runReview } from "../src/stages/review.js";
+import { runRevise } from "../src/stages/revise.js";
+import { runPublishedFlip } from "../src/stages/publishedFlip.js";
+import { localToday } from "../src/publishedFlip.js";
 
-const today = new Date().toISOString().slice(0, 10);
+const today = localToday();
 const logFile = path.join("logs", `scheduled-run-${today}.log`);
 mkdirSync("logs", { recursive: true });
 
@@ -38,19 +46,32 @@ for (const level of ["log", "warn", "error"] as const) {
 
 const forced = process.argv[2] ? parseInt(process.argv[2], 10) : undefined;
 
-console.log(`\n=== clarity scheduled run — ${new Date().toISOString()} ===`);
+console.log(`\n=== clarity nightly run — ${new Date().toISOString()} (today in posting zone: ${today}) ===`);
 
-try {
+let failed = false;
+const step = async (name: string, fn: () => Promise<unknown>) => {
+  console.log(`\n--- ${name} ---`);
+  try {
+    await fn();
+  } catch (err) {
+    failed = true;
+    console.error(`x ${name} failed: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`);
+  }
+};
+
+// 1. revise — a failure here must not stop the flip below, hence per-step try/catch.
+await step("revise (Needs changes → In Review)", () => runRevise());
+
+// 2. generate, only when the queue is short.
+await step("generate", async () => {
   const before = await queueHealth(today);
   console.log(formatQueueHealth(before));
-
   const n = forced ?? before.needed;
-  if (forced !== undefined) console.log(`\n(forced batch of ${forced}, ignoring queue health)`);
+  if (forced !== undefined) console.log(`(forced batch of ${forced}, ignoring queue health)`);
   if (!n) {
-    console.log(`\nNothing to generate. Exiting.`);
-    process.exit(0);
+    console.log(`Queue is healthy — nothing to generate.`);
+    return;
   }
-
   console.log(`\n--- ideas (${n}) ---`);
   await runIdeas(n);
   console.log(`\n--- draft (${n}) ---`);
@@ -59,12 +80,12 @@ try {
   await runDesign(n);
   console.log(`\n--- review ---`);
   await runReview(n);
-
-  console.log(`\n=== queue after the run ===`);
+  console.log(`\n=== queue after generating ===`);
   console.log(formatQueueHealth(await queueHealth(today)));
-  console.log(`\nLog: ${logFile}`);
-} catch (err) {
-  console.error(`\nx scheduled run failed: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`);
-  console.error(`Log: ${logFile}`);
-  process.exit(1);
-}
+});
+
+// 3. flip Scheduled → Published for rows dated before today.
+await step("flip (Scheduled → Published)", () => runPublishedFlip(today));
+
+console.log(`\nLog: ${logFile}`);
+process.exit(failed ? 1 : 0);

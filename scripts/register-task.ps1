@@ -1,12 +1,13 @@
 <#
 .SYNOPSIS
-  Installs the twice-weekly overnight generation run for the Clarity Pinterest pipeline.
+  Installs the nightly job for the Clarity Pinterest pipeline.
 
 .DESCRIPTION
-  Registers a Windows scheduled task that runs `npm run generate` in this repo every
-  Monday and Thursday at 02:00. The job is queue-aware: if the posting calendar already
-  runs far enough ahead it exits immediately without generating anything. It never posts
-  to Pinterest and never approves a list - approving stays a manual step.
+  Registers a Windows scheduled task that runs `npm run generate` in this repo every day
+  at 02:00. The job revises "Needs changes" lists back into the review queue, tops the
+  queue up only when the posting calendar runs short, and flips Scheduled rows to
+  Published once their pins are live. It never posts to Pinterest and never approves a
+  list - approving stays a manual step.
 
   Wakes the machine at 02:00 to run (-WakeToRun). This needs Windows "Allow wake timers" enabled
   for the active power plan - on battery it is often off by default, in which case the run is simply
@@ -38,7 +39,7 @@ $npm = (Get-Command npm.cmd -ErrorAction SilentlyContinue).Source
 if (-not $npm) { throw "npm.cmd was not found on PATH. Install Node.js, or edit this script to point at npm.cmd directly." }
 
 $action = New-ScheduledTaskAction -Execute $npm -Argument "run generate" -WorkingDirectory $RepoDir
-$trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday, Thursday -At 2am
+$trigger = New-ScheduledTaskTrigger -Daily -At 2am
 $settings = New-ScheduledTaskSettingsSet `
     -StartWhenAvailable `
     -WakeToRun `
@@ -51,10 +52,10 @@ Register-ScheduledTask `
     -Action $action `
     -Trigger $trigger `
     -Settings $settings `
-    -Description "Clarity: top up the Pinterest review queue (ideas -> draft -> design -> review). Never posts." `
+    -Description "Clarity nightly job: revise -> top up the review queue when short -> flip Scheduled to Published. Never posts." `
     -Force | Out-Null
 
-Write-Host "Registered '$TaskName' - Mondays and Thursdays at 02:00."
+Write-Host "Registered '$TaskName' - every day at 02:00."
 Write-Host "Working directory: $RepoDir"
 Write-Host ""
 Write-Host "Run it now:      Start-ScheduledTask -TaskName '$TaskName'"
