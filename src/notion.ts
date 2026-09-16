@@ -1,7 +1,7 @@
 import { Client } from "@notionhq/client";
 import "dotenv/config";
 import { DB_PROPERTIES, STATUSES, type Board, type Status } from "./schema.js";
-import { pageToSummary, imageUrlsOf, type NotionPage, type PinSummary } from "./notionPage.js";
+import { pageToSummary, imageUrlsOf, rt, type NotionPage, type PinSummary } from "./notionPage.js";
 
 export type { PinSummary, NotionPage } from "./notionPage.js";
 
@@ -16,15 +16,6 @@ export function dbId(): string {
   if (!id) throw new Error("NOTION_DB_ID missing — run `npm run setup-notion` first.");
   return id;
 }
-
-// Notion caps each rich-text item at 2000 chars — chunk instead of truncating.
-const rt = (content: string) => {
-  const chunks: { type: "text"; text: { content: string } }[] = [];
-  for (let i = 0; i < content.length && chunks.length < 10; i += 2000) {
-    chunks.push({ type: "text", text: { content: content.slice(i, i + 2000) } });
-  }
-  return chunks.length ? chunks : [{ type: "text" as const, text: { content: "" } }];
-};
 
 export interface PinRow {
   name: string;

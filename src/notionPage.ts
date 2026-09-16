@@ -40,6 +40,17 @@ export interface PinSummary {
 
 const text = (prop?: NotionProp) => (prop?.title ?? prop?.rich_text ?? []).map((t) => t.plain_text).join("");
 
+// Notion caps each rich-text item at 2000 chars — chunk instead of truncating.
+// Shared by src/notion.ts (SDK) and review-worker/src/notion-fetch.ts (plain
+// fetch) so the chunking logic can't drift between the two.
+export function rt(content: string): { type: "text"; text: { content: string } }[] {
+  const chunks: { type: "text"; text: { content: string } }[] = [];
+  for (let i = 0; i < content.length && chunks.length < 10; i += 2000) {
+    chunks.push({ type: "text", text: { content: content.slice(i, i + 2000) } });
+  }
+  return chunks.length ? chunks : [{ type: "text" as const, text: { content: "" } }];
+}
+
 export function imageUrlsOf(page: NotionPage): string[] {
   return (page.properties["Pin image"]?.files ?? [])
     .map((f) => f.file?.url ?? f.external?.url)
