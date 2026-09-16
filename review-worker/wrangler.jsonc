@@ -6,9 +6,9 @@
   "compatibility_date": "2026-09-02",
   "routes": [{ "pattern": "review.clarity-lists.com", "custom_domain": true }],
   "vars": {
-    // Filled in Task 7 from the Zero Trust dashboard.
-    "ACCESS_TEAM_DOMAIN": "REPLACE-ME",
-    "ACCESS_AUD": "REPLACE-ME"
+    // From the Zero Trust dashboard (Settings → Team name; the app's Additional settings → AUD tag).
+    "ACCESS_TEAM_DOMAIN": "morning-queen-1bc4",
+    "ACCESS_AUD": "370af577137a5f8404fc0b2f9e01b6f4f0bfc18fc3d95d767f32efce92dc18f6"
   },
   "observability": { "enabled": true }
 }
