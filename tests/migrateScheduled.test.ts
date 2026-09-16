@@ -12,7 +12,14 @@ const pack = (date: string, slug: string, template: string, pageId?: string, whe
   template,
   text: { date, image: `${template}.png`, title: "t", description: "", alt: "", board: "b", link: "l", ...(pageId ? { pageId } : {}) },
 });
-const row = (pageId: string, name: string, status: string, scheduledDate?: string) => ({ pageId, name, status, scheduledDate, source: "pipeline" as const });
+const row = (pageId: string, name: string, status: string, scheduledDate?: string, publishedDate?: string) => ({
+  pageId,
+  name,
+  status,
+  scheduledDate,
+  publishedDate,
+  source: "pipeline" as const,
+});
 
 test("Published, all 4 variants posted, earliest 2026-09-18, today 2026-09-16 → Scheduled", () => {
   const rows = [row("p1", "Tea Bucket List", "Published")];
@@ -55,6 +62,7 @@ test("Published, earliest posted 2026-09-01, row.scheduledDate 2026-08-28 (stale
   assert.equal(out.length, 1);
   assert.equal(out[0].status, "Published");
   assert.equal(out[0].scheduledDate, "2026-09-01");
+  assert.equal(out[0].publishedDate, "2026-09-01");
 });
 
 test("Scheduled row, all 4 posted, earliest 2026-09-20, row.scheduledDate 2026-09-14 (stale) → corrected date", () => {
@@ -126,4 +134,30 @@ test("Pending-only pack without PAGE id matches by slug → decision", () => {
     posted: 0,
     total: 1,
   });
+});
+
+test("Published decision fills publishedDate from earliest posted pack when missing, but keeps an existing publishedDate unchanged", () => {
+  // Scheduled row, no publishedDate on file, earliest posted 2026-09-01, today 2026-09-17 → Published, publishedDate filled in
+  const rowsA = [row("p1", "Tea Bucket List", "Scheduled")];
+  const postedA = [pack("2026-09-01", "tea-bucket-list", "bold-panel", "p1")];
+  const outA = migrationDecisions(rowsA, postedA, [], "2026-09-17");
+  assert.equal(outA.length, 1);
+  assert.deepEqual(outA[0], {
+    pageId: "p1",
+    name: "Tea Bucket List",
+    from: "Scheduled",
+    status: "Published",
+    scheduledDate: "2026-09-01",
+    publishedDate: "2026-09-01",
+    posted: 1,
+    total: 1,
+  });
+
+  // Scheduled row that already carries a publishedDate must keep it, not overwrite with earliestPosted
+  const rowsB = [row("p2", "Coffee Bucket List", "Scheduled", undefined, "2026-08-20")];
+  const postedB = [pack("2026-09-01", "coffee-bucket-list", "bold-panel", "p2")];
+  const outB = migrationDecisions(rowsB, postedB, [], "2026-09-17");
+  assert.equal(outB.length, 1);
+  assert.equal(outB[0].status, "Published");
+  assert.equal(outB[0].publishedDate, "2026-08-20");
 });

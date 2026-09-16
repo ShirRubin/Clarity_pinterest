@@ -9,6 +9,7 @@ export interface MigrationRow {
   name: string;
   status?: string;
   scheduledDate?: string;
+  publishedDate?: string;
   source?: string;
 }
 
@@ -18,6 +19,7 @@ export interface MigrationDecision {
   from: string;
   status: "Published" | "Scheduled" | "Approved";
   scheduledDate: string;
+  publishedDate?: string;
   posted: number;
   total: number;
 }
@@ -82,7 +84,7 @@ export function migrationDecisions(rows: MigrationRow[], posted: PackInfo[], pen
 
     // Only emit if status or scheduledDate changed
     if (newStatus !== (r.status || "") || earliest !== r.scheduledDate) {
-      decisions.push({
+      const decision: MigrationDecision = {
         pageId: r.pageId,
         name: r.name,
         from: r.status || "?",
@@ -90,7 +92,11 @@ export function migrationDecisions(rows: MigrationRow[], posted: PackInfo[], pen
         scheduledDate: earliest!,
         posted: postedTemplates.size,
         total: allTemplates.size,
-      });
+      };
+      if (newStatus === "Published") {
+        decision.publishedDate = r.publishedDate ?? earliestPosted;
+      }
+      decisions.push(decision);
     }
   }
 

@@ -13,7 +13,7 @@ clarity reconcile <s.json> <c.json> [--apply]  # diff Pinterest's pin lists vs t
 npm run clarity -- status  # whole-project card: what needs you, calendar, blog, open tasks (the /clarity-status skill runs this)
 npm run clarity -- queue   # queue health: days of runway, overdue packs, lists to generate next
 npm run generate           # the nightly job (02:00): revise → top up the queue when short → flip Scheduled → Published. Never posts.
-npx tsx scripts/migrate-scheduled.ts [--apply]   # one-off after milestone 3: reconcile Status + Scheduled date with the packs on disk (dry run by default)
+npx tsx scripts/migrate-scheduled.ts [--apply]   # one-off after milestone 3: reconcile Status + Scheduled date with the packs on disk (dry run by default); then `clarity topup` for rows it reports with < 4 variants
 npm run setup-notion       # one-time: creates the "Clarity Pins" DB (already done)
 npm run backfill           # idempotent import of data/backfill.json into Notion
 npm run analytics          # parse data/analytics/raw/*.csv -> snapshot JSON (add `-- --notion` to write stats)
