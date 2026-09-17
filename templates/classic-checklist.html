@@ -57,6 +57,74 @@
     text-align: center; padding-top: 26px; position: relative; z-index: 1;
     font-family: "Fredoka"; font-weight: 600; font-size: 34px; color: {{ACCENT}};
   }
+
+  /* ---------- Video mode: "checklist reveal" (Phase 5a, VIDEO_PINS_PLAN.html) ----------
+     Inert for PNG rendering — everything here is scoped to [data-video], which only
+     renderVideo.ts sets. Frame 0 is the finished static pin with every box empty, then
+     one item ticks itself off per beat and the open slot pulses as the closing CTA.
+     CSS animations only: renderVideo steps them by setting currentTime per frame, so
+     the output is byte-identical across runs (a JS-driven transition would drift). */
+  [data-video] .checklist li { --i: 0; }
+  [data-video] .checklist li:nth-child(1)  { --i: 0; }
+  [data-video] .checklist li:nth-child(2)  { --i: 1; }
+  [data-video] .checklist li:nth-child(3)  { --i: 2; }
+  [data-video] .checklist li:nth-child(4)  { --i: 3; }
+  [data-video] .checklist li:nth-child(5)  { --i: 4; }
+  [data-video] .checklist li:nth-child(6)  { --i: 5; }
+  [data-video] .checklist li:nth-child(7)  { --i: 6; }
+  [data-video] .checklist li:nth-child(8)  { --i: 7; }
+  [data-video] .checklist li:nth-child(9)  { --i: 8; }
+  [data-video] .checklist li:nth-child(10) { --i: 9; }
+  [data-video] .checklist li:nth-child(11) { --i: 10; }
+  [data-video] .checklist li:nth-child(12) { --i: 11; }
+  [data-video] .checklist li:nth-child(13) { --i: 12; }
+  [data-video] .checklist li:nth-child(14) { --i: 13; }
+  [data-video] .checklist li:nth-child(15) { --i: 14; }
+  [data-video] .checklist li:nth-child(16) { --i: 15; }
+  [data-video] .checklist li:nth-child(17) { --i: 16; }
+  [data-video] .checklist li:nth-child(18) { --i: 17; }
+  [data-video] .checklist li:nth-child(19) { --i: 18; }
+  [data-video] .checklist li:nth-child(20) { --i: 19; }
+
+  /* 0.8s lead-in so frame 0 reads as a finished pin, then one tick every 0.6s. */
+  [data-video] .box {
+    position: relative;
+    animation: fillBox 0.45s ease-out calc(var(--i) * 0.6s + 0.8s) both paused;
+  }
+  [data-video] .box::after {
+    content: ""; position: absolute; left: 12px; top: 1px;
+    width: 12px; height: 23px; border: 6px solid #fff;
+    border-top: 0; border-left: 0; border-radius: 2px;
+    transform: rotate(42deg) scale(0); opacity: 0;
+    animation: drawCheck 0.45s cubic-bezier(.34,1.56,.64,1) calc(var(--i) * 0.6s + 0.9s) both paused;
+  }
+  [data-video] .checklist li:not(.open-slot) {
+    animation: nudgeRow 0.45s ease-out calc(var(--i) * 0.6s + 0.8s) both paused;
+  }
+  /* The closing CTA: the open slot pulses for 1.5s after the last item ticks. */
+  [data-video] .open-slot .item-text {
+    display: inline-block;
+    animation: pulseCta 0.75s ease-in-out calc(var(--i) * 0.6s + 0.8s) 2 both paused;
+  }
+  @keyframes fillBox {
+    from { background: rgba(255,255,255,0.55); }
+    to   { background: {{ACCENT}}; border-color: {{ACCENT}}; }
+  }
+  @keyframes drawCheck {
+    0%   { transform: rotate(42deg) scale(0);    opacity: 0; }
+    60%  { transform: rotate(42deg) scale(1.15); opacity: 1; }
+    100% { transform: rotate(42deg) scale(1);    opacity: 1; }
+  }
+  @keyframes nudgeRow {
+    0%   { transform: translateX(0); }
+    45%  { transform: translateX(12px); }
+    100% { transform: translateX(0); }
+  }
+  @keyframes pulseCta {
+    0%   { transform: scale(1);    opacity: 0.85; }
+    50%  { transform: scale(1.06); opacity: 1; }
+    100% { transform: scale(1);    opacity: 0.85; }
+  }
 </style>
 </head>
 <body>

@@ -58,6 +58,64 @@
     text-align: center; padding-top: 26px; position: relative; z-index: 1;
     font-family: "Fredoka"; font-weight: 600; font-size: 32px; color: {{ACCENT_DARK}};
   }
+
+  /* ---------- Video mode: "numbers countdown" (Phase 5a, VIDEO_PINS_PLAN.html) ----------
+     Inert for PNG rendering — scoped to [data-video], which only renderVideo.ts sets.
+     Frame 0 is the title card (rule + header + watermark, no items); each numeral then
+     drops in and settles, and its line slides in behind it, 1 → N across the two columns.
+     The finished pin is the LAST frame, so this template's cover is taken from the end
+     (VIDEO_TEMPLATES in src/render/renderVideo.ts) — a cover must read as a whole pin.
+     CSS animations only: renderVideo steps them by setting currentTime per frame. */
+  [data-video] .checklist li:nth-child(1)  { --i: 0; }
+  [data-video] .checklist li:nth-child(2)  { --i: 1; }
+  [data-video] .checklist li:nth-child(3)  { --i: 2; }
+  [data-video] .checklist li:nth-child(4)  { --i: 3; }
+  [data-video] .checklist li:nth-child(5)  { --i: 4; }
+  [data-video] .checklist li:nth-child(6)  { --i: 5; }
+  [data-video] .checklist li:nth-child(7)  { --i: 6; }
+  [data-video] .checklist li:nth-child(8)  { --i: 7; }
+  [data-video] .checklist li:nth-child(9)  { --i: 8; }
+  [data-video] .checklist li:nth-child(10) { --i: 9; }
+  [data-video] .checklist li:nth-child(11) { --i: 10; }
+  [data-video] .checklist li:nth-child(12) { --i: 11; }
+  [data-video] .checklist li:nth-child(13) { --i: 12; }
+  [data-video] .checklist li:nth-child(14) { --i: 13; }
+  [data-video] .checklist li:nth-child(15) { --i: 14; }
+  [data-video] .checklist li:nth-child(16) { --i: 15; }
+  [data-video] .checklist li:nth-child(17) { --i: 16; }
+  [data-video] .checklist li:nth-child(18) { --i: 17; }
+  [data-video] .checklist li:nth-child(19) { --i: 18; }
+  [data-video] .checklist li:nth-child(20) { --i: 19; }
+
+  /* 0.8s lead-in so the title card reads, then one item every 0.6s. */
+  [data-video] .checklist li::before {
+    animation: dropNum 0.42s ease-out calc(var(--i) * 0.6s + 0.8s) both paused;
+  }
+  [data-video] .checklist li:not(.open-slot) .item-text {
+    animation: slideText 0.40s ease-out calc(var(--i) * 0.6s + 0.98s) both paused;
+  }
+  /* The closing CTA: the pill pops in after the last line, then breathes twice. */
+  [data-video] .open-slot .item-text {
+    display: inline-block;
+    animation: popPill 1.9s ease-out calc(var(--i) * 0.6s + 0.8s) both paused;
+  }
+  @keyframes dropNum {
+    0%   { transform: translateY(-46px); opacity: 0; }
+    62%  { transform: translateY(6px);   opacity: 1; }
+    100% { transform: translateY(0);     opacity: 1; }
+  }
+  @keyframes slideText {
+    from { transform: translateX(-26px); opacity: 0; }
+    to   { transform: translateX(0);     opacity: 1; }
+  }
+  @keyframes popPill {
+    0%   { transform: scale(0.85); opacity: 0; }
+    15%  { transform: scale(1.06); opacity: 1; }
+    25%  { transform: scale(1);    opacity: 1; }
+    50%  { transform: scale(1.05); opacity: 1; }
+    75%  { transform: scale(1);    opacity: 1; }
+    100% { transform: scale(1);    opacity: 1; }
+  }
 </style>
 </head>
 <body>
