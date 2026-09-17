@@ -14,6 +14,7 @@ import { access } from "node:fs/promises";
 import { type Browser } from "playwright-core";
 import { pinsByStatus, listAllPins, updatePin, uploadFileToNotion, attachPinImages, type PinSummary } from "../notion.js";
 import { renderPin, launchBrowser, TEMPLATE_NAMES } from "../render/renderPin.js";
+import { topUpCandidate } from "../topup.js";
 
 const OUT_DIR = "exports/designs";
 
@@ -80,20 +81,13 @@ async function missingTemplates(row: PinSummary): Promise<string[]> {
 }
 
 /**
- * Bring every not-yet-posted row up to the full template set. Targets the rows
- * publish will still touch: Designed / In Review / Approved, plus Published rows
- * that have neither a pin URL nor a scheduled date (packs exported before
- * scheduling existed). Rows already live or scheduled are left alone — their
- * extra variants belong to the "re-mine the catalogue" work, not to this.
+ * Bring every eligible row up to the full template set — see topUpCandidate
+ * for who qualifies (pipeline rows from Designed onward, live ones included,
+ * and backfill rows with a transcribed list and a blog post).
  */
 export async function runDesignTopUp(limit = 100): Promise<void> {
   const all = await listAllPins();
-  const candidates = all.filter(
-    (r) =>
-      r.source === "pipeline" &&
-      ((r.status !== undefined && ["Designed", "In Review", "Approved"].includes(r.status)) ||
-        (r.status === "Published" && !r.pinUrl && !r.scheduledDate)),
-  );
+  const candidates = all.filter(topUpCandidate);
 
   const todo: { row: PinSummary; missing: string[] }[] = [];
   for (const row of candidates) {
@@ -101,7 +95,7 @@ export async function runDesignTopUp(limit = 100): Promise<void> {
     if (missing.length) todo.push({ row, missing });
   }
   if (!todo.length) {
-    console.log(`All ${candidates.length} unposted rows already have every template (${TEMPLATE_NAMES.join(", ")}).`);
+    console.log(`All ${candidates.length} eligible rows already have every template (${TEMPLATE_NAMES.join(", ")}).`);
     return;
   }
   console.log(`Topping up ${Math.min(todo.length, limit)} of ${todo.length} rows missing variants…`);
