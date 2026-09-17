@@ -47,12 +47,21 @@ async function unreachable(entries: PlanEntry[]): Promise<string[]> {
   for (const e of entries) {
     const { slug, template } = splitPackName(e.pack)!;
     const url = mediaUrl(slug, template);
-    try {
-      const res = await fetch(url, { method: "HEAD" });
-      if (!res.ok) bad.push(`${url} → HTTP ${res.status}`);
-    } catch (err) {
-      bad.push(`${url} → ${(err as Error).message}`);
+    // Two hundred HEADs in a row trip the odd connection reset — retry before
+    // calling an image unreachable.
+    let last = "";
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await fetch(url, { method: "HEAD" });
+        if (res.ok) { last = ""; break; }
+        last = `HTTP ${res.status}`;
+        if (res.status < 500) break;
+      } catch (err) {
+        last = (err as Error).message;
+      }
+      await new Promise((r) => setTimeout(r, 400 * attempt));
     }
+    if (last) bad.push(`${url} → ${last}`);
   }
   return bad;
 }
@@ -78,7 +87,19 @@ export async function runCsv(limit = 200, opts: { from?: string; windowDays?: nu
     opts.windowDays,
     posted,
   );
-  const entries = plan.entries.slice(0, limit);
+  // Pinterest rejects a file that repeats a title ("Multiples rows with the
+  // same title", learned 2026-09-17), and a list's four variants share one
+  // title — so each file carries at most one row per title; the rest wait
+  // for the next file.
+  const seenTitles = new Set<string>();
+  const entries: PlanEntry[] = [];
+  let heldForTitle = 0;
+  for (const e of plan.entries) {
+    if (entries.length >= limit) break;
+    if (seenTitles.has(e.title)) { heldForTitle++; continue; }
+    seenTitles.add(e.title);
+    entries.push(e);
+  }
   if (!entries.length) {
     console.log("Nothing to export — every pack is either already in a csv or outside the scheduler window.");
     return;
@@ -115,7 +136,8 @@ export async function runCsv(limit = 200, opts: { from?: string; windowDays?: nu
   console.log(`\n--- ${file} ---`);
   for (const e of entries) console.log(`${e.date}  ${e.time}  ${e.pack}`);
   if (plan.entries.length > entries.length) {
-    console.log(`(${plan.entries.length - entries.length} more in the window — run \`clarity csv\` again for the next file)`);
+    const held = heldForTitle ? `, ${heldForTitle} of them held back because their title is already in this file` : "";
+    console.log(`(${plan.entries.length - entries.length} more in the window${held} — run \`clarity csv\` again for the next file)`);
   }
   if (plan.deferred.length) {
     console.log(`(${plan.deferred.length} pack(s) waiting for the scheduler window, first: ${plan.deferred[0].date})`);
