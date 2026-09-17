@@ -12,7 +12,7 @@ import type { Variants } from "./variants.js";
 
 const PACKABLE = new Set(["Approved", "Scheduled", "Published"]);
 
-type Row = { name: string; source?: string; status?: string; listItems?: string; pinTitle?: string; variants?: Variants };
+type Row = { name: string; source?: string; status?: string; listItems?: string; pinTitle?: string; altText?: string; variants?: Variants };
 
 export function packCandidate(row: Row): boolean {
   return !!row.listItems && !!row.pinTitle && row.status !== undefined && PACKABLE.has(row.status);
@@ -28,7 +28,8 @@ export function unpackedTemplates(row: Row, packedOnDisk: Set<string>): string[]
   return TEMPLATE_NAMES.filter((t) => !packedOnDisk.has(`${slug}--${t}`) && !row.variants?.[t]);
 }
 
-/** Rows that have a list but no pin copy yet — `clarity copy` writes it. */
+/** Rows that have a list but no playbook copy yet — `clarity copy` writes it.
+ *  No alt text is the tell for 2025-era copy (emoji titles, hashtag walls). */
 export function needsCopy(row: Row): boolean {
-  return !!row.listItems && !row.pinTitle && row.status !== "Rejected" && row.status !== "Archived";
+  return !!row.listItems && (!row.pinTitle || !row.altText) && row.status !== "Rejected" && row.status !== "Archived";
 }

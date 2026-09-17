@@ -2,12 +2,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { packCandidate, needsCopy, unpackedTemplates } from "../src/packRows.js";
 
-const row = (o: Partial<{ source: string; status: string; listItems: string; pinTitle: string; variants: Record<string, string> }>) => ({
+const row = (o: Partial<{ source: string; status: string; listItems: string; pinTitle: string; altText: string; variants: Record<string, string> }>) => ({
   name: "The Tea Bucket List",
   source: "pipeline",
   status: "Approved",
   listItems: "1. **A** — b",
   pinTitle: "Tea Bucket List: 12 Brews",
+  altText: "Pastel checklist graphic titled Tea Bucket List listing 12 brews to try",
   variants: {},
   ...o,
 });
@@ -54,6 +55,10 @@ test("a fully packed row has nothing left", () => {
 
 test("a row with a list but no pin title needs copy", () => {
   assert.equal(needsCopy(row({ pinTitle: "" })), true);
+});
+
+test("a row with 2025-era copy and no alt text needs copy too — fresh pin, fresh copy", () => {
+  assert.equal(needsCopy(row({ altText: "" })), true);
 });
 
 test("rows with copy, without a list, or rejected/archived do not", () => {
