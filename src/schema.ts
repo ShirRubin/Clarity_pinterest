@@ -102,7 +102,6 @@ export const DB_PROPERTIES = {
   Source: {
     select: { options: SOURCES.map((name) => ({ name })) },
   },
-  Template: { select: { options: [] as { name: string }[] } },
   "List items": { rich_text: {} },
   "Pin title": { rich_text: {} },
   "Pin description": { rich_text: {} },

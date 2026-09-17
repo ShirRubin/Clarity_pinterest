@@ -10,7 +10,6 @@ import {
   severity,
   formatStatus,
   lastRunFrom,
-  partiallyPosted,
   beyondWindow,
   ANALYTICS_STALE_DAYS,
   trendsAge,
@@ -191,17 +190,6 @@ test("the long-running relink task does not by itself make the board amber", () 
 });
 
 // --- partiallyPosted / beyondWindow -------------------------------------------
-
-test("partiallyPosted lists rows with some variants in posted/ and the rest still pending", () => {
-  const pending = ["2026-09-12--the-tea-bucket-list--big-numbers"];
-  const submitted = [
-    "2026-09-08--the-tea-bucket-list--classic-checklist",
-    "2026-09-09--the-tea-bucket-list--bold-panel",
-    "2026-09-10--the-tea-bucket-list--sticky-note",
-    "2026-09-08--the-done-list--classic-checklist", // fully posted rows are not partial
-  ];
-  assert.deepEqual(partiallyPosted(pending, submitted, 4), [{ slug: "the-tea-bucket-list", posted: 3, total: 4 }]);
-});
 
 test("beyondWindow counts pending packs past the scheduler window", () => {
   const names = ["2026-09-08--a--x", "2026-10-07--b--x", "2026-10-08--c--x"];

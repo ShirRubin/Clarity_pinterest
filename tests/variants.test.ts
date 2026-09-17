@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { variantSummary, listStatusFromVariants, variantGaps, VARIANT_COLUMNS } from "../src/variants.js";
+import { variantSummary, listStatusFromVariants, variantGaps, partiallyPostedRows, VARIANT_COLUMNS } from "../src/variants.js";
 import { TEMPLATE_NAMES } from "../src/templates.js";
 
 test("the variant columns are exactly the template names, in template order", () => {
@@ -43,6 +43,17 @@ test("all filled and none past → Scheduled", () => {
 test("all filled and the earliest has passed → Published", () => {
   const v = { "classic-checklist": "2026-09-16", "bold-panel": "2026-09-19", "sticky-note": "2026-09-20", "big-numbers": "2026-09-21" };
   assert.equal(listStatusFromVariants(v, "2026-09-17"), "Published");
+});
+
+// --- partiallyPostedRows -----------------------------------------------------
+
+test("rows with some but not all columns filled are partial, with their counts", () => {
+  const rows = [
+    { name: "Two of four", variants: { "classic-checklist": "2026-09-20", "bold-panel": "2026-09-21" } },
+    { name: "None yet", variants: {} },
+    { name: "All four", variants: { "classic-checklist": "1", "bold-panel": "2", "sticky-note": "3", "big-numbers": "4" } },
+  ];
+  assert.deepEqual(partiallyPostedRows(rows), [{ name: "Two of four", posted: 2, total: 4 }]);
 });
 
 // --- variantGaps -------------------------------------------------------------

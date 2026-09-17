@@ -24,7 +24,6 @@ export interface PinRow {
   theme?: string;
   trend?: string;
   source?: "pipeline" | "backfill";
-  template?: string;
   listItems?: string;
   pinTitle?: string;
   pinDescription?: string;
@@ -56,7 +55,6 @@ export function toNotionProperties(row: PinRow): Record<string, unknown> {
   if (row.theme) p["Theme"] = { select: { name: row.theme } };
   if (row.trend) p["Trend"] = { select: { name: row.trend } };
   if (row.source) p["Source"] = { select: { name: row.source } };
-  if (row.template) p["Template"] = { select: { name: row.template } };
   if (row.listItems) p["List items"] = { rich_text: rt(row.listItems) };
   if (row.pinTitle) p["Pin title"] = { rich_text: rt(row.pinTitle) };
   if (row.pinDescription) p["Pin description"] = { rich_text: rt(row.pinDescription) };

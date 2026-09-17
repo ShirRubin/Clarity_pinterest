@@ -42,6 +42,16 @@ export function listStatusFromVariants(v: Variants, today: string): "Scheduled" 
   return s.live ? "Published" : "Scheduled";
 }
 
+/** Rows with some, but not all, variant columns filled — the card's "n/4 posted" lines. */
+export function partiallyPostedRows<R extends { name: string; variants?: Variants }>(
+  rows: R[],
+): { name: string; posted: number; total: number }[] {
+  return rows.flatMap((r) => {
+    const { posted, total } = variantSummary(r.variants ?? {}, "0000-00-00");
+    return posted > 0 && posted < total ? [{ name: r.name, posted, total }] : [];
+  });
+}
+
 type GapPack = { dir: string; date: string; slug: string; template: string; text: { pageId?: string } };
 type GapRow = { pageId: string; name: string; source?: string; variants?: Variants };
 

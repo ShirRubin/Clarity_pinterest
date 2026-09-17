@@ -15,9 +15,8 @@ import { listAllPins } from "./notion.js";
 import { queueHealth, TARGET_RUNWAY_DAYS } from "./queue.js";
 import { readPacks, splitPackName } from "./packs.js";
 import { SCHEDULER_WINDOW_DAYS } from "./postplan.js";
-import { TEMPLATE_NAMES } from "./render/renderPin.js";
 import { rowForPack } from "./rowForPack.js";
-import { variantGaps } from "./variants.js";
+import { variantGaps, partiallyPostedRows } from "./variants.js";
 import { loadTrends, cacheAgeDays, isStale, STALE_AFTER_DAYS, type TrendsCache } from "./trends.js";
 
 /** A Pinterest CSV export older than this is worth refreshing. */
@@ -94,24 +93,6 @@ export function upcomingPins(names: string[], today: string, days: number): DayC
     out.push({ date, count: counts.get(date) ?? 0 });
   }
   return out;
-}
-
-/** Rows with some variants in posted/ and at least one still in packs/. */
-export function partiallyPosted(
-  pending: string[],
-  submitted: string[],
-  total: number,
-): { slug: string; posted: number; total: number }[] {
-  const slugOf = (n: string) => splitPackName(n)?.slug;
-  const pendingSlugs = new Set(pending.map(slugOf).filter(Boolean));
-  const counts = new Map<string, Set<string>>();
-  for (const n of submitted) {
-    const p = splitPackName(n);
-    if (p) counts.set(p.slug, new Set([...(counts.get(p.slug) ?? []), p.template]));
-  }
-  return [...counts.entries()]
-    .filter(([slug, t]) => t.size < total && pendingSlugs.has(slug))
-    .map(([slug, t]) => ({ slug, posted: t.size, total }));
 }
 
 /** Pending packs dated past Pinterest's scheduler window — not postable yet. */
@@ -433,8 +414,8 @@ export async function gatherStatus(
       readJson<{ done?: boolean }[]>(path.join("exports", "relink-pins.json"), []),
     ]);
   // The rest of this function works off directory names, as before — readPacks
-  // (rather than queue.ts's packNames) is what makes each pack's PAGE: id
-  // available below for the partiallyPosted → row lookup.
+  // (rather than queue.ts's packNames) is what gives variantGaps each pack's
+  // PAGE: id for its row lookup.
   const pending = pendingPacks.map((p) => p.dir);
   const submitted = submittedPacks.map((p) => p.dir);
 
@@ -461,11 +442,8 @@ export async function gatherStatus(
     return d !== undefined && d >= today;
   }).length;
 
-  const partial = partiallyPosted(pending, submitted, TEMPLATE_NAMES.length).map((p) => {
-    const samplePack = submittedPacks.find((sp) => sp.slug === p.slug) ?? pendingPacks.find((sp) => sp.slug === p.slug);
-    const row = samplePack ? rowForPack(samplePack, rows) : undefined;
-    return { name: row?.name ?? p.slug, posted: p.posted, total: p.total };
-  });
+  // "n/4 posted" comes from the rows' own variant columns (src/variants.ts).
+  const partial = partiallyPostedRows(rows.filter((r) => r.source !== "backfill"));
 
   return {
     today,

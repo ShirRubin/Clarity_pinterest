@@ -58,7 +58,7 @@ export function parseListItems(listItems: string): ParsedItems {
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-function fillTemplate(html: string, content: PinContent): string {
+export function fillTemplate(html: string, content: PinContent): string {
   const { heads, openSlot } = parseListItems(content.listItems);
   // Seeded by name: each list gets its own palette variant + subject emoji,
   // stable across re-renders and identical across a list's own templates.
