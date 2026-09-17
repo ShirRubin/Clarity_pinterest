@@ -5,7 +5,7 @@
 // pin so no file or Notion row is ever edited by hand.
 import { appendFile, rename, mkdir } from "node:fs/promises";
 import path from "node:path";
-import { listAllPins, updatePin, ensureStatusOptions, type PinSummary } from "../notion.js";
+import { listAllPins, updatePin, ensureStatusOptions, ensureSchemaProperties, type PinSummary } from "../notion.js";
 import { readPacks, splitPackName, type PackInfo } from "../packs.js";
 import { postedTransition, postedDerivation, applyStatusGuard, pinUrl } from "../posted.js";
 import { appendNote } from "../approve/decide.js";
@@ -32,6 +32,7 @@ export async function runPosted(packDir: string, pinId: string): Promise<void> {
   }
 
   await ensureStatusOptions();
+  await ensureSchemaProperties(); // the per-template date columns
   const rows = await listAllPins();
   const row = rowFor(pack, rows);
   if (!row) throw new Error(`No Notion row for pack ${dir} — add a PAGE: line to its post.txt`);
@@ -70,10 +71,11 @@ export async function settleRow(row: PinSummary, rows: PinSummary[], stillPendin
   // pre-this-stage packs are).
   const posted = (await readPacks("posted")).filter((p) => rowFor(p, rows)?.pageId === row.pageId);
   const pendingForRow = stillPending.filter((p) => rowFor(p, rows)?.pageId === row.pageId);
-  const { firstPinId, earliestPackDate } = postedDerivation(posted, pendingForRow);
+  const { firstPinId, earliestPackDate, postedDates } = postedDerivation(posted, pendingForRow);
 
   const patch = postedTransition({
     postedTemplates: posted.map((p) => p.template),
+    postedDates,
     totalTemplates: TEMPLATE_NAMES.length,
     firstPinId,
     earliestPackDate,

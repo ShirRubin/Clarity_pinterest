@@ -6,6 +6,8 @@ export const pinUrl = (pinId: string) => `https://www.pinterest.com/pin/${pinId}
 
 export interface PostedInput {
   postedTemplates: string[];
+  /** template → pack date for every posted variant; becomes the row's date columns. */
+  postedDates?: Record<string, string>;
   totalTemplates: number;
   /** Absent when every posted variant came through a csv upload — the id is backfilled later. */
   firstPinId?: string;
@@ -20,12 +22,17 @@ export interface PostedPatch {
   pinUrl?: string;
   pinterestPinId?: string;
   scheduledDate?: string;
+  variants?: Record<string, string>;
 }
 
 /** A row is Scheduled only once every variant is on Pinterest — a half-posted
  *  list stays Approved so the status card can show "3/4 posted". */
+/** The date-column part of a patch — present only when there is something to write. */
+const variantsPatch = (d?: Record<string, string>): Pick<PostedPatch, "variants"> =>
+  d && Object.keys(d).length ? { variants: d } : {};
+
 export function postedTransition(i: PostedInput): PostedPatch {
-  if (new Set(i.postedTemplates).size < i.totalTemplates) return {};
+  if (new Set(i.postedTemplates).size < i.totalTemplates) return variantsPatch(i.postedDates);
   // A pin id/URL already recorded on the row wins over the derived one — the
   // same keep-what's-there precedence as scheduledDate, so a re-run (or a
   // row whose earliest-posted marker was recovered later) never clobbers it.
@@ -51,6 +58,7 @@ export function postedTransition(i: PostedInput): PostedPatch {
     status: "Scheduled",
     ...(finalPinUrl !== undefined ? { pinUrl: finalPinUrl, pinterestPinId: finalPinId } : {}),
     scheduledDate: i.existingScheduledDate ?? i.earliestPackDate,
+    ...variantsPatch(i.postedDates),
   };
 }
 
@@ -60,6 +68,8 @@ export interface PostedDerivation {
    *  itself has just been marked, but the repair path can't assume that). */
   firstPinId?: string;
   earliestPackDate: string;
+  /** template → date of the pack that carries it (posted packs only). */
+  postedDates: Record<string, string>;
 }
 
 /**
@@ -74,7 +84,8 @@ export function postedDerivation(postedPacks: PackInfo[], pendingPacks: PackInfo
   const known = postedPacks
     .filter((p) => p.text.posted?.pinId)
     .sort((a, b) => a.date.localeCompare(b.date) || a.dir.localeCompare(b.dir));
-  return { firstPinId: known[0]?.text.posted?.pinId, earliestPackDate };
+  const postedDates = Object.fromEntries(postedPacks.map((p) => [p.template, p.date]));
+  return { firstPinId: known[0]?.text.posted?.pinId, earliestPackDate, postedDates };
 }
 
 /**

@@ -6,7 +6,7 @@
 // backfills them (and the row's Pin URL) once the pins show up in its lists.
 import { appendFile, mkdir, rename } from "node:fs/promises";
 import path from "node:path";
-import { listAllPins, ensureStatusOptions } from "../notion.js";
+import { listAllPins, ensureStatusOptions, ensureSchemaProperties } from "../notion.js";
 import { readPacks } from "../packs.js";
 import { rowForPack } from "../rowForPack.js";
 import { settleRow } from "./posted.js";
@@ -20,6 +20,7 @@ export async function runUploaded(csvFile: string): Promise<void> {
   }
 
   await ensureStatusOptions();
+  await ensureSchemaProperties(); // the per-template date columns
   const rows = await listAllPins();
   const today = new Date().toISOString().slice(0, 10);
 

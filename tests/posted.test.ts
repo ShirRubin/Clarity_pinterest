@@ -22,19 +22,24 @@ const packAt = (date: string, template: string, pinId?: string): PackInfo => ({
   },
 });
 
-test("fewer than all variants posted → nothing changes on the row", () => {
+test("fewer than all variants posted → only the posted variants' date columns change", () => {
   const p = postedTransition({
     postedTemplates: ["classic-checklist", "bold-panel", "sticky-note"],
+    postedDates: { "classic-checklist": "2026-09-08", "bold-panel": "2026-09-09", "sticky-note": "2026-09-10" },
     totalTemplates: 4,
     firstPinId: "1",
     earliestPackDate: "2026-09-08",
   });
-  assert.deepEqual(p, {});
+  assert.deepEqual(p, {
+    variants: { "classic-checklist": "2026-09-08", "bold-panel": "2026-09-09", "sticky-note": "2026-09-10" },
+  });
 });
 
-test("all variants posted → Scheduled with the first pin's URL and the earliest date", () => {
+test("all variants posted → Scheduled with the first pin's URL, the earliest date, and every column", () => {
+  const dates = { "classic-checklist": "2026-09-08", "bold-panel": "2026-09-09", "sticky-note": "2026-09-10", "big-numbers": "2026-09-11" };
   const p = postedTransition({
     postedTemplates: ["classic-checklist", "bold-panel", "sticky-note", "big-numbers"],
+    postedDates: dates,
     totalTemplates: 4,
     firstPinId: "3826344098274829184",
     earliestPackDate: "2026-09-08",
@@ -44,7 +49,13 @@ test("all variants posted → Scheduled with the first pin's URL and the earlies
     pinUrl: "https://www.pinterest.com/pin/3826344098274829184/",
     pinterestPinId: "3826344098274829184",
     scheduledDate: "2026-09-08",
+    variants: dates,
   });
+});
+
+test("postedDerivation also hands back each posted template's pack date", () => {
+  const d = postedDerivation([packAt("2026-09-09", "bold-panel", "2"), packAt("2026-09-08", "classic-checklist", "1")], []);
+  assert.deepEqual(d.postedDates, { "classic-checklist": "2026-09-08", "bold-panel": "2026-09-09" });
 });
 
 test("an existing Scheduled date is kept", () => {

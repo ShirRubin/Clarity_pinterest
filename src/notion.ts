@@ -43,6 +43,8 @@ export interface PinRow {
   clicks?: number;
   statsUpdated?: string; // YYYY-MM-DD — end of the analytics window these numbers cover
   notes?: string;
+  /** Per-template posting dates → one date column each (src/variants.ts). */
+  variants?: Partial<Record<string, string>>;
 }
 
 export function toNotionProperties(row: PinRow): Record<string, unknown> {
@@ -75,6 +77,7 @@ export function toNotionProperties(row: PinRow): Record<string, unknown> {
   if (row.clicks !== undefined) p["Clicks"] = { number: row.clicks };
   if (row.statsUpdated) p["Stats updated"] = { date: { start: row.statsUpdated } };
   if (row.notes) p["Notes"] = { rich_text: rt(row.notes) };
+  for (const [template, date] of Object.entries(row.variants ?? {})) if (date) p[template] = { date: { start: date } };
   return p;
 }
 

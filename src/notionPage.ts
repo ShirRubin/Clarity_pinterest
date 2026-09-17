@@ -1,5 +1,6 @@
 // src/notionPage.ts — the pure half of the Notion layer: raw page JSON → PinSummary.
 // No SDK, no env, no I/O, so the review Worker can use it with plain fetch.
+import { VARIANT_COLUMNS, type Variants } from "./variants.js";
 
 type NotionProp = {
   title?: { plain_text: string }[];
@@ -37,6 +38,8 @@ export interface PinSummary {
   clicks?: number;
   statsUpdated?: string;
   notes?: string;
+  /** Per-template posting date columns (see src/variants.ts); filled columns only. */
+  variants: Variants;
   imageUrls: string[];
 }
 
@@ -78,6 +81,9 @@ export function pageToSummary(page: NotionPage): PinSummary {
     pinUrl: p["Pin URL"]?.url ?? undefined,
     pinterestPinId: text(p["Pinterest pin ID"]) || undefined,
     scheduledDate: p["Scheduled date"]?.date?.start,
+    variants: Object.fromEntries(
+      VARIANT_COLUMNS.map((t) => [t, p[t]?.date?.start]).filter(([, d]) => !!d),
+    ),
     publishedDate: p["Published date"]?.date?.start,
     impressions: p["Impressions"]?.number ?? undefined,
     saves: p["Saves"]?.number ?? undefined,

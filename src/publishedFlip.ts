@@ -3,6 +3,7 @@
 // i.e. on any later local day — never on the day itself (the nightly job runs at
 // 02:00, seven hours before the first slot).
 import { POST_TZ } from "./schedule.js";
+import { variantSummary } from "./variants.js";
 
 export interface FlipCandidate {
   pageId: string;
@@ -10,6 +11,8 @@ export interface FlipCandidate {
   status?: string;
   scheduledDate?: string; // YYYY-MM-DD
   publishedDate?: string; // YYYY-MM-DD
+  /** Per-variant date columns; when any is filled they decide instead of scheduledDate. */
+  variants?: Partial<Record<string, string>>;
 }
 
 export interface FlipDecision {
@@ -28,9 +31,10 @@ export function publishedFlip(rows: FlipCandidate[], today: string): FlipDecisio
   const out: FlipDecision[] = [];
   for (const r of rows) {
     if (r.status !== "Scheduled") continue;
-    if (!r.scheduledDate) continue; // never flip blind
-    if (r.scheduledDate >= today) continue; // YYYY-MM-DD compares lexically
-    out.push({ pageId: r.pageId, publishedDate: r.publishedDate ?? r.scheduledDate });
+    const earliest = variantSummary(r.variants ?? {}, today).earliest ?? r.scheduledDate;
+    if (!earliest) continue; // never flip blind
+    if (earliest >= today) continue; // YYYY-MM-DD compares lexically
+    out.push({ pageId: r.pageId, publishedDate: r.publishedDate ?? earliest });
   }
   return out;
 }

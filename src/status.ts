@@ -17,6 +17,7 @@ import { readPacks, splitPackName } from "./packs.js";
 import { SCHEDULER_WINDOW_DAYS } from "./postplan.js";
 import { TEMPLATE_NAMES } from "./render/renderPin.js";
 import { rowForPack } from "./rowForPack.js";
+import { variantGaps } from "./variants.js";
 import { loadTrends, cacheAgeDays, isStale, STALE_AFTER_DAYS, type TrendsCache } from "./trends.js";
 
 /** A Pinterest CSV export older than this is worth refreshing. */
@@ -53,8 +54,8 @@ export interface ClarityStatus {
   partiallyPosted: { name: string; posted: number; total: number }[];
   // The calendar.
   scheduledOnPinterest: number;
-  scheduledRows: number;
-  scheduledLists: number;
+  /** Posted packs (today or later) with no date in their row's variant column. */
+  unrecordedPacks: number;
   runwayDays: number;
   lastScheduledDate?: string;
   upcoming: DayCount[];
@@ -111,24 +112,6 @@ export function partiallyPosted(
   return [...counts.entries()]
     .filter(([slug, t]) => t.size < total && pendingSlugs.has(slug))
     .map(([slug, t]) => ({ slug, posted: t.size, total }));
-}
-
-/**
- * Distinct lists (slugs) among posted packs dated today or later. One Notion
- * row becomes 4 packs (one per template variant), so counting posted packs
- * directly against Notion's `Scheduled` row count fires a false agreement
- * warning as soon as a single row has any variant posted — this counts the
- * lists the packs represent instead of the packs themselves.
- */
-export function scheduledListsFrom(names: string[], today: string): number {
-  const slugs = new Set<string>();
-  for (const name of names) {
-    const d = dateOf(name);
-    if (d === undefined || d < today) continue;
-    const parts = splitPackName(name);
-    if (parts) slugs.add(parts.slug);
-  }
-  return slugs.size;
 }
 
 /** Pending packs dated past Pinterest's scheduler window — not postable yet. */
@@ -307,8 +290,8 @@ export function formatStatus(s: ClarityStatus): string {
   if (s.packsBeyondWindow) {
     L.push(`        ${plural(s.packsBeyondWindow, "pack")} waiting for the ${SCHEDULER_WINDOW_DAYS}-day window`);
   }
-  if (s.scheduledRows > 0 && s.scheduledRows !== s.scheduledLists) {
-    L.push(`        ⚠ Notion says ${s.scheduledRows} lists scheduled, packs say ${s.scheduledLists} lists — run clarity reconcile`);
+  if (s.unrecordedPacks > 0) {
+    L.push(`        ⚠ ${s.unrecordedPacks} posted packs not recorded on their Notion rows — run clarity reconcile`);
   }
 
   L.push("", "🏭 PIPELINE");
@@ -494,8 +477,7 @@ export async function gatherStatus(
     packsBeyondWindow: beyondWindow(pending, today, SCHEDULER_WINDOW_DAYS),
     partiallyPosted: partial,
     scheduledOnPinterest,
-    scheduledRows: rows.filter((r) => r.status === "Scheduled").length,
-    scheduledLists: scheduledListsFrom(submitted, today),
+    unrecordedPacks: variantGaps(submittedPacks, rows, today).length,
     runwayDays: health.daysOfRunway,
     lastScheduledDate: health.lastScheduledDate,
     upcoming: upcomingPins(upcomingFrom, today, UPCOMING_DAYS),

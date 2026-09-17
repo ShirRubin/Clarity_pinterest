@@ -20,8 +20,19 @@ const page: NotionPage = {
     "Scheduled date": { date: { start: "2026-09-12" } },
     Impressions: { number: 0 },
     "Pin image": { files: [{ file: { url: "https://s3/a.png?sig=1" } }, { external: { url: "https://x/b.png" } }] },
+    "classic-checklist": { date: { start: "2026-09-12" } },
+    "bold-panel": { date: null },
   },
 };
+
+test("per-variant date columns come back as a template → date map, filled columns only", () => {
+  assert.deepEqual(pageToSummary(page).variants, { "classic-checklist": "2026-09-12" });
+});
+
+test("a page with no variant columns at all yields an empty map, not undefined", () => {
+  const bare: NotionPage = { id: "x", properties: { Name: { title: rt("Bare") } } };
+  assert.deepEqual(pageToSummary(bare).variants, {});
+});
 
 test("maps every field the pipeline reads, joining rich-text chunks", () => {
   const s = pageToSummary(page);

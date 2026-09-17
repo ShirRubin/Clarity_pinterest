@@ -1,5 +1,6 @@
 // Single source of truth for the "Clarity Pins" Notion database schema.
 // setup-notion.ts creates the DB from this; notion.ts reads/writes through it.
+import { TEMPLATE_NAMES, type TemplateName } from "./templates.js";
 
 export const STATUSES = [
   "Idea",
@@ -78,6 +79,11 @@ export const SOURCES = ["pipeline", "backfill"] as const;
 
 export const DB_TITLE = "Clarity Pins";
 
+const VARIANT_DATE_PROPERTIES = Object.fromEntries(TEMPLATE_NAMES.map((t) => [t, { date: {} }])) as Record<
+  TemplateName,
+  { date: Record<string, never> }
+>;
+
 // Notion API property definitions for database creation.
 export const DB_PROPERTIES = {
   Name: { title: {} },
@@ -117,4 +123,7 @@ export const DB_PROPERTIES = {
   // numbers above came from, so a stale row is obvious at a glance.
   "Stats updated": { date: {} },
   Notes: { rich_text: {} },
+  // One date per design template — the variant's posting date (empty = not
+  // posted, future = scheduled, past = live). See src/variants.ts.
+  ...VARIANT_DATE_PROPERTIES,
 } as const;

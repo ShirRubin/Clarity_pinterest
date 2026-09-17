@@ -9,11 +9,10 @@ import { paletteFor, emojiFor } from "./palettes.js";
 
 const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "templates");
 
-// "soft-editorial" (serif) existed briefly — user rejected it on the Phase 2 pilot.
-// Two more chosen 2026-09-06 from a six-candidate pilot (sticky-note, big-numbers won;
-// split-poster, pill-chips, night-mode, blog-sticker rejected and deleted).
-export const TEMPLATE_NAMES = ["classic-checklist", "bold-panel", "sticky-note", "big-numbers"] as const;
-export type TemplateName = (typeof TEMPLATE_NAMES)[number];
+// The registry lives in ../templates.ts (no playwright) — re-exported here so
+// existing imports keep working.
+export { TEMPLATE_NAMES, type TemplateName } from "../templates.js";
+import { TEMPLATE_NAMES, type TemplateName } from "../templates.js";
 
 export interface PinContent {
   name: string; // row name, e.g. "Slow October Bucket List: 15 Cozy Sunday Rituals…"
