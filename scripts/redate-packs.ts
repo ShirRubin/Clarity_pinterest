@@ -18,6 +18,21 @@ import { assignDates, slotTime, PINS_PER_DAY, type ScheduledEntry } from "../src
 import { chooseDestination } from "../src/destination.js";
 
 const apply = process.argv.includes("--apply");
+
+// OneDrive holds a directory for a moment after a file inside it is written —
+// the rename then fails with EPERM. Wait and try again before giving up.
+async function renameRetry(from: string, to: string): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await rename(from, to);
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if ((code !== "EPERM" && code !== "EBUSY") || attempt >= 6) throw err;
+      await new Promise((r) => setTimeout(r, 500 * attempt));
+    }
+  }
+}
 const today = new Date().toISOString().slice(0, 10);
 
 const rows = await listAllPins();
@@ -53,7 +68,7 @@ for (const a of assigned) {
   txt = txt.replace(/^POST ON: \S+/m, `POST ON: ${a.date}`);
   txt = /^POST AT: /m.test(txt) ? txt.replace(/^POST AT: .*$/m, `POST AT: ${time}`) : txt.replace(/^(POST ON: .*)$/m, `$1\nPOST AT: ${time}`);
   await writeFile(path.join(p.path, "post.txt"), txt, "utf8");
-  if (newDir !== p.dir) await rename(p.path, path.join("exports", "packs", newDir));
+  if (newDir !== p.dir) await renameRetry(p.path, path.join("exports", "packs", newDir));
 }
 if (moved > 12) console.log(`  … and ${moved - 12} more`);
 
