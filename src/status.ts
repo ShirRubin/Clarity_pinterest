@@ -25,6 +25,9 @@ export const ANALYTICS_STALE_DAYS = 7;
 /** The unattended job runs Mon + Thu, so this is the longest healthy silence. */
 export const MISSED_RUN_DAYS = 4;
 
+/** How many half-posted lists the card names before summarising the rest. */
+export const PARTIAL_ROWS_SHOWN = 5;
+
 /** How many days of the posting calendar the card previews. */
 export const UPCOMING_DAYS = 5;
 
@@ -247,7 +250,10 @@ export function formatStatus(s: ClarityStatus): string {
     if (s.needsChanges) L.push(row(s.needsChanges, "lists needing changes", "clarity revise"));
     if (s.approved) L.push(row(s.approved, "lists approved", "/clarity-post"));
     if (s.packsWaiting) L.push(row(s.packsWaiting, "packs to post", "/clarity-post"));
-    for (const p of s.partiallyPosted) L.push(`        ${p.name} — ${p.posted}/${p.total} posted`);
+    // The columns make every half-posted row visible; keep the card short.
+    for (const p of s.partiallyPosted.slice(0, PARTIAL_ROWS_SHOWN)) L.push(`        ${p.name} — ${p.posted}/${p.total} posted`);
+    if (s.partiallyPosted.length > PARTIAL_ROWS_SHOWN)
+      L.push(`        … and ${s.partiallyPosted.length - PARTIAL_ROWS_SHOWN} more partly posted lists`);
   } else {
     L.push("        nothing — the review queue is empty");
   }

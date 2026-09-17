@@ -205,6 +205,14 @@ test("the card names approved lists, partial rows and the window", () => {
   assert.match(card, /7 packs waiting for the 29-day window/);
 });
 
+test("the card shows at most five partial rows and counts the rest", () => {
+  const partiallyPosted = Array.from({ length: 7 }, (_, i) => ({ name: `List ${i + 1}`, posted: 2, total: 4 }));
+  const card = formatStatus({ ...clear, approved: 7, partiallyPosted });
+  assert.match(card, /List 5 — 2\/4 posted/);
+  assert.doesNotMatch(card, /List 6 — 2\/4 posted/);
+  assert.match(card, /… and 2 more partly posted lists/);
+});
+
 test("the card warns when posted packs are missing from their rows' variant columns", () => {
   const card = formatStatus({ ...clear, unrecordedPacks: 3 });
   assert.match(card, /3 posted packs not recorded on their Notion rows — run clarity reconcile/);
