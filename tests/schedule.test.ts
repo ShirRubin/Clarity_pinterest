@@ -2,10 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { assignDates, SLOT_TIMES, slotTime, localParts, PINS_PER_DAY } from "../src/schedule.js";
 
-test("fills 3 slots per day before moving to the next day", () => {
-  const q = ["a", "b", "c", "d"].map((id) => ({ id, destUrl: `https://x/${id}/` }));
+test("fills PINS_PER_DAY slots before moving to the next day", () => {
+  const q = ["a", "b", "c", "d", "e", "f"].map((id) => ({ id, destUrl: `https://x/${id}/` }));
   const r = assignDates([], q, "2026-09-01");
-  assert.deepEqual(r.map((x) => x.date), ["2026-09-01", "2026-09-01", "2026-09-01", "2026-09-02"]);
+  assert.deepEqual(r.map((x) => x.date), ["2026-09-01", "2026-09-01", "2026-09-01", "2026-09-01", "2026-09-01", "2026-09-02"]);
 });
 
 test("pins sharing a destination URL sit at least 3 days apart", () => {
@@ -35,10 +35,11 @@ test("never assigns before the start date", () => {
   assert.equal(r[0].date, "2026-09-10");
 });
 
-test("assigns slots 0,1,2 within a day and never a fourth", () => {
-  const q = ["a", "b", "c", "d"].map((id) => ({ id, destUrl: `https://x/${id}/` }));
+test("assigns slots 0..4 within a day and never a sixth — 5 pins a day since 2026-09-17", () => {
+  const q = ["a", "b", "c", "d", "e", "f"].map((id) => ({ id, destUrl: `https://x/${id}/` }));
   const r = assignDates([], q, "2026-09-01");
-  assert.deepEqual(r.map((x) => x.slot), [0, 1, 2, 0]);
+  assert.deepEqual(r.map((x) => x.slot), [0, 1, 2, 3, 4, 0]);
+  assert.equal(PINS_PER_DAY, 5);
   assert.equal(SLOT_TIMES.length, PINS_PER_DAY);
 });
 
@@ -50,8 +51,8 @@ test("existing pins on a day occupy the earliest slots", () => {
 });
 
 test("slot times are the real posting slots and never noon", () => {
-  assert.deepEqual([...SLOT_TIMES], ["09:00 AM", "01:00 PM", "06:00 PM"]);
-  assert.equal(slotTime(2), "06:00 PM");
+  assert.deepEqual([...SLOT_TIMES], ["09:00 AM", "11:00 AM", "01:00 PM", "04:00 PM", "06:00 PM"]);
+  assert.equal(slotTime(4), "06:00 PM");
   assert.ok(!SLOT_TIMES.some((t) => t.startsWith("12:")));
 });
 

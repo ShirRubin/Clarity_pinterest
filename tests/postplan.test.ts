@@ -48,7 +48,7 @@ test("packs beyond the scheduler window are deferred, not planned", () => {
 
 test("packs without POST AT get slot times by position within the day", () => {
   const plan = buildPostPlan([pack("2026-09-08", "a"), pack("2026-09-08", "b")], "2026-09-08", () => []);
-  assert.deepEqual(plan.entries.map((e) => e.time), ["09:00 AM", "01:00 PM"]);
+  assert.deepEqual(plan.entries.map((e) => e.time), ["09:00 AM", "11:00 AM"]);
 });
 
 test("overdue packs (dated before today) come first and keep their date for the note", () => {
@@ -71,11 +71,11 @@ test("mixed explicit and fallback times on same day don't collide", () => {
     "2026-09-08",
     () => [],
   );
-  // aaa gets slot 0 (09:00 AM), bbb has slot 2 (06:00 PM), ccc gets slot 1 (01:00 PM)
-  // After sorting by time: aaa (09:00 AM), ccc (01:00 PM), bbb (06:00 PM)
+  // aaa gets slot 0 (09:00 AM), bbb has slot 4 (06:00 PM), ccc gets slot 1 (11:00 AM)
+  // After sorting by time: aaa (09:00 AM), ccc (11:00 AM), bbb (06:00 PM)
   assert.deepEqual(plan.entries.map((e) => [e.pack.split("--")[2], e.time]), [
     ["aaa", "09:00 AM"],
-    ["ccc", "01:00 PM"],
+    ["ccc", "11:00 AM"],
     ["bbb", "06:00 PM"],
   ]);
 });
@@ -83,13 +83,13 @@ test("mixed explicit and fallback times on same day don't collide", () => {
 test("a posted pack's time reserves that day's slot, so a surviving untimed pending pack doesn't collide", () => {
   const posted = pack("2026-09-08", "classic-checklist", { time: "09:00 AM" });
   const plan = buildPostPlan([pack("2026-09-08", "bold-panel")], "2026-09-08", () => [], undefined, [posted]);
-  assert.deepEqual(plan.entries.map((e) => e.time), ["01:00 PM"]);
+  assert.deepEqual(plan.entries.map((e) => e.time), ["11:00 AM"]);
 });
 
 test("an explicit time without a leading zero still reserves its slot by clock value", () => {
   const posted = pack("2026-09-08", "classic-checklist", { time: "9:00 AM" });
   const plan = buildPostPlan([pack("2026-09-08", "bold-panel")], "2026-09-08", () => [], undefined, [posted]);
-  assert.deepEqual(plan.entries.map((e) => e.time), ["01:00 PM"]);
+  assert.deepEqual(plan.entries.map((e) => e.time), ["11:00 AM"]);
 });
 
 test("packs with unknown times sort after known times", () => {

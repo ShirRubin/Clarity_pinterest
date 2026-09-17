@@ -17,6 +17,9 @@ npm run clarity -- status  # whole-project card: what needs you, calendar, blog,
 npm run clarity -- queue   # queue health: days of runway, overdue packs, lists to generate next
 npm run generate           # the nightly job (02:00): revise → top up the queue when short → flip Scheduled → Published. Never posts.
 npx tsx scripts/migrate-scheduled.ts [--apply]   # one-off after milestone 3: reconcile Status + Scheduled date with the packs on disk (dry run by default); then `clarity topup` for rows it reports with < 4 variants
+npx tsx scripts/redate-packs.ts [--apply]       # re-date every pending pack to the current cadence (PINS_PER_DAY in src/schedule.ts); dry run by default
+npx tsx scripts/rename-backfill-rows.ts [--apply] # one-off 2026-09-17: backfill rows take their blog post title (old name kept in Notes)
+npx tsx scripts/backfill-variants.ts [--apply]   # one-off 2026-09-17: fill the per-template date columns from exports/posted/
 npx tsx scripts/refresh-trends.ts --snippet       # print the browser snippet for the monthly Pinterest demand pull
 npx tsx scripts/refresh-trends.ts <raw.json>     # turn that download into data/trends.json (defaults to ~/Downloads/clarity-trends-raw.json)
 npm run setup-notion       # one-time: creates the "Clarity Pins" DB (already done)
@@ -62,7 +65,7 @@ clarity revise             # Needs changes → rewrites each list from your revi
 
 ## Content rules (from ../PINTEREST_RESEARCH.md — follow in generation code)
 
-- 3–5 design variants per list; each is a "fresh pin". Cadence target 3 fresh pins/day; never the same URL twice within 72h.
+- 4 design variants per list; each is a "fresh pin". Cadence 5 fresh pins/day since 2026-09-17 (`PINS_PER_DAY`, was 3 — raised to work through the four-variant backlog; research says never more than 10); never the same URL twice within 72h.
 - Pin titles keyword-led, <100 chars; descriptions 2–3 natural sentences + CTA; no hashtag walls. Main keyword must appear ON the image.
 - Every list ends with an open slot ("#N — your turn, what would you add?").
 - Affiliate pins (later): must disclose `#affiliate`/`#ad`, full URLs only, ~80/20 helpful-to-affiliate mix.
