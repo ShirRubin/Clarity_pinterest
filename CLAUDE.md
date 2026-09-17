@@ -8,7 +8,7 @@ Automated content pipeline for pinterest.com/ClarityBucketLists: idea → bucket
 npm run clarity -- <cmd>   # status | queue | ideas | draft | copy | design | topup | review | approve | revise | ship | pack | csv | uploaded | post-plan | posted | reconcile | blogpost | stats | run
 clarity copy [limit]       # pin title/description/alt/keywords for rows that have a list but no copy (the backfill catalogue); status untouched
 clarity ship               # Approved → blog post + packs + blog deploy (everything after approval that needs no browser)
-clarity csv [limit]        # packs → exports/csv/<date>-pins.csv for Pinterest's bulk upload (Settings → Import content); publishes the PNGs to the blog first and refuses unknown boards / unreachable images; stamps each pack EXPORTED:
+clarity csv [limit] [--from=YYYY-MM-DD] [--window=DAYS]  # packs → exports/csv/<date>-pins.csv for Pinterest's bulk upload (Settings → Import content); publishes the PNGs to the blog first and refuses unknown boards / unreachable images; stamps each pack EXPORTED:. --from/--window slice the calendar (default: the 29-day scheduler window)
 clarity uploaded <csv>     # after you uploaded that file: packs → posted/ (POSTED: … csv), rows → Scheduled; pin URLs are backfilled by the next `reconcile --apply`
 clarity post-plan [--json] # packs to post, in order, inside Pinterest's 29-day window — what /clarity-post reads (browser route; skips EXPORTED packs)
 clarity posted <pack> <id> # after one pin is scheduled: move the pack, note the row, Scheduled once all 4 variants are up

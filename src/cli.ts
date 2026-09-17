@@ -23,6 +23,8 @@ import { runStatus } from "./status.js";
 const argv = process.argv.slice(3);
 const flags = new Set(argv.filter((a) => a.startsWith("--")));
 const words = argv.filter((a) => !a.startsWith("--"));
+/** `--name=value` flags (e.g. `--from=2026-11-16`). */
+const flagValue = (name: string) => argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 // Most commands take one optional number; a few take words.
 const arg = words[0] && /^\d+$/.test(words[0]) ? parseInt(words[0], 10) : undefined;
 
@@ -53,7 +55,13 @@ const commands: Record<string, { desc: string; run: () => Promise<unknown> }> = 
       return runPack(arg ?? 10);
     },
   },
-  csv: { desc: "Packs → one bulk-upload CSV for Pinterest (Settings → Import content); publishes the images first (arg: max pins, default 200)", run: () => runCsv(arg ?? 200) },
+  csv: {
+    desc: "Packs → one bulk-upload CSV for Pinterest (Settings → Import content); publishes the images first (arg: max pins, default 200; --from=YYYY-MM-DD and --window=DAYS slice the calendar)",
+    run: () => {
+      const window = flagValue("window");
+      return runCsv(arg ?? 200, { from: flagValue("from"), windowDays: window ? parseInt(window, 10) : undefined });
+    },
+  },
   uploaded: {
     desc: "Bookkeeping after you uploaded a CSV: uploaded <csv-file> — packs → posted/, rows → Scheduled (pin ids arrive via reconcile)",
     run: () => {

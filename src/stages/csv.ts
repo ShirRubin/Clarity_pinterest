@@ -57,9 +57,14 @@ async function unreachable(entries: PlanEntry[]): Promise<string[]> {
   return bad;
 }
 
-export async function runCsv(limit = 200): Promise<void> {
-  const [pending, posted, rows] = await Promise.all([readPacks("packs"), readPacks("posted"), listAllPins()]);
+/** `from` narrows the export to packs dated on/after that day (their earlier
+ *  siblings stay reserved for a later file); `windowDays` overrides the 29-day
+ *  scheduler window — bulk upload takes a publish date per row, so a file may
+ *  reach further ahead once Pinterest's own limit is known. */
+export async function runCsv(limit = 200, opts: { from?: string; windowDays?: number } = {}): Promise<void> {
+  const [pendingAll, posted, rows] = await Promise.all([readPacks("packs"), readPacks("posted"), listAllPins()]);
   const today = new Date().toISOString().slice(0, 10);
+  const pending = opts.from ? pendingAll.filter((p) => p.date >= opts.from!) : pendingAll;
   const byDir = new Map(pending.map((p) => [p.dir, p]));
   const rowOf = (e: PlanEntry) => rowForPack(byDir.get(e.pack)!, rows);
 
@@ -70,7 +75,7 @@ export async function runCsv(limit = 200): Promise<void> {
       const r = rowForPack(p, rows);
       return suggestTopics(r?.listItems ?? "", r?.theme);
     },
-    undefined,
+    opts.windowDays,
     posted,
   );
   const entries = plan.entries.slice(0, limit);
