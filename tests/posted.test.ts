@@ -164,3 +164,20 @@ test("applyStatusGuard keeps the status flip when the row is already Scheduled",
 test("a patch with no status change passes through untouched regardless of row status", () => {
   assert.deepEqual(applyStatusGuard({}, "Rejected"), {});
 });
+
+test("all variants uploaded by csv → Scheduled with a date but no pin url yet", () => {
+  const p = postedTransition({
+    postedTemplates: ["classic-checklist", "bold-panel", "sticky-note", "big-numbers"],
+    totalTemplates: 4,
+    earliestPackDate: "2026-09-17",
+  });
+  assert.deepEqual(p, { status: "Scheduled", scheduledDate: "2026-09-17" });
+});
+
+test("a csv-posted pack is never the source of the row's first pin id", () => {
+  const csvPosted = packAt("2026-09-17", "sticky-note");
+  csvPosted.text.posted = { at: "2026-09-17T09:00:00.000Z", csv: "2026-09-17-pins.csv" };
+  const d = postedDerivation([csvPosted, packAt("2026-09-18", "bold-panel", "77")], []);
+  assert.equal(d.firstPinId, "77");
+  assert.equal(d.earliestPackDate, "2026-09-17");
+});

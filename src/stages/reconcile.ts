@@ -39,11 +39,12 @@ export async function runReconcile(scheduledFile: string, createdFile: string, a
     process.exitCode = 1;
     return;
   }
-  if (r.alreadyLive.length) {
-    console.log(`\nApplying ${r.alreadyLive.length} already-live pack(s):`);
+  const fixes = [...r.alreadyLive, ...r.unidentified];
+  if (fixes.length) {
+    console.log(`\nApplying ${r.alreadyLive.length} already-live + ${r.unidentified.length} id-backfill pack(s):`);
     let applied = 0;
     let failed = 0;
-    for (const { pack, pin } of r.alreadyLive) {
+    for (const { pack, pin } of fixes) {
       try {
         await runPosted(pack.dir, pin.id);
         applied++;

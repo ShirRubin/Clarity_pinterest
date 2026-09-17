@@ -5,6 +5,7 @@ type NotionProp = {
   title?: { plain_text: string }[];
   rich_text?: { plain_text: string }[];
   select?: { name: string } | null;
+  multi_select?: { name: string }[];
   number?: number | null;
   url?: string | null;
   date?: { start: string } | null;
@@ -24,6 +25,7 @@ export interface PinSummary {
   pinDescription?: string;
   altText?: string;
   listItems?: string;
+  keywords?: string[];
   source?: string;
   destinationLink?: string;
   pinUrl?: string;
@@ -70,6 +72,7 @@ export function pageToSummary(page: NotionPage): PinSummary {
     pinDescription: text(p["Pin description"]),
     altText: text(p["Alt text"]),
     listItems: text(p["List items"]),
+    keywords: p["Keywords"]?.multi_select?.map((k) => k.name),
     source: p["Source"]?.select?.name,
     destinationLink: p["Destination link"]?.url ?? undefined,
     pinUrl: p["Pin URL"]?.url ?? undefined,

@@ -18,6 +18,7 @@ export interface Reconciliation {
   noon: PinterestPin[]; // scheduled at 12:00 local — duplicates
   sameDay: { date: string; title: string; ids: string[] }[];
   missing: PackInfo[]; // in posted/, dated today or later, not on Pinterest
+  unidentified: { pack: PackInfo; pin: PinterestPin }[]; // in posted/ via csv upload, id not yet recorded
 }
 
 const norm = (s: string) => s.trim().toLowerCase();
@@ -57,7 +58,15 @@ export function reconcile(pins: PinterestPin[], pending: PackInfo[], posted: Pac
 
   const missing = posted.filter((pack) => pack.date >= today && !byKey.has(key(pack.text.title, pack.date)));
 
-  return { alreadyLive, noon, sameDay, missing };
+  // A csv upload moves packs to posted/ before Pinterest tells us any ids;
+  // once the pin shows up in Pinterest's own list, hand the id back.
+  const unidentified = posted.flatMap((pack) => {
+    if (pack.text.posted?.pinId) return [];
+    const found = byKey.get(key(pack.text.title, pack.date));
+    return found ? [{ pack, pin: found.pin }] : [];
+  });
+
+  return { alreadyLive, noon, sameDay, missing, unidentified };
 }
 
 /**
@@ -107,6 +116,7 @@ export function formatReconcile(r: Reconciliation): string {
   for (const pin of r.noon) L.push(`12:00 PM duplicate    "${pin.title}"  delete at ${schedUrl(pin.id)}`);
   for (const g of r.sameDay) L.push(`same title twice      ${g.date}  "${g.title}"  ids ${g.ids.join(", ")}`);
   for (const pack of r.missing) L.push(`missing on Pinterest  ${pack.dir}  ("${pack.text.title}") — repost`);
+  for (const { pack, pin } of r.unidentified) L.push(`pin id to record      ${pack.dir}  → pin ${pin.id}  (run: clarity posted ${pack.dir} ${pin.id})`);
   if (!L.length) L.push("Pinterest and the packs agree — nothing to fix.");
   return L.join("\n");
 }

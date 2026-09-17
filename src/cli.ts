@@ -14,6 +14,8 @@ import { runShip } from "./stages/ship.js";
 import { runPostPlan } from "./stages/postplan.js";
 import { runPosted } from "./stages/posted.js";
 import { runReconcile } from "./stages/reconcile.js";
+import { runCsv } from "./stages/csv.js";
+import { runUploaded } from "./stages/uploaded.js";
 import { runQueue } from "./queue.js";
 import { runStatus } from "./status.js";
 
@@ -47,6 +49,14 @@ const commands: Record<string, { desc: string; run: () => Promise<unknown> }> = 
     run: () => {
       console.warn("`publish` is now `pack` — it no longer marks rows Published; `clarity posted` marks them Scheduled.");
       return runPack(arg ?? 10);
+    },
+  },
+  csv: { desc: "Packs → one bulk-upload CSV for Pinterest (Settings → Import content); publishes the images first (arg: max pins, default 200)", run: () => runCsv(arg ?? 200) },
+  uploaded: {
+    desc: "Bookkeeping after you uploaded a CSV: uploaded <csv-file> — packs → posted/, rows → Scheduled (pin ids arrive via reconcile)",
+    run: () => {
+      need(1, "uploaded <csv-file>");
+      return runUploaded(words[0]);
     },
   },
   "post-plan": { desc: "Packs to put on Pinterest, in order, inside the 29-day window (--json for the skill)", run: () => runPostPlan(flags.has("--json")) },

@@ -98,3 +98,21 @@ test("round-trips description containing marker-like content without blank line 
   };
   assert.deepEqual(parsePostText(postText(markerLike)), markerLike);
 });
+
+test("an EXPORTED line round-trips as the pack's csv export record", () => {
+  const txt = postText(sample) + `\nEXPORTED: 2026-09-17T08:00:00.000Z 2026-09-17-pins.csv\n`;
+  assert.deepEqual(parsePostText(txt).exported, { at: "2026-09-17T08:00:00.000Z", file: "2026-09-17-pins.csv" });
+});
+
+test("a POSTED line written by `clarity uploaded` carries the csv name and no pin id", () => {
+  const txt = postText(sample) + `\nPOSTED: 2026-09-17T09:00:00.000Z csv 2026-09-17-pins.csv\n`;
+  assert.deepEqual(parsePostText(txt).posted, { at: "2026-09-17T09:00:00.000Z", csv: "2026-09-17-pins.csv" });
+});
+
+test("a pin-id POSTED line still wins once the id is backfilled after a csv upload", () => {
+  const txt =
+    postText(sample) +
+    `\nPOSTED: 2026-09-17T09:00:00.000Z csv 2026-09-17-pins.csv\n` +
+    `\nPOSTED: 2026-09-18T09:00:00.000Z pin 123\n`;
+  assert.deepEqual(parsePostText(txt).posted, { at: "2026-09-18T09:00:00.000Z", pinId: "123" });
+});

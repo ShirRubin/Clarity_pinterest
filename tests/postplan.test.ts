@@ -103,3 +103,16 @@ test("packs with unknown times sort after known times", () => {
     ["b", "11:30 PM"],
   ]);
 });
+
+test("a pack already exported to a csv is left out of the plan", () => {
+  const plan = buildPostPlan(
+    [
+      pack("2026-09-08", "sticky-note", { time: "09:00 AM", exported: { at: "2026-09-07T10:00:00.000Z", file: "2026-09-07-pins.csv" } }),
+      pack("2026-09-08", "bold-panel", { time: "01:00 PM" }),
+    ],
+    "2026-09-08",
+    () => [],
+  );
+  assert.deepEqual(plan.entries.map((e) => e.pack), ["2026-09-08--the-tea-bucket-list--bold-panel"]);
+  assert.equal(plan.deferred.length, 0);
+});

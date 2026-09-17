@@ -52,3 +52,12 @@ test("imageUrlsOf prefers Notion-hosted file URLs and skips empty entries", () =
   assert.deepEqual(imageUrlsOf(page), ["https://s3/a.png?sig=1", "https://x/b.png"]);
   assert.deepEqual(imageUrlsOf({ id: "y", properties: { "Pin image": { files: [{}] } } }), []);
 });
+
+test("Keywords multi-select maps to a string list, absent → undefined", () => {
+  const withKw: NotionPage = {
+    id: "k",
+    properties: { Name: { title: rt("n") }, Keywords: { multi_select: [{ name: "tea" }, { name: "cozy living" }] } },
+  };
+  assert.deepEqual(pageToSummary(withKw).keywords, ["tea", "cozy living"]);
+  assert.equal(pageToSummary({ id: "x", properties: { Name: { title: rt("n") } } }).keywords, undefined);
+});

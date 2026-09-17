@@ -7,7 +7,8 @@ export const pinUrl = (pinId: string) => `https://www.pinterest.com/pin/${pinId}
 export interface PostedInput {
   postedTemplates: string[];
   totalTemplates: number;
-  firstPinId: string;
+  /** Absent when every posted variant came through a csv upload — the id is backfilled later. */
+  firstPinId?: string;
   earliestPackDate: string;
   existingScheduledDate?: string;
   existingPinUrl?: string;
@@ -32,22 +33,23 @@ export function postedTransition(i: PostedInput): PostedPatch {
   // "Pinterest pin ID" column filled in must not be overwritten just because
   // its sibling field is empty — the id is then parsed out of the URL, and a
   // bare existing id derives its URL the normal way.
-  let finalPinUrl: string;
-  let finalPinId: string;
+  let finalPinUrl: string | undefined;
+  let finalPinId: string | undefined;
   if (i.existingPinUrl !== undefined) {
     finalPinUrl = i.existingPinUrl;
     finalPinId = i.existingPinId ?? i.existingPinUrl.match(/\/pin\/(\d+)\//)?.[1] ?? i.firstPinId;
   } else if (i.existingPinId !== undefined) {
     finalPinId = i.existingPinId;
     finalPinUrl = pinUrl(i.existingPinId);
-  } else {
+  } else if (i.firstPinId !== undefined) {
     finalPinId = i.firstPinId;
     finalPinUrl = pinUrl(i.firstPinId);
   }
+  // A csv upload knows no ids yet: the row is Scheduled on its date alone and
+  // the reconcile backfill fills the url/id in once Pinterest reports them.
   return {
     status: "Scheduled",
-    pinUrl: finalPinUrl,
-    pinterestPinId: finalPinId,
+    ...(finalPinUrl !== undefined ? { pinUrl: finalPinUrl, pinterestPinId: finalPinId } : {}),
     scheduledDate: i.existingScheduledDate ?? i.earliestPackDate,
   };
 }

@@ -59,6 +59,10 @@ export function buildPostPlan(
   posted: PackInfo[] = [],
 ): PostPlan {
   const limit = toMs(today) + windowDays * DAY_MS;
+  // A pack already written into a csv (still in packs/ until `clarity
+  // uploaded` moves it) keeps its slot reserved but is never planned twice.
+  const exported = pending.filter((p) => p.text.exported);
+  pending = pending.filter((p) => !p.text.exported);
   const inWindow = pending.filter((p) => toMs(p.date) <= limit);
   const deferred = pending
     .filter((p) => toMs(p.date) > limit)
@@ -81,6 +85,7 @@ export function buildPostPlan(
   };
   for (const p of inWindow) reserve(p.date, p.text.time);
   for (const p of posted) reserve(p.date, p.text.time);
+  for (const p of exported) reserve(p.date, p.text.time);
 
   // Second pass: assign times and sort by time.
   const timed = [...inWindow]

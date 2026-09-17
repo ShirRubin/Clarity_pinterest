@@ -11,7 +11,10 @@ export interface PackText {
   alt: string;
   board: string;
   link: string;
-  posted?: { at: string; pinId: string };
+  /** Appended by `clarity csv` — which upload file this pack went into. */
+  exported?: { at: string; file: string };
+  /** Appended by `clarity posted` (pin id known) or `clarity uploaded` (csv, id backfilled later). */
+  posted?: { at: string; pinId?: string; csv?: string };
 }
 
 const TITLE_HEADER = `TITLE (paste as pin title):`;
@@ -57,7 +60,7 @@ function isMarker(line: string, prevBlank: boolean): boolean {
     line === TITLE_HEADER ||
     line === DESCRIPTION_HEADER ||
     line === ALT_HEADER ||
-    /^(BOARD|DESTINATION LINK|TAGGED TOPICS|POSTED): /.test(line) ||
+    /^(BOARD|DESTINATION LINK|TAGGED TOPICS|POSTED|EXPORTED): /.test(line) ||
     line.startsWith("After posting:")
   );
 }
@@ -106,7 +109,11 @@ function field(txt: string, key: string): string | undefined {
 
 export function parsePostText(txt: string): PackText {
   const lines = txt.split(/\r?\n/);
-  const posted = /^POSTED: (\S+) pin (\d+)/m.exec(txt);
+  // A pin-id line always wins: `clarity uploaded` writes the csv form first and
+  // the reconcile backfill appends the pin form once Pinterest reports the id.
+  const byPin = /^POSTED: (\S+) pin (\d+)/m.exec(txt);
+  const byCsv = /^POSTED: (\S+) csv (\S+)/m.exec(txt);
+  const exported = /^EXPORTED: (\S+) (\S+)/m.exec(txt);
   const time = field(txt, "POST AT");
   const pageId = field(txt, "PAGE");
   return {
@@ -119,6 +126,7 @@ export function parsePostText(txt: string): PackText {
     alt: block(lines, ALT_HEADER),
     board: field(txt, "BOARD") ?? "",
     link: /^DESTINATION LINK: (\S+)/m.exec(txt)?.[1] ?? "",
-    ...(posted ? { posted: { at: posted[1], pinId: posted[2] } } : {}),
+    ...(exported ? { exported: { at: exported[1], file: exported[2] } } : {}),
+    ...(byPin ? { posted: { at: byPin[1], pinId: byPin[2] } } : byCsv ? { posted: { at: byCsv[1], csv: byCsv[2] } } : {}),
   };
 }

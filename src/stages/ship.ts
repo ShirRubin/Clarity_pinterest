@@ -12,7 +12,7 @@ import { runBlogpost } from "./blogpost.js";
 import { runPack } from "./pack.js";
 import { blogDrift } from "../status.js";
 
-const BLOG_DIR = process.env.CLARITY_BLOG_DIR ?? path.join("..", "Clarity_blog");
+export const BLOG_DIR = process.env.CLARITY_BLOG_DIR ?? path.join("..", "Clarity_blog");
 // `astro build` wipes and recreates `dist` from scratch every time, so a marker
 // dropped there only survives a run that reached the end of `deployBlog` — a
 // crash between the build and a successful `wrangler deploy` (or a build that
@@ -20,7 +20,7 @@ const BLOG_DIR = process.env.CLARITY_BLOG_DIR ?? path.join("..", "Clarity_blog")
 // exactly the "looks current but isn't" case `deployBehind` below catches.
 const DEPLOY_MARKER = path.join(BLOG_DIR, "dist", ".clarity-deployed");
 
-async function deployBlog(): Promise<void> {
+export async function deployBlog(): Promise<void> {
   // npx is a .cmd on Windows — shell:true is what makes it resolvable there.
   const run = (args: string[]) => execFileSync("npx", args, { cwd: BLOG_DIR, stdio: "inherit", shell: true });
   run(["astro", "build"]);
@@ -107,5 +107,5 @@ export async function runShip(): Promise<void> {
   } else {
     console.log("\nNo new blog posts and the build is current — blog not redeployed.");
   }
-  console.log("\nShip done — run `clarity post-plan` for what goes to Pinterest.");
+  console.log("\nShip done — run `clarity csv` for the bulk-upload file (or `clarity post-plan` for the browser route).");
 }

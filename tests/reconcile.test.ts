@@ -130,3 +130,19 @@ test("when a noon duplicate and the legitimate pin share a key, alreadyLive trac
   assert.equal(r.alreadyLive[0].pin.id, "real");
   assert.deepEqual(r.noon.map((p) => p.id), ["dup"]);
 });
+
+test("a posted pack with no pin id that Pinterest holds is offered its id back", () => {
+  const p = pack("posted", "2026-09-10", "Tea Bucket List");
+  p.text.posted = { at: "2026-09-09T08:00:00.000Z", csv: "2026-09-09-pins.csv" };
+  const r = reconcile([pin("9", "Tea Bucket List", at("2026-09-10", 9))], [], [p], "2026-09-08");
+  assert.deepEqual(r.unidentified.map((u) => [u.pack.dir, u.pin.id]), [[p.dir, "9"]]);
+  assert.deepEqual(r.missing, []);
+  assert.match(formatReconcile(r), /clarity posted .* 9/);
+});
+
+test("a posted pack that already knows its pin id is not re-identified", () => {
+  const p = pack("posted", "2026-09-10", "Tea Bucket List");
+  p.text.posted = { at: "2026-09-09T08:00:00.000Z", pinId: "9" };
+  const r = reconcile([pin("9", "Tea Bucket List", at("2026-09-10", 9))], [], [p], "2026-09-08");
+  assert.deepEqual(r.unidentified, []);
+});
