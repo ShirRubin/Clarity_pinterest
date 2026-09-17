@@ -5,7 +5,8 @@ Automated content pipeline for pinterest.com/ClarityBucketLists: idea → bucket
 ## Commands
 
 ```bash
-npm run clarity -- <cmd>   # status | queue | ideas | draft | design | topup | review | approve | revise | ship | pack | csv | uploaded | post-plan | posted | reconcile | blogpost | stats | run
+npm run clarity -- <cmd>   # status | queue | ideas | draft | copy | design | topup | review | approve | revise | ship | pack | csv | uploaded | post-plan | posted | reconcile | blogpost | stats | run
+clarity copy [limit]       # pin title/description/alt/keywords for rows that have a list but no copy (the backfill catalogue); status untouched
 clarity ship               # Approved → blog post + packs + blog deploy (everything after approval that needs no browser)
 clarity csv [limit]        # packs → exports/csv/<date>-pins.csv for Pinterest's bulk upload (Settings → Import content); publishes the PNGs to the blog first and refuses unknown boards / unreachable images; stamps each pack EXPORTED:
 clarity uploaded <csv>     # after you uploaded that file: packs → posted/ (POSTED: … csv), rows → Scheduled; pin URLs are backfilled by the next `reconcile --apply`
@@ -22,7 +23,7 @@ npm run setup-notion       # one-time: creates the "Clarity Pins" DB (already do
 npm run backfill           # idempotent import of data/backfill.json into Notion
 npm run analytics          # parse data/analytics/raw/*.csv -> snapshot JSON (add `-- --notion` to write stats)
 npx tsx scripts/parse-rss.ts   # rebuild data/backfill.json from data/rss/*.rss
-npm test                   # run the node:test suites (schedule + approve + queue + revise + destination + status + schema + packText + posted + topics + postplan + reconcile + rowForPack + ship + notionPage + decide + review-notion + review-access + review-handler + publishedFlip + migrateScheduled + trends + csv + variants)
+npm test                   # run the node:test suites (schedule + approve + queue + revise + destination + status + schema + packText + posted + topics + postplan + reconcile + rowForPack + ship + notionPage + decide + review-notion + review-access + review-handler + publishedFlip + migrateScheduled + trends + csv + variants + topup + packRows)
 npx tsc --noEmit           # typecheck
 npm run review:deploy      # deploy the phone review page (review-worker/) to review.clarity-lists.com
 clarity approve            # opens the local review page (In Review → Approved / Needs changes / Rejected) at 127.0.0.1:4178

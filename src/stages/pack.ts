@@ -1,11 +1,12 @@
-// Pack stage — Approved → packs on disk (the row stays Approved).
+// Pack stage — packable rows (src/packRows.ts) → packs on disk (status untouched).
 // Each PNG variant becomes its own dated + time-slotted pack in exports/packs/;
 // the scheduler (src/schedule.ts) assigns 3/day with a 72h gap per destination
 // URL. `clarity posted` moves a pack to exports/posted/ once it is in Pinterest's
 // scheduler and flips the row to Scheduled when all four variants are there.
 import { cp, mkdir, writeFile, access } from "node:fs/promises";
 import path from "node:path";
-import { listAllPins, pinsByStatus, updatePin, type PinSummary } from "../notion.js";
+import { listAllPins, updatePin, type PinSummary } from "../notion.js";
+import { packCandidate, unpackedTemplates } from "../packRows.js";
 import { TEMPLATE_NAMES } from "../render/renderPin.js";
 import { postText } from "../packText.js";
 import { readPacks } from "../packs.js";
@@ -50,17 +51,15 @@ export async function runPack(limit = 10): Promise<void> {
     ...allPacks.filter((p) => p.text.link).map((p) => ({ date: p.date, destUrl: p.text.link })),
   ];
 
-  // A row is fully packed once every template variant is on disk — it stays
-  // Approved (this stage never flips status), so it would otherwise keep
-  // reappearing here forever, burning a `limit` slot every run.
-  const isFullyPacked = (row: PinSummary) =>
-    TEMPLATE_NAMES.every((t) => alreadyPacked.has(`${slugify(row.name)}--${t}`));
-
-  const approved = await pinsByStatus("Approved");
-  const fullyPacked = approved.filter(isFullyPacked);
-  const rows = approved.filter((r) => !isFullyPacked(r)).slice(0, limit);
+  // A row is fully packed once every variant has a pack on disk or a date in
+  // its variant column — this stage never flips status, so without the check
+  // a row would reappear here forever, burning a `limit` slot every run.
+  const packedKeys = new Set(alreadyPacked.keys());
+  const candidates = all.filter(packCandidate);
+  const fullyPacked = candidates.filter((r) => unpackedTemplates(r, packedKeys).length === 0);
+  const rows = candidates.filter((r) => unpackedTemplates(r, packedKeys).length > 0).slice(0, limit);
   if (fullyPacked.length) {
-    console.log(`(${fullyPacked.length} approved rows already fully packed — waiting for /clarity-post)`);
+    console.log(`(${fullyPacked.length} packable rows already fully packed or posted)`);
   }
   if (!rows.length) {
     console.log("Nothing to schedule — approve some In Review rows first (`clarity approve`).");
@@ -88,13 +87,14 @@ export async function runPack(limit = 10): Promise<void> {
     const packedTemplates = new Set<string>();
     let earliestDate: string | undefined;
 
+    const todo = new Set(unpackedTemplates(row, packedKeys));
     for (const t of TEMPLATE_NAMES) {
       const key = `${slug}--${t}`;
-      if (alreadyPacked.has(key)) {
-        // Already packed; don't queue it
+      if (!todo.has(t)) {
+        // Already packed or already on Pinterest; don't queue it
         packedTemplates.add(t);
-        const existingDate = alreadyPacked.get(key)!;
-        if (!earliestDate || existingDate < earliestDate) {
+        const existingDate = alreadyPacked.get(key) ?? row.variants[t];
+        if (existingDate && (!earliestDate || existingDate < earliestDate)) {
           earliestDate = existingDate;
         }
       } else {

@@ -4,6 +4,7 @@
 import "dotenv/config";
 import { runIdeas } from "./stages/ideas.js";
 import { runDraft } from "./stages/draft.js";
+import { runCopy } from "./stages/copy.js";
 import { runDesign, runDesignTopUp } from "./stages/design.js";
 import { runReview } from "./stages/review.js";
 import { runApprove } from "./stages/approve.js";
@@ -37,13 +38,14 @@ const commands: Record<string, { desc: string; run: () => Promise<unknown> }> = 
   queue: { desc: "Queue health: days of posting runway, overdue packs, and how many lists to generate next", run: () => runQueue() },
   ideas: { desc: "Generate new bucket-list ideas → rows in status Idea (arg: count, default 5)", run: () => runIdeas(arg ?? 5) },
   draft: { desc: "Idea → Drafted: write list, pin title, description, keywords (arg: limit, default 10)", run: () => runDraft(arg ?? 10) },
+  copy: { desc: "Pin title/description/alt/keywords for rows that have a list but no copy (the backfill catalogue) — status untouched (arg: limit, default 100)", run: () => runCopy(arg ?? 100) },
   design: { desc: "Drafted → Designed: render pin image variants + upload to Notion (arg: limit, default 5)", run: () => runDesign(arg ?? 5) },
   topup: { desc: "Render any template a not-yet-posted row is missing (after TEMPLATE_NAMES grows) and re-attach the full set (arg: limit, default 100)", run: () => runDesignTopUp(arg ?? 100) },
   review: { desc: "Designed → In Review: stage for the Notion review queue", run: () => runReview(arg ?? 50) },
   approve: { desc: "In Review → Approved / Needs changes / Rejected via local review page (arg: port, default 4178)", run: () => runApprove(arg ?? 4178) },
   revise: { desc: "Needs changes → rewrite from your review notes, re-render, back to In Review (arg: limit, default 10)", run: () => runRevise(arg ?? 10) },
   ship: { desc: "Approved → blog post + packs + blog deploy, in one go (no browser)", run: () => runShip() },
-  pack: { desc: "Approved → dated, time-slotted packs in exports/packs/ (arg: limit, default 10)", run: () => runPack(arg ?? 10) },
+  pack: { desc: "Approved / Scheduled / Published rows with unposted variants → dated, time-slotted packs in exports/packs/ (arg: limit, default 10)", run: () => runPack(arg ?? 10) },
   publish: {
     desc: "(deprecated alias of pack)",
     run: () => {
