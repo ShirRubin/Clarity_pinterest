@@ -17,6 +17,7 @@ import { readPacks, splitPackName } from "./packs.js";
 import { SCHEDULER_WINDOW_DAYS } from "./postplan.js";
 import { TEMPLATE_NAMES } from "./render/renderPin.js";
 import { rowForPack } from "./rowForPack.js";
+import { loadTrends, cacheAgeDays, isStale, STALE_AFTER_DAYS, type TrendsCache } from "./trends.js";
 
 /** A Pinterest CSV export older than this is worth refreshing. */
 export const ANALYTICS_STALE_DAYS = 7;
@@ -69,6 +70,7 @@ export interface ClarityStatus {
   relink: { done: number; total: number; remaining: number };
   openTasks: string[];
   analytics: { latest?: string; daysOld?: number; stale: boolean };
+  trends: { dataDate?: string; daysOld?: number; stale: boolean; terms: number };
 }
 
 // --- pure derivation ---------------------------------------------------------
@@ -182,6 +184,23 @@ export function analyticsAge(
   const latest = dates.reduce((a, b) => (a > b ? a : b));
   const daysOld = daysBetween(latest, today);
   return { latest, daysOld, stale: daysOld > ANALYTICS_STALE_DAYS };
+}
+
+/**
+ * Age of the Pinterest demand cache. It can only be refreshed through a logged-in
+ * browser, so it rots silently unless the status card nags about it.
+ */
+export function trendsAge(
+  cache: TrendsCache | undefined,
+  today: string,
+): { dataDate?: string; daysOld?: number; stale: boolean; terms: number } {
+  if (!cache) return { stale: true, terms: 0 };
+  return {
+    dataDate: cache.dataDate,
+    daysOld: cacheAgeDays(cache, today),
+    stale: isStale(cache, today),
+    terms: cache.terms.length,
+  };
 }
 
 /** Age of the newest logs/scheduled-run-<date>.log — did the Mon/Thu job fire? */
@@ -345,6 +364,19 @@ export function formatStatus(s: ClarityStatus): string {
       `stats current — imported ${s.analytics.latest} (${plural(s.analytics.daysOld ?? 0, "day")} ago)`,
     );
   }
+  if (s.trends.stale) {
+    // Only a logged-in browser can refresh this, so the nightly job will never
+    // fix it on its own — it has to reach a human here.
+    open.push(
+      s.trends.terms
+        ? `refresh Pinterest demand data — ${plural(s.trends.daysOld ?? 0, "day")} old  → npx tsx scripts/refresh-trends.ts --snippet`
+        : "pull Pinterest demand data — none yet  → npx tsx scripts/refresh-trends.ts --snippet",
+    );
+  } else {
+    open.push(
+      `demand data current — ${s.trends.terms} terms through ${s.trends.dataDate} (${plural(s.trends.daysOld ?? 0, "day")} ago)`,
+    );
+  }
   for (const t of open) L.push(`        • ${t}`);
   if (!open.length) L.push("        nothing outstanding");
 
@@ -476,6 +508,7 @@ export async function gatherStatus(
     relink: relinkProgress(relink),
     openTasks: openTasksFrom(plan),
     analytics: analyticsAge(analyticsFiles, today),
+    trends: trendsAge(await loadTrends(), today),
   };
 }
 

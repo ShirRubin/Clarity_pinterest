@@ -3,6 +3,7 @@ import { generateJSON } from "../claude.js";
 import { createPin, listAllPins } from "../notion.js";
 import { BOARDS, THEMES, TRENDS, type Board } from "../schema.js";
 import { BRAND_CONTEXT, SEO_RULES } from "../prompts.js";
+import { loadTrends, formatForPrompt, isStale, cacheAgeDays, STALE_AFTER_DAYS } from "../trends.js";
 
 interface IdeaOut {
   name: string;
@@ -23,9 +24,30 @@ export async function runIdeas(count = 5): Promise<void> {
   }, {});
 
   const today = new Date().toISOString().slice(0, 10);
+
+  // Real Pinterest search volume for Clarity's own vocabulary, pulled by hand into
+  // data/trends.json (see scripts/refresh-trends.ts). It steers the ideas toward
+  // measured demand instead of the static TRENDS tags, which are only labels.
+  // The nightly job cannot refresh it — Pinterest Trends needs a logged-in browser
+  // — so a stale or missing cache warns loudly and generation carries on rather
+  // than stopping the queue.
+  const trends = await loadTrends();
+  if (!trends) {
+    console.warn(`! No data/trends.json — ideas will fall back to the static trend tags.`);
+    console.warn(`  Refresh it with: npx tsx scripts/refresh-trends.ts --snippet`);
+  } else if (isStale(trends, today)) {
+    console.warn(`! data/trends.json is ${cacheAgeDays(trends, today)} days old (stale after ${STALE_AFTER_DAYS}).`);
+    console.warn(`  Refresh it with: npx tsx scripts/refresh-trends.ts --snippet`);
+  } else {
+    console.log(`Pinterest demand data: ${trends.terms.length} terms, through ${trends.dataDate}.`);
+  }
+  const demandBlock = formatForPrompt(trends, today);
+
   const system = `${BRAND_CONTEXT}\n\nYou are the idea engine of Clarity's content pipeline. You propose bucket-list ideas that people will SAVE — saves are Pinterest's #1 ranking signal.`;
 
   const user = `Today is ${today}. Pinterest users plan 45-60 days ahead, so seasonal ideas should target events 45-60 days out (set seasonWindow to the earliest sensible publish date, or null for evergreen).
+
+${demandBlock}
 
 Current board sizes (bigger = proven demand worth doubling down on): ${JSON.stringify(boardCounts)}
 
@@ -35,6 +57,7 @@ ${existingNames.map((n) => `- ${n}`).join("\n")}
 ${SEO_RULES}
 
 Propose exactly ${count} new bucket-list ideas. Mix: some riding a trend tag, some seasonal (45-60 day lead from today), some doubling down on proven boards. Each must have an obvious save-worthy hook.
+${demandBlock ? `\nGround them in the demand data above: most ideas should map onto a rising, peaking or steady term, and the matching phrase should read naturally in the list's title. Do not force a term in where it does not belong — a natural title beats a keyword-stuffed one.` : ""}
 
 Reply with ONLY a JSON array, each element:
 {"name": "working title of the list", "theme": one of ${JSON.stringify(THEMES)}, "trend": one of ${JSON.stringify(TRENDS)}, "board": one of ${JSON.stringify(BOARDS)}, "seasonWindow": "YYYY-MM-DD" or null, "rationale": "one sentence on why this will get saves"}`;

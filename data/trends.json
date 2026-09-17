@@ -1,0 +1,504 @@
+{
+  "fetchedAt": "2026-09-17",
+  "dataDate": "2026-09-11",
+  "country": "US",
+  "terms": [
+    {
+      "term": "bucket list",
+      "searchCount": 24,
+      "momChange": -14.285714285714285,
+      "yoyChange": 14.285714285714285,
+      "seasonality": 0.6384905660377358
+    },
+    {
+      "term": "bucket list ideas",
+      "searchCount": 19,
+      "momChange": -13.636363636363635,
+      "yoyChange": -5,
+      "seasonality": 0.6430188679245283
+    },
+    {
+      "term": "yearly goals",
+      "searchCount": 4,
+      "momChange": -50,
+      "yoyChange": -20,
+      "seasonality": 0.9035849056603773
+    },
+    {
+      "term": "new year goals",
+      "searchCount": 0,
+      "momChange": 0,
+      "yoyChange": 0,
+      "seasonality": 0.9579245283018868
+    },
+    {
+      "term": "monthly goals",
+      "searchCount": 12,
+      "momChange": -20,
+      "yoyChange": -20,
+      "seasonality": 0.7981132075471697
+    },
+    {
+      "term": "fall bucket list",
+      "searchCount": 86,
+      "momChange": 177.41935483870967,
+      "yoyChange": 3.614457831325301,
+      "seasonality": 0.8490566037735849
+    },
+    {
+      "term": "autumn bucket list",
+      "searchCount": 99,
+      "momChange": 141.46341463414635,
+      "yoyChange": 0,
+      "seasonality": 0.809622641509434
+    },
+    {
+      "term": "winter bucket list",
+      "searchCount": 12,
+      "momChange": 20,
+      "yoyChange": -25,
+      "seasonality": 0.8230188679245283
+    },
+    {
+      "term": "summer bucket list",
+      "searchCount": 0,
+      "momChange": -100,
+      "yoyChange": 0,
+      "seasonality": 0.8637735849056604
+    },
+    {
+      "term": "spring bucket list",
+      "searchCount": 3,
+      "momChange": -25,
+      "yoyChange": 0,
+      "seasonality": 0.8175471698113208
+    },
+    {
+      "term": "halloween bucket list",
+      "searchCount": 41,
+      "momChange": 78.26086956521739,
+      "yoyChange": -30.508474576271187,
+      "seasonality": 0.8567924528301887
+    },
+    {
+      "term": "fall activities",
+      "searchCount": 78,
+      "momChange": 136.36363636363635,
+      "yoyChange": -10.344827586206897,
+      "seasonality": 0.7881132075471698
+    },
+    {
+      "term": "winter activities",
+      "searchCount": 8,
+      "momChange": 33.33333333333333,
+      "yoyChange": 14.285714285714285,
+      "seasonality": 0.8228301886792453
+    },
+    {
+      "term": "thanksgiving activities",
+      "searchCount": 2,
+      "momChange": 100,
+      "yoyChange": 0,
+      "seasonality": 0.9181132075471699
+    },
+    {
+      "term": "fall aesthetic",
+      "searchCount": 76,
+      "momChange": 55.10204081632652,
+      "yoyChange": -21.649484536082475,
+      "seasonality": 0.7409433962264151
+    },
+    {
+      "term": "pumpkin patch",
+      "searchCount": 45,
+      "momChange": 246.15384615384616,
+      "yoyChange": 66.66666666666666,
+      "seasonality": 0.8594339622641509
+    },
+    {
+      "term": "apple picking",
+      "searchCount": 71,
+      "momChange": 273.6842105263158,
+      "yoyChange": 12.698412698412698,
+      "seasonality": 0.8160377358490566
+    },
+    {
+      "term": "vision board ideas",
+      "searchCount": 3,
+      "momChange": -25,
+      "yoyChange": -25,
+      "seasonality": 0.9181132075471699
+    },
+    {
+      "term": "manifestation",
+      "searchCount": 45,
+      "momChange": -11.76470588235294,
+      "yoyChange": 50,
+      "seasonality": 0.6641509433962265
+    },
+    {
+      "term": "manifestation journal",
+      "searchCount": 74,
+      "momChange": -10.843373493975903,
+      "yoyChange": 34.54545454545455,
+      "seasonality": 0.4186792452830188
+    },
+    {
+      "term": "self care ideas",
+      "searchCount": 47,
+      "momChange": -6,
+      "yoyChange": 17.5,
+      "seasonality": 0.47226415094339624
+    },
+    {
+      "term": "self care checklist",
+      "searchCount": 18,
+      "momChange": -28.000000000000004,
+      "yoyChange": -79.54545454545455,
+      "seasonality": 0.500566037735849
+    },
+    {
+      "term": "self care sunday",
+      "searchCount": 56,
+      "momChange": -16.417910447761194,
+      "yoyChange": -34.883720930232556,
+      "seasonality": 0.26132075471698113
+    },
+    {
+      "term": "glow up checklist",
+      "searchCount": 35,
+      "momChange": -44.44444444444444,
+      "yoyChange": -57.3170731707317,
+      "seasonality": 0.40622641509433965
+    },
+    {
+      "term": "glow up tips",
+      "searchCount": 38,
+      "momChange": -41.53846153846154,
+      "yoyChange": -11.627906976744185,
+      "seasonality": 0.3733962264150944
+    },
+    {
+      "term": "romanticize your life",
+      "searchCount": 14,
+      "momChange": -33.33333333333333,
+      "yoyChange": -44,
+      "seasonality": 0.7220754716981133
+    },
+    {
+      "term": "morning routine",
+      "searchCount": 53,
+      "momChange": -22.058823529411764,
+      "yoyChange": -1.8518518518518516,
+      "seasonality": 0.41490566037735843
+    },
+    {
+      "term": "evening routine",
+      "searchCount": 46,
+      "momChange": -34.285714285714285,
+      "yoyChange": -20.689655172413794,
+      "seasonality": 0.38433962264150945
+    },
+    {
+      "term": "habit tracker",
+      "searchCount": 21,
+      "momChange": 5,
+      "yoyChange": 31.25,
+      "seasonality": 0.7726415094339623
+    },
+    {
+      "term": "journaling prompts",
+      "searchCount": 40,
+      "momChange": 11.11111111111111,
+      "yoyChange": 33.33333333333333,
+      "seasonality": 0.6015094339622642
+    },
+    {
+      "term": "mindfulness",
+      "searchCount": 15,
+      "momChange": 15.384615384615385,
+      "yoyChange": -61.53846153846154,
+      "seasonality": 0.7133962264150944
+    },
+    {
+      "term": "dopamine menu",
+      "searchCount": 46,
+      "momChange": -2.127659574468085,
+      "yoyChange": 4.545454545454546,
+      "seasonality": 0.4377358490566038
+    },
+    {
+      "term": "slow living",
+      "searchCount": 22,
+      "momChange": -8.333333333333332,
+      "yoyChange": -38.88888888888889,
+      "seasonality": 0.6373584905660378
+    },
+    {
+      "term": "hygge",
+      "searchCount": 25,
+      "momChange": 47.05882352941176,
+      "yoyChange": -39.02439024390244,
+      "seasonality": 0.6471698113207547
+    },
+    {
+      "term": "rainy day activities",
+      "searchCount": 21,
+      "momChange": 0,
+      "yoyChange": 162.5,
+      "seasonality": 0.8009433962264151
+    },
+    {
+      "term": "staycation ideas",
+      "searchCount": 32,
+      "momChange": -40.74074074074074,
+      "yoyChange": -36,
+      "seasonality": 0.4532075471698114
+    },
+    {
+      "term": "date night ideas",
+      "searchCount": 66,
+      "momChange": 0,
+      "yoyChange": 135.71428571428572,
+      "seasonality": 0.48245283018867924
+    },
+    {
+      "term": "date ideas",
+      "searchCount": 54,
+      "momChange": -3.571428571428571,
+      "yoyChange": -11.475409836065573,
+      "seasonality": 0.3949056603773584
+    },
+    {
+      "term": "couple bucket list",
+      "searchCount": 28,
+      "momChange": 3.7037037037037033,
+      "yoyChange": -26.31578947368421,
+      "seasonality": 0.5590566037735849
+    },
+    {
+      "term": "things to do with friends",
+      "searchCount": 61,
+      "momChange": -7.575757575757576,
+      "yoyChange": 48.78048780487805,
+      "seasonality": 0.37943396226415094
+    },
+    {
+      "term": "things to do alone",
+      "searchCount": 68,
+      "momChange": 1.4925373134328357,
+      "yoyChange": 47.82608695652174,
+      "seasonality": 0.43811320754716976
+    },
+    {
+      "term": "travel bucket list",
+      "searchCount": 60,
+      "momChange": -10.44776119402985,
+      "yoyChange": 13.20754716981132,
+      "seasonality": 0.4269811320754716
+    },
+    {
+      "term": "solo travel",
+      "searchCount": 15,
+      "momChange": 0,
+      "yoyChange": -25,
+      "seasonality": 0.7828301886792453
+    },
+    {
+      "term": "weekend getaway ideas",
+      "searchCount": 30,
+      "momChange": 7.142857142857142,
+      "yoyChange": -70,
+      "seasonality": 0.520566037735849
+    },
+    {
+      "term": "road trip ideas",
+      "searchCount": 30,
+      "momChange": -30.23255813953488,
+      "yoyChange": 275,
+      "seasonality": 0.65
+    },
+    {
+      "term": "europe travel",
+      "searchCount": 20,
+      "momChange": 33.33333333333333,
+      "yoyChange": -9.090909090909092,
+      "seasonality": 0.7483018867924528
+    },
+    {
+      "term": "stargazing",
+      "searchCount": 58,
+      "momChange": -28.39506172839506,
+      "yoyChange": 18.367346938775512,
+      "seasonality": 0.38452830188679243
+    },
+    {
+      "term": "music festival",
+      "searchCount": 40,
+      "momChange": -4.761904761904762,
+      "yoyChange": -23.076923076923077,
+      "seasonality": 0.5045283018867924
+    },
+    {
+      "term": "movies to watch",
+      "searchCount": 71,
+      "momChange": -2.73972602739726,
+      "yoyChange": 69.04761904761905,
+      "seasonality": 0.33528301886792444
+    },
+    {
+      "term": "movie night ideas",
+      "searchCount": 59,
+      "momChange": -6.349206349206349,
+      "yoyChange": -41,
+      "seasonality": 0.3854716981132076
+    },
+    {
+      "term": "tv shows to watch",
+      "searchCount": 60,
+      "momChange": -10.44776119402985,
+      "yoyChange": 22.448979591836736,
+      "seasonality": 0.3577358490566037
+    },
+    {
+      "term": "broadway musicals",
+      "searchCount": 62,
+      "momChange": -36.08247422680412,
+      "yoyChange": 100,
+      "seasonality": 0.5922641509433962
+    },
+    {
+      "term": "theatre kid",
+      "searchCount": 57,
+      "momChange": -12.307692307692308,
+      "yoyChange": -35.95505617977528,
+      "seasonality": 0.3130188679245284
+    },
+    {
+      "term": "books to read",
+      "searchCount": 59,
+      "momChange": -11.940298507462686,
+      "yoyChange": -18.055555555555554,
+      "seasonality": 0.2975471698113208
+    },
+    {
+      "term": "reading challenge",
+      "searchCount": 19,
+      "momChange": -5,
+      "yoyChange": 26.666666666666668,
+      "seasonality": 0.7690566037735849
+    },
+    {
+      "term": "booktok",
+      "searchCount": 73,
+      "momChange": 1.3888888888888888,
+      "yoyChange": 14.0625,
+      "seasonality": 0.24113207547169813
+    },
+    {
+      "term": "skills to learn",
+      "searchCount": 17,
+      "momChange": -26.08695652173913,
+      "yoyChange": -60.46511627906976,
+      "seasonality": 0.4730188679245283
+    },
+    {
+      "term": "career goals",
+      "searchCount": 8,
+      "momChange": -27.27272727272727,
+      "yoyChange": -33.33333333333333,
+      "seasonality": 0.8596226415094339
+    },
+    {
+      "term": "side hustle ideas",
+      "searchCount": 46,
+      "momChange": -9.803921568627452,
+      "yoyChange": -35.2112676056338,
+      "seasonality": 0.36698113207547167
+    },
+    {
+      "term": "creative hobbies",
+      "searchCount": 32,
+      "momChange": -3.0303030303030303,
+      "yoyChange": 39.130434782608695,
+      "seasonality": 0.6620754716981132
+    },
+    {
+      "term": "hobby ideas",
+      "searchCount": 62,
+      "momChange": 1.639344262295082,
+      "yoyChange": 87.87878787878788,
+      "seasonality": 0.450566037735849
+    },
+    {
+      "term": "art journal ideas",
+      "searchCount": 63,
+      "momChange": 3.278688524590164,
+      "yoyChange": 1.6129032258064515,
+      "seasonality": 0.39132075471698113
+    },
+    {
+      "term": "crafts to try",
+      "searchCount": 13,
+      "momChange": -59.375,
+      "yoyChange": 160,
+      "seasonality": 0.7494339622641509
+    },
+    {
+      "term": "foods to try",
+      "searchCount": 53,
+      "momChange": 8.16326530612245,
+      "yoyChange": 8.16326530612245,
+      "seasonality": 0.4188679245283019
+    },
+    {
+      "term": "cocktail recipes",
+      "searchCount": 39,
+      "momChange": 5.405405405405405,
+      "yoyChange": -29.09090909090909,
+      "seasonality": 0.5084905660377359
+    },
+    {
+      "term": "coffee shop aesthetic",
+      "searchCount": 54,
+      "momChange": -6.896551724137931,
+      "yoyChange": 14.893617021276595,
+      "seasonality": 0.4020754716981132
+    },
+    {
+      "term": "luxury lifestyle",
+      "searchCount": 59,
+      "momChange": -15.714285714285714,
+      "yoyChange": -19.17808219178082,
+      "seasonality": 0.35584905660377364
+    },
+    {
+      "term": "luxury travel",
+      "searchCount": 48,
+      "momChange": 9.090909090909092,
+      "yoyChange": 17.073170731707318,
+      "seasonality": 0.550754716981132
+    },
+    {
+      "term": "old money aesthetic",
+      "searchCount": 39,
+      "momChange": -11.363636363636363,
+      "yoyChange": -60.204081632653065,
+      "seasonality": 0.349622641509434
+    },
+    {
+      "term": "party ideas",
+      "searchCount": 77,
+      "momChange": 11.594202898550725,
+      "yoyChange": 18.461538461538463,
+      "seasonality": 0.2935849056603773
+    },
+    {
+      "term": "birthday ideas",
+      "searchCount": 90,
+      "momChange": 18.421052631578945,
+      "yoyChange": 36.36363636363637,
+      "seasonality": 0.3247169811320755
+    }
+  ]
+}

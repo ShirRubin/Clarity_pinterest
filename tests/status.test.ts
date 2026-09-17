@@ -14,8 +14,10 @@ import {
   beyondWindow,
   scheduledListsFrom,
   ANALYTICS_STALE_DAYS,
+  trendsAge,
   type ClarityStatus,
 } from "../src/status.js";
+import { STALE_AFTER_DAYS } from "../src/trends.js";
 
 const pack = (date: string, n = "some-list--classic-checklist") => `${date}--${n}`;
 
@@ -157,6 +159,7 @@ const clear: ClarityStatus = {
   relink: { done: 10, total: 140, remaining: 130 },
   openTasks: [],
   analytics: { latest: "2026-09-04", daysOld: 3, stale: false },
+  trends: { dataDate: "2026-09-11", daysOld: 2, stale: false, terms: 71 },
 };
 
 test("a clear board has no attention items and reads green", () => {
@@ -335,4 +338,37 @@ test("no scheduled-run log at all counts as missed with no date", () => {
   const r = lastRunFrom(["approve-2026-09-06.log"], "2026-09-07");
   assert.equal(r.date, undefined);
   assert.equal(r.missed, true);
+});
+
+// --- trendsAge ---------------------------------------------------------------
+
+test("a missing demand cache is stale and reports no terms", () => {
+  const t = trendsAge(undefined, "2026-09-17");
+  assert.equal(t.stale, true);
+  assert.equal(t.terms, 0);
+  assert.equal(t.dataDate, undefined);
+});
+
+test("a fresh demand cache carries its data date, age and size", () => {
+  const t = trendsAge(
+    { fetchedAt: "2026-09-15", dataDate: "2026-09-11", country: "US", terms: [
+      { term: "fall bucket list", searchCount: 86, momChange: 177, yoyChange: 4, seasonality: 0.8 },
+    ] },
+    "2026-09-17",
+  );
+  assert.equal(t.stale, false);
+  assert.equal(t.daysOld, 2);
+  assert.equal(t.terms, 1);
+  assert.equal(t.dataDate, "2026-09-11");
+});
+
+test("a demand cache past the staleness window is flagged", () => {
+  const t = trendsAge(
+    { fetchedAt: "2026-07-01", dataDate: "2026-06-28", country: "US", terms: [
+      { term: "x", searchCount: 1, momChange: 0, yoyChange: 0, seasonality: 0 },
+    ] },
+    "2026-09-17",
+  );
+  assert.equal(t.stale, true);
+  assert.ok((t.daysOld ?? 0) > STALE_AFTER_DAYS);
 });
