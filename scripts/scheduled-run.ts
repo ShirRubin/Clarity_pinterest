@@ -9,7 +9,10 @@
 //                 (ideas → draft → design → review), exactly as before;
 //   3. flip     — Scheduled rows whose pins have all gone live → Published.
 //                 Date-based, no Pinterest call.
-// Steps 1 and 3 always run; step 2 is skipped (no Claude call) when the queue
+//   4. remind   — one Todoist task, due 09:00 with a reminder, kept open while
+//                 anything sits in "In Review" and closed when the queue empties.
+//                 Runs last so it sees the night's final state.
+// Steps 1, 3 and 4 always run; step 2 is skipped (no Claude call) when the queue
 // is healthy, so the job is safe to fire more often than needed.
 //
 //   npm run generate        # decide the batch size from queue health
@@ -24,6 +27,7 @@ import { runDesign } from "../src/stages/design.js";
 import { runReview } from "../src/stages/review.js";
 import { runRevise } from "../src/stages/revise.js";
 import { runPublishedFlip } from "../src/stages/publishedFlip.js";
+import { runReviewReminder } from "../src/stages/reviewReminder.js";
 import { localToday } from "../src/publishedFlip.js";
 
 const today = localToday();
@@ -86,6 +90,9 @@ await step("generate", async () => {
 
 // 3. flip Scheduled → Published for rows dated before today.
 await step("flip (Scheduled → Published)", () => runPublishedFlip(today));
+
+// 4. remind — last, so the count covers rows revise and generate just added.
+await step("remind (lists waiting in review)", () => runReviewReminder(today));
 
 console.log(`\nLog: ${logFile}`);
 process.exit(failed ? 1 : 0);
