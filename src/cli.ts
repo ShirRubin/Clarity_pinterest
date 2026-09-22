@@ -15,6 +15,7 @@ import { runShip } from "./stages/ship.js";
 import { runPostPlan } from "./stages/postplan.js";
 import { runPosted } from "./stages/posted.js";
 import { runReconcile } from "./stages/reconcile.js";
+import { runUnpost } from "./stages/unpost.js";
 import { runCsv } from "./stages/csv.js";
 import { runUploaded } from "./stages/uploaded.js";
 import { runQueue } from "./queue.js";
@@ -82,6 +83,13 @@ const commands: Record<string, { desc: string; run: () => Promise<unknown> }> = 
     run: () => {
       need(2, "reconcile <scheduled.json> <created.json> [--apply]");
       return runReconcile(words[0], words[1], flags.has("--apply"));
+    },
+  },
+  unpost: {
+    desc: "Reverse of `uploaded` for a truncated CSV batch: posted packs Pinterest never took → back to packs/ (dry run without --apply)",
+    run: () => {
+      need(2, "unpost <scheduled.json> <created.json> [--apply]");
+      return runUnpost(words[0], words[1], flags.has("--apply"));
     },
   },
   blogpost: { desc: "Approved/Published lists → blog posts in Clarity_blog + Destination link → post URL (arg: limit, default 20)", run: () => runBlogpost(arg ?? 20) },

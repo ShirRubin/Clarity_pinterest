@@ -5,7 +5,7 @@ Automated content pipeline for pinterest.com/ClarityBucketLists: idea → bucket
 ## Commands
 
 ```bash
-npm run clarity -- <cmd>   # status | queue | ideas | draft | copy | design | topup | review | approve | revise | ship | pack | csv | uploaded | post-plan | posted | reconcile | blogpost | stats | run
+npm run clarity -- <cmd>   # status | queue | ideas | draft | copy | design | topup | review | approve | revise | ship | pack | csv | uploaded | post-plan | posted | reconcile | unpost | blogpost | stats | run
 clarity copy [limit]       # pin title/description/alt/keywords for rows that have a list but no copy (the backfill catalogue); status untouched
 clarity ship               # Approved → blog post + packs + blog deploy (everything after approval that needs no browser)
 clarity csv [limit] [--from=YYYY-MM-DD] [--window=DAYS]  # packs → exports/csv/<date>-pins.csv for Pinterest's bulk upload (Settings → Import content); publishes the PNGs to the blog first and refuses unknown boards / unreachable images; stamps each pack EXPORTED:. --from/--window slice the calendar (default: the 29-day scheduler window)
@@ -13,6 +13,7 @@ clarity uploaded <csv>     # after you uploaded that file: packs → posted/ (PO
 clarity post-plan [--json] # packs to post, in order, inside Pinterest's 29-day window — what /clarity-post reads (browser route; skips EXPORTED packs)
 clarity posted <pack> <id> # after one pin is scheduled: move the pack, note the row, Scheduled once all 4 variants are up
 clarity reconcile <s.json> <c.json> [--apply]  # diff Pinterest's pin lists vs the packs; --apply marks already-live packs posted
+clarity unpost <s.json> <c.json> [--apply]     # reverse of `uploaded` after a truncated CSV batch: posted packs Pinterest never took → back to packs/, row → Approved, variant date columns cleared. Dry run by default; never touches a pack with a recorded pin id, a past-dated pack, or a Published row
 npm run clarity -- status  # whole-project card: what needs you, calendar, blog, open tasks (the /clarity-status skill runs this)
 npm run clarity -- queue   # queue health: days of runway, overdue packs, lists to generate next
 npm run generate           # the nightly job (02:00): revise → top up the queue when short → flip Scheduled → Published. Never posts.
@@ -27,7 +28,7 @@ npm run setup-notion       # one-time: creates the "Clarity Pins" DB (already do
 npm run backfill           # idempotent import of data/backfill.json into Notion
 npm run analytics          # parse data/analytics/raw/*.csv -> snapshot JSON (add `-- --notion` to write stats)
 npx tsx scripts/parse-rss.ts   # rebuild data/backfill.json from data/rss/*.rss
-npm test                   # run the node:test suites (schedule + approve + queue + revise + destination + status + schema + packText + posted + topics + postplan + reconcile + rowForPack + ship + notionPage + decide + review-notion + review-access + review-handler + publishedFlip + migrateScheduled + trends + csv + variants + topup + packRows + reviewReminder)
+npm test                   # run the node:test suites (schedule + approve + queue + revise + destination + status + schema + packText + posted + topics + postplan + reconcile + rowForPack + ship + notionPage + decide + review-notion + review-access + review-handler + publishedFlip + migrateScheduled + trends + csv + variants + topup + packRows + reviewReminder + unpost)
 npx tsc --noEmit           # typecheck
 npm run review:deploy      # deploy the phone review page (review-worker/) to review.clarity-lists.com
 clarity approve            # opens the local review page (In Review → Approved / Needs changes / Rejected) at 127.0.0.1:4178
