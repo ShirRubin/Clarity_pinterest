@@ -4,12 +4,14 @@
 // Two APIs are needed, because they do not overlap:
 //   • REST  — create / update / close a task. Stable and simple.
 //   • Sync  — reminders. REST has no reminder endpoint at all.
-// Todoist unified its API versions in 2025 and the older host still answers, so
-// the Sync base is probed once per process and the winner is reused.
+// Both now live under the unified /api/v1 prefix (the old /rest/v2 and /sync/v9
+// hosts return 410). SYNC_BASES stays a list so a future move costs one line.
 import { randomUUID } from "node:crypto";
 
-const REST_BASE = "https://api.todoist.com/rest/v2";
-const SYNC_BASES = ["https://api.todoist.com/api/v1/sync", "https://api.todoist.com/sync/v9/sync"];
+// Todoist retired /rest/v2 and /sync/v9 — both answer 410 and point at /api/v1.
+// Verified against the live account on 2026-09-22 by scripts/check-todoist.ts.
+const REST_BASE = "https://api.todoist.com/api/v1";
+const SYNC_BASES = ["https://api.todoist.com/api/v1/sync"];
 
 export const TODOIST_TOKEN_VAR = "TODOIST_TOKEN";
 export const TODOIST_PROJECT_VAR = "TODOIST_PROJECT_ID";
@@ -89,11 +91,19 @@ export async function deleteTask(id: string): Promise<void> {
   await rest<void>(`/tasks/${id}`, { method: "DELETE" });
 }
 
-/** Does this task still exist and is it still open? Used to spot a task ticked off by hand. */
+/**
+ * Does this task still exist and is it still open? Used to spot a task ticked
+ * off by hand, so the job raises a fresh one instead of updating a done task
+ * back into view.
+ *
+ * The v1 API keeps answering 200 for a completed task and reports it as
+ * `checked` — the old REST v2 `is_completed` is gone, and reading the wrong
+ * field silently makes every task look open (verified 2026-09-22).
+ */
 export async function taskIsOpen(id: string): Promise<boolean> {
   try {
-    const task = await rest<TodoistTask & { is_completed?: boolean }>(`/tasks/${id}`);
-    return !task?.is_completed;
+    const task = await rest<TodoistTask & { checked?: boolean; is_deleted?: boolean }>(`/tasks/${id}`);
+    return Boolean(task) && !task.checked && !task.is_deleted;
   } catch (err) {
     // 404 = deleted, 400 = the stored id is no longer meaningful to Todoist.
     // Both mean "raise a fresh one" — a stale id must never wedge the job nightly.
