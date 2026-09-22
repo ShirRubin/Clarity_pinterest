@@ -1,0 +1,1110 @@
+{
+  "capturedAt": "2026-09-22",
+  "window": {
+    "start": "2026-08-23",
+    "end": "2026-09-22"
+  },
+  "sources": [
+    "audience-insights-total-audience-2026-09-20.csv",
+    "Pinterest Analytics overview 20260823-20260922.csv"
+  ],
+  "totals": {
+    "impressions": 190698,
+    "engagement": 11893,
+    "pinClicks": 9495,
+    "outboundClicks": 5,
+    "saves": 2401,
+    "days": 31
+  },
+  "dailyImpressions": [
+    {
+      "date": "2026-08-23",
+      "impressions": 12480
+    },
+    {
+      "date": "2026-08-24",
+      "impressions": 6200
+    },
+    {
+      "date": "2026-08-25",
+      "impressions": 6695
+    },
+    {
+      "date": "2026-08-26",
+      "impressions": 6489
+    },
+    {
+      "date": "2026-08-27",
+      "impressions": 6868
+    },
+    {
+      "date": "2026-08-28",
+      "impressions": 7091
+    },
+    {
+      "date": "2026-08-29",
+      "impressions": 7550
+    },
+    {
+      "date": "2026-08-30",
+      "impressions": 6896
+    },
+    {
+      "date": "2026-08-31",
+      "impressions": 6361
+    },
+    {
+      "date": "2026-09-01",
+      "impressions": 6409
+    },
+    {
+      "date": "2026-09-02",
+      "impressions": 7422
+    },
+    {
+      "date": "2026-09-03",
+      "impressions": 5594
+    },
+    {
+      "date": "2026-09-04",
+      "impressions": 4745
+    },
+    {
+      "date": "2026-09-05",
+      "impressions": 5828
+    },
+    {
+      "date": "2026-09-06",
+      "impressions": 6028
+    },
+    {
+      "date": "2026-09-07",
+      "impressions": 7158
+    },
+    {
+      "date": "2026-09-08",
+      "impressions": 4579
+    },
+    {
+      "date": "2026-09-09",
+      "impressions": 5971
+    },
+    {
+      "date": "2026-09-10",
+      "impressions": 5865
+    },
+    {
+      "date": "2026-09-11",
+      "impressions": 5877
+    },
+    {
+      "date": "2026-09-12",
+      "impressions": 6403
+    },
+    {
+      "date": "2026-09-13",
+      "impressions": 5774
+    },
+    {
+      "date": "2026-09-14",
+      "impressions": 5343
+    },
+    {
+      "date": "2026-09-15",
+      "impressions": 4515
+    },
+    {
+      "date": "2026-09-16",
+      "impressions": 4906
+    },
+    {
+      "date": "2026-09-17",
+      "impressions": 4126
+    },
+    {
+      "date": "2026-09-18",
+      "impressions": 4741
+    },
+    {
+      "date": "2026-09-19",
+      "impressions": 7656
+    },
+    {
+      "date": "2026-09-20",
+      "impressions": 7862
+    },
+    {
+      "date": "2026-09-21",
+      "impressions": 5303
+    },
+    {
+      "date": "2026-09-22",
+      "impressions": 1963
+    }
+  ],
+  "boards": [
+    {
+      "board": "_quick_creates",
+      "url": "https://www.pinterest.com/ClarityBucketLists/_quick_creates/",
+      "impressions": 72281,
+      "engagement": 3527,
+      "pinClicks": 2649,
+      "outboundClicks": 2,
+      "saves": 881
+    },
+    {
+      "board": "family-friends-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/family-friends-bucket-lists/",
+      "impressions": 38389,
+      "engagement": 3574,
+      "pinClicks": 3198,
+      "outboundClicks": 1,
+      "saves": 376
+    },
+    {
+      "board": "clarity-bucket-lists-restored",
+      "url": "https://www.pinterest.com/ClarityBucketLists/clarity-bucket-lists-restored/",
+      "impressions": 36102,
+      "engagement": 1872,
+      "pinClicks": 1282,
+      "outboundClicks": 0,
+      "saves": 592
+    },
+    {
+      "board": "tv-movie-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/tv-movie-bucket-lists/",
+      "impressions": 7688,
+      "engagement": 434,
+      "pinClicks": 376,
+      "outboundClicks": 1,
+      "saves": 58
+    },
+    {
+      "board": "aesthetic-life-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/aesthetic-life-bucket-lists/",
+      "impressions": 7407,
+      "engagement": 524,
+      "pinClicks": 422,
+      "outboundClicks": 0,
+      "saves": 103
+    },
+    {
+      "board": "self-care-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/self-care-bucket-lists/",
+      "impressions": 6904,
+      "engagement": 458,
+      "pinClicks": 355,
+      "outboundClicks": 0,
+      "saves": 103
+    },
+    {
+      "board": "coding-tech-skills-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/coding-tech-skills-bucket-lists/",
+      "impressions": 4243,
+      "engagement": 164,
+      "pinClicks": 101,
+      "outboundClicks": 0,
+      "saves": 65
+    },
+    {
+      "board": "family-related-bucket-lists-restored",
+      "url": "https://www.pinterest.com/ClarityBucketLists/family-related-bucket-lists-restored/",
+      "impressions": 3663,
+      "engagement": 453,
+      "pinClicks": 413,
+      "outboundClicks": 0,
+      "saves": 37
+    },
+    {
+      "board": "broadway-theatre-kids",
+      "url": "https://www.pinterest.com/ClarityBucketLists/broadway-theatre-kids/",
+      "impressions": 2697,
+      "engagement": 196,
+      "pinClicks": 155,
+      "outboundClicks": 0,
+      "saves": 41
+    },
+    {
+      "board": "food-drink-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/food-drink-bucket-lists/",
+      "impressions": 1553,
+      "engagement": 102,
+      "pinClicks": 84,
+      "outboundClicks": 0,
+      "saves": 18
+    },
+    {
+      "board": "fall-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/fall-bucket-lists/",
+      "impressions": 1540,
+      "engagement": 124,
+      "pinClicks": 90,
+      "outboundClicks": 0,
+      "saves": 34
+    },
+    {
+      "board": "music-concerts-theatre-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/music-concerts-theatre-bucket-lists/",
+      "impressions": 1307,
+      "engagement": 98,
+      "pinClicks": 73,
+      "outboundClicks": 0,
+      "saves": 25
+    },
+    {
+      "board": "movie-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/movie-bucket-lists/",
+      "impressions": 1129,
+      "engagement": 56,
+      "pinClicks": 47,
+      "outboundClicks": 0,
+      "saves": 9
+    },
+    {
+      "board": "party-celebration-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/party-celebration-bucket-lists/",
+      "impressions": 972,
+      "engagement": 51,
+      "pinClicks": 42,
+      "outboundClicks": 0,
+      "saves": 9
+    },
+    {
+      "board": "books-learning-culture",
+      "url": "https://www.pinterest.com/ClarityBucketLists/books-learning-culture/",
+      "impressions": 954,
+      "engagement": 57,
+      "pinClicks": 39,
+      "outboundClicks": 0,
+      "saves": 15
+    },
+    {
+      "board": "career-learn-new-skills",
+      "url": "https://www.pinterest.com/ClarityBucketLists/career-learn-new-skills/",
+      "impressions": 734,
+      "engagement": 30,
+      "pinClicks": 18,
+      "outboundClicks": 1,
+      "saves": 11
+    },
+    {
+      "board": "digital-detox-slow-living-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/digital-detox-slow-living-bucket-lists/",
+      "impressions": 575,
+      "engagement": 38,
+      "pinClicks": 31,
+      "outboundClicks": 0,
+      "saves": 7
+    },
+    {
+      "board": "creative-hobby-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/creative-hobby-bucket-lists/",
+      "impressions": 543,
+      "engagement": 14,
+      "pinClicks": 12,
+      "outboundClicks": 0,
+      "saves": 2
+    },
+    {
+      "board": "manifestation-bucket-lists-rituals",
+      "url": "https://www.pinterest.com/ClarityBucketLists/manifestation-bucket-lists-rituals/",
+      "impressions": 475,
+      "engagement": 46,
+      "pinClicks": 42,
+      "outboundClicks": 0,
+      "saves": 5
+    },
+    {
+      "board": "christmas-winter-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/christmas-winter-bucket-lists/",
+      "impressions": 401,
+      "engagement": 20,
+      "pinClicks": 20,
+      "outboundClicks": 0,
+      "saves": 1
+    },
+    {
+      "board": "glow-up-that-girl-era-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/glow-up-that-girl-era-bucket-lists/",
+      "impressions": 283,
+      "engagement": 25,
+      "pinClicks": 20,
+      "outboundClicks": 0,
+      "saves": 5
+    },
+    {
+      "board": "wellness-fitness",
+      "url": "https://www.pinterest.com/ClarityBucketLists/wellness-fitness/",
+      "impressions": 205,
+      "engagement": 6,
+      "pinClicks": 3,
+      "outboundClicks": 0,
+      "saves": 3
+    },
+    {
+      "board": "travel-festivals",
+      "url": "https://www.pinterest.com/ClarityBucketLists/travel-festivals/",
+      "impressions": 172,
+      "engagement": 6,
+      "pinClicks": 6,
+      "outboundClicks": 0,
+      "saves": 0
+    },
+    {
+      "board": "luxury-lifestyle-bucket-lists",
+      "url": "https://www.pinterest.com/ClarityBucketLists/luxury-lifestyle-bucket-lists/",
+      "impressions": 148,
+      "engagement": 6,
+      "pinClicks": 5,
+      "outboundClicks": 0,
+      "saves": 1
+    },
+    {
+      "board": "seasons-bucket-lists-restored",
+      "url": "https://www.pinterest.com/ClarityBucketLists/seasons-bucket-lists-restored/",
+      "impressions": 135,
+      "engagement": 6,
+      "pinClicks": 6,
+      "outboundClicks": 0,
+      "saves": 0
+    },
+    {
+      "board": "food-bucket-lists-restored",
+      "url": "https://www.pinterest.com/ClarityBucketLists/food-bucket-lists-restored/",
+      "impressions": 131,
+      "engagement": 6,
+      "pinClicks": 6,
+      "outboundClicks": 0,
+      "saves": 0
+    },
+    {
+      "board": "halloween-bucket-list-restored",
+      "url": "https://www.pinterest.com/ClarityBucketLists/halloween-bucket-list-restored/",
+      "impressions": 66,
+      "engagement": 0,
+      "pinClicks": 0,
+      "outboundClicks": 0,
+      "saves": 0
+    },
+    {
+      "board": "self-improvement-restored",
+      "url": "https://www.pinterest.com/ClarityBucketLists/self-improvement-restored/",
+      "impressions": 1,
+      "engagement": 0,
+      "pinClicks": 0,
+      "outboundClicks": 0,
+      "saves": 0
+    }
+  ],
+  "topPins": [
+    {
+      "pinId": "1100356121459093715",
+      "url": "https://www.pinterest.com/pin/1100356121459093715/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 64442
+    },
+    {
+      "pinId": "1100356121452234165",
+      "url": "https://www.pinterest.com/pin/1100356121452234165/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 16228
+    },
+    {
+      "pinId": "1100356121455145079",
+      "url": "https://www.pinterest.com/pin/1100356121455145079/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 12547
+    },
+    {
+      "pinId": "1100356121452139465",
+      "url": "https://www.pinterest.com/pin/1100356121452139465/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 10756
+    },
+    {
+      "pinId": "1100356121462085246",
+      "url": "https://www.pinterest.com/pin/1100356121462085246/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 9814
+    },
+    {
+      "pinId": "1100356121464965636",
+      "url": "https://www.pinterest.com/pin/1100356121464965636/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 8237
+    },
+    {
+      "pinId": "1100356121452166774",
+      "url": "https://www.pinterest.com/pin/1100356121452166774/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 7350
+    },
+    {
+      "pinId": "1100356121467473846",
+      "url": "https://www.pinterest.com/pin/1100356121467473846/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 6230
+    },
+    {
+      "pinId": "1100356121455108094",
+      "url": "https://www.pinterest.com/pin/1100356121455108094/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 5001
+    },
+    {
+      "pinId": "1100356121455161925",
+      "url": "https://www.pinterest.com/pin/1100356121455161925/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 3649
+    },
+    {
+      "pinId": "1100356121464974599",
+      "url": "https://www.pinterest.com/pin/1100356121464974599/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 3336
+    },
+    {
+      "pinId": "1100356121459093628",
+      "url": "https://www.pinterest.com/pin/1100356121459093628/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 3282
+    },
+    {
+      "pinId": "1100356121463161276",
+      "url": "https://www.pinterest.com/pin/1100356121463161276/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 2843
+    },
+    {
+      "pinId": "1100356121463097534",
+      "url": "https://www.pinterest.com/pin/1100356121463097534/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 2739
+    },
+    {
+      "pinId": "1100356121457676232",
+      "url": "https://www.pinterest.com/pin/1100356121457676232/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 2315
+    },
+    {
+      "pinId": "1100356121465042356",
+      "url": "https://www.pinterest.com/pin/1100356121465042356/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 2018
+    },
+    {
+      "pinId": "1100356121461967790",
+      "url": "https://www.pinterest.com/pin/1100356121461967790/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 1955
+    },
+    {
+      "pinId": "1100356121486286731",
+      "url": "https://www.pinterest.com/pin/1100356121486286731/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 1728
+    },
+    {
+      "pinId": "1100356121458726809",
+      "url": "https://www.pinterest.com/pin/1100356121458726809/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 1564
+    },
+    {
+      "pinId": "1100356121465026811",
+      "url": "https://www.pinterest.com/pin/1100356121465026811/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 1535
+    },
+    {
+      "pinId": "1100356121462050938",
+      "url": "https://www.pinterest.com/pin/1100356121462050938/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 1458
+    },
+    {
+      "pinId": "1100356121465154350",
+      "url": "https://www.pinterest.com/pin/1100356121465154350/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 1340
+    },
+    {
+      "pinId": "1100356121463268423",
+      "url": "https://www.pinterest.com/pin/1100356121463268423/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 1276
+    },
+    {
+      "pinId": "1100356121463300412",
+      "url": "https://www.pinterest.com/pin/1100356121463300412/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 1244
+    },
+    {
+      "pinId": "1100356121459193552",
+      "url": "https://www.pinterest.com/pin/1100356121459193552/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 1175
+    },
+    {
+      "pinId": "1100356121465060974",
+      "url": "https://www.pinterest.com/pin/1100356121465060974/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 1130
+    },
+    {
+      "pinId": "1100356121459321041",
+      "url": "https://www.pinterest.com/pin/1100356121459321041/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 1088
+    },
+    {
+      "pinId": "1100356121465194263",
+      "url": "https://www.pinterest.com/pin/1100356121465194263/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 1022
+    },
+    {
+      "pinId": "1100356121463053848",
+      "url": "https://www.pinterest.com/pin/1100356121463053848/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 746
+    },
+    {
+      "pinId": "1100356121464997311",
+      "url": "https://www.pinterest.com/pin/1100356121464997311/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 685
+    },
+    {
+      "pinId": "1100356121462040948",
+      "url": "https://www.pinterest.com/pin/1100356121462040948/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 559
+    },
+    {
+      "pinId": "1100356121487065716",
+      "url": "https://www.pinterest.com/pin/1100356121487065716/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 551
+    },
+    {
+      "pinId": "1100356121459183301",
+      "url": "https://www.pinterest.com/pin/1100356121459183301/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 505
+    },
+    {
+      "pinId": "1100356121486606440",
+      "url": "https://www.pinterest.com/pin/1100356121486606440/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 461
+    },
+    {
+      "pinId": "1100356121452226070",
+      "url": "https://www.pinterest.com/pin/1100356121452226070/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 454
+    },
+    {
+      "pinId": "1100356121457690709",
+      "url": "https://www.pinterest.com/pin/1100356121457690709/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 425
+    },
+    {
+      "pinId": "1100356121452233943",
+      "url": "https://www.pinterest.com/pin/1100356121452233943/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 388
+    },
+    {
+      "pinId": "1100356121452234019",
+      "url": "https://www.pinterest.com/pin/1100356121452234019/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 360
+    },
+    {
+      "pinId": "1100356121487253536",
+      "url": "https://www.pinterest.com/pin/1100356121487253536/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 351
+    },
+    {
+      "pinId": "1100356121467469102",
+      "url": "https://www.pinterest.com/pin/1100356121467469102/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 332
+    },
+    {
+      "pinId": "1100356121465087591",
+      "url": "https://www.pinterest.com/pin/1100356121465087591/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 329
+    },
+    {
+      "pinId": "1100356121486364374",
+      "url": "https://www.pinterest.com/pin/1100356121486364374/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 326
+    },
+    {
+      "pinId": "1100356121458624873",
+      "url": "https://www.pinterest.com/pin/1100356121458624873/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 293
+    },
+    {
+      "pinId": "1100356121463085623",
+      "url": "https://www.pinterest.com/pin/1100356121463085623/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 270
+    },
+    {
+      "pinId": "1100356121487541120",
+      "url": "https://www.pinterest.com/pin/1100356121487541120/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 259
+    },
+    {
+      "pinId": "1100356121467572047",
+      "url": "https://www.pinterest.com/pin/1100356121467572047/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 226
+    },
+    {
+      "pinId": "1100356121486525554",
+      "url": "https://www.pinterest.com/pin/1100356121486525554/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 225
+    },
+    {
+      "pinId": "1100356121454465020",
+      "url": "https://www.pinterest.com/pin/1100356121454465020/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 216
+    },
+    {
+      "pinId": "1100356121452139832",
+      "url": "https://www.pinterest.com/pin/1100356121452139832/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 214
+    },
+    {
+      "pinId": "1100356121465109446",
+      "url": "https://www.pinterest.com/pin/1100356121465109446/",
+      "contentType": "Organic",
+      "source": "From you",
+      "impressions": 207
+    }
+  ],
+  "audience": {
+    "asOf": "2026-09-20",
+    "aggregation": "Monthly",
+    "size": 182000,
+    "categories": [
+      {
+        "label": "Home Decor",
+        "percent": 0.792
+      },
+      {
+        "label": "Art",
+        "percent": 0.789
+      },
+      {
+        "label": "Entertainment",
+        "percent": 0.78
+      },
+      {
+        "label": "Health",
+        "percent": 0.775
+      },
+      {
+        "label": "Education",
+        "percent": 0.774
+      },
+      {
+        "label": "Beauty",
+        "percent": 0.773
+      },
+      {
+        "label": "Women's Fashion",
+        "percent": 0.755
+      },
+      {
+        "label": "Design",
+        "percent": 0.747
+      },
+      {
+        "label": "Food and Drinks",
+        "percent": 0.745
+      },
+      {
+        "label": "Quotes",
+        "percent": 0.74
+      },
+      {
+        "label": "DIY and Crafts",
+        "percent": 0.737
+      },
+      {
+        "label": "Travel",
+        "percent": 0.716
+      },
+      {
+        "label": "Sport",
+        "percent": 0.7
+      },
+      {
+        "label": "Event Planning",
+        "percent": 0.693
+      },
+      {
+        "label": "Parenting",
+        "percent": 0.64
+      },
+      {
+        "label": "Gardening",
+        "percent": 0.578
+      },
+      {
+        "label": "Wedding",
+        "percent": 0.523
+      },
+      {
+        "label": "Electronics",
+        "percent": 0.508
+      },
+      {
+        "label": "Vehicles",
+        "percent": 0.503
+      },
+      {
+        "label": "Animals",
+        "percent": 0.497
+      },
+      {
+        "label": "Architecture",
+        "percent": 0.433
+      },
+      {
+        "label": "Finance",
+        "percent": 0.247
+      },
+      {
+        "label": "Men's Fashion",
+        "percent": 0.184
+      },
+      {
+        "label": "Children's Fashion",
+        "percent": 0.116
+      }
+    ],
+    "interests": [
+      {
+        "label": "Quotes > Quotes by Genres",
+        "percent": 0.98
+      },
+      {
+        "label": "Vehicles > Cars",
+        "percent": 0.976
+      },
+      {
+        "label": "Education > Subjects",
+        "percent": 0.943
+      },
+      {
+        "label": "Travel > Travel Destinations",
+        "percent": 0.942
+      },
+      {
+        "label": "Beauty > Hair",
+        "percent": 0.926
+      },
+      {
+        "label": "Home Decor > Wall",
+        "percent": 0.917
+      },
+      {
+        "label": "Event Planning > Holiday",
+        "percent": 0.907
+      },
+      {
+        "label": "Food and Drinks > Meal Planning",
+        "percent": 0.905
+      },
+      {
+        "label": "Home Decor > Room Decor",
+        "percent": 0.891
+      },
+      {
+        "label": "Health > Diet and Nutrition",
+        "percent": 0.881
+      },
+      {
+        "label": "Entertainment > Humor",
+        "percent": 0.865
+      },
+      {
+        "label": "Food and Drinks > Desserts",
+        "percent": 0.837
+      },
+      {
+        "label": "Art > Painting",
+        "percent": 0.804
+      },
+      {
+        "label": "Home Decor > Home Decor Style",
+        "percent": 0.793
+      },
+      {
+        "label": "Art > Drawing",
+        "percent": 0.787
+      },
+      {
+        "label": "Beauty > Skin Care",
+        "percent": 0.77
+      },
+      {
+        "label": "Parenting > Toys",
+        "percent": 0.745
+      },
+      {
+        "label": "Entertainment > Movie",
+        "percent": 0.739
+      },
+      {
+        "label": "Design > Web and App Design",
+        "percent": 0.724
+      },
+      {
+        "label": "DIY and Crafts > Fabric Crafts",
+        "percent": 0.692
+      },
+      {
+        "label": "Entertainment > Comics",
+        "percent": 0.684
+      },
+      {
+        "label": "Travel > Travel Ideas",
+        "percent": 0.672
+      },
+      {
+        "label": "Sport > Fitness and Exercises",
+        "percent": 0.629
+      },
+      {
+        "label": "Women's Fashion > Women's Shoes",
+        "percent": 0.627
+      },
+      {
+        "label": "Art > Photography",
+        "percent": 0.608
+      }
+    ],
+    "countries": [
+      {
+        "label": "Other",
+        "percent": 0.277
+      },
+      {
+        "label": "United States",
+        "percent": 0.276
+      },
+      {
+        "label": "Canada",
+        "percent": 0.118
+      },
+      {
+        "label": "United Kingdom",
+        "percent": 0.104
+      },
+      {
+        "label": "India",
+        "percent": 0.094
+      },
+      {
+        "label": "Australia",
+        "percent": 0.047
+      },
+      {
+        "label": "South Africa",
+        "percent": 0.043
+      },
+      {
+        "label": "Germany",
+        "percent": 0.018
+      },
+      {
+        "label": "Brazil",
+        "percent": 0.011
+      },
+      {
+        "label": "New Zealand",
+        "percent": 0.011
+      }
+    ],
+    "metros": [
+      {
+        "label": "New York",
+        "percent": 0.052
+      },
+      {
+        "label": "Los Angeles",
+        "percent": 0.04
+      },
+      {
+        "label": "Atlanta",
+        "percent": 0.028
+      },
+      {
+        "label": "Dallas-Ft. Worth",
+        "percent": 0.026
+      },
+      {
+        "label": "Chicago",
+        "percent": 0.024
+      },
+      {
+        "label": "Washington, DC (Hagrstwn)",
+        "percent": 0.024
+      },
+      {
+        "label": "Philadelphia",
+        "percent": 0.021
+      },
+      {
+        "label": "Seattle-Tacoma",
+        "percent": 0.02
+      },
+      {
+        "label": "Houston",
+        "percent": 0.019
+      },
+      {
+        "label": "Phoenix (Prescott)",
+        "percent": 0.019
+      }
+    ],
+    "gender": [
+      {
+        "label": "Female",
+        "percent": 0.872
+      },
+      {
+        "label": "Unspecified & custom",
+        "percent": 0.072
+      },
+      {
+        "label": "Male",
+        "percent": 0.056
+      }
+    ],
+    "device": [
+      {
+        "label": "iPhone",
+        "percent": 0.481
+      },
+      {
+        "label": "Android Mobile",
+        "percent": 0.429
+      },
+      {
+        "label": "Web",
+        "percent": 0.251
+      },
+      {
+        "label": "iPad",
+        "percent": 0.124
+      },
+      {
+        "label": "Mobile Web",
+        "percent": 0.066
+      },
+      {
+        "label": "Android Tablet",
+        "percent": 0.05
+      }
+    ],
+    "age": [
+      {
+        "label": "25-34",
+        "percent": 0.276
+      },
+      {
+        "label": "35-44",
+        "percent": 0.256
+      },
+      {
+        "label": "18-24",
+        "percent": 0.226
+      },
+      {
+        "label": "45-49",
+        "percent": 0.07
+      },
+      {
+        "label": "50-54",
+        "percent": 0.035
+      },
+      {
+        "label": "55-64",
+        "percent": 0.031
+      },
+      {
+        "label": "65+",
+        "percent": 0.012
+      }
+    ]
+  }
+}
