@@ -25,11 +25,13 @@
 ### Task 1: Test harness + scheduling module
 
 **Files:**
+
 - Create: `src/schedule.ts`
 - Create: `tests/schedule.test.ts`
 - Modify: `package.json` (add `test` script)
 
 **Interfaces:**
+
 - Consumes: nothing (pure module).
 - Produces: `assignDates(existing: ScheduledEntry[], queue: QueueItem[], startDate: string): Assignment[]`, types `ScheduledEntry { date: string; destUrl: string }`, `QueueItem { id: string; destUrl: string }`, `Assignment extends QueueItem { date: string }`, constants `PINS_PER_DAY = 3`, `URL_GAP_DAYS = 3`. Task 3 imports these.
 
@@ -172,11 +174,13 @@ git commit -m "feat: cadence scheduler - 3/day with 72h-per-URL gap, unit-tested
 ### Task 2: `Scheduled date` field end-to-end (schema, live-DB migration, Notion layer)
 
 **Files:**
+
 - Modify: `src/schema.ts` (DB_PROPERTIES)
 - Create: `scripts/add-scheduled-date.ts`
 - Modify: `src/notion.ts` (PinRow, toNotionProperties, NotionPage, PinSummary, pageToSummary)
 
 **Interfaces:**
+
 - Consumes: existing `notionClient()`, `dbId()` from `src/notion.ts`.
 - Produces: `PinRow.scheduledDate?: string`; `PinSummary` gains `source?: string`, `destinationLink?: string`, `pinUrl?: string`, `scheduledDate?: string`, `publishedDate?: string`, `imageUrls: string[]`. Tasks 3 and 5 rely on these exact names.
 
@@ -286,9 +290,11 @@ git commit -m "feat: Scheduled date field in schema + live DB; summaries carry i
 ### Task 3: Publish rework — per-variant dated packs via the scheduler
 
 **Files:**
+
 - Modify: `src/stages/publish.ts` (full rewrite below)
 
 **Interfaces:**
+
 - Consumes: `assignDates`, `ScheduledEntry`, `QueueItem` from `src/schedule.js` (Task 1); `PinSummary` fields from Task 2; existing `listAllPins`, `pinsByStatus`, `updatePin`, `TEMPLATE_NAMES`.
 - Produces: pack dirs `exports/packs/<date>--<slug>--<template>/` with `post.txt` whose first line is `POST ON: <date>` and which contains a `DESTINATION LINK: <url>` line (the batch-posting session and future publish runs parse these).
 
@@ -468,11 +474,13 @@ git commit -m "feat: publish schedules per-variant packs - 3/day, 72h/URL, packs
 ### Task 4: Approve server + page (testable, Notion-free)
 
 **Files:**
+
 - Create: `src/approve/server.ts`
 - Create: `src/approve/page.ts`
 - Create: `tests/approve.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing from the pipeline (that's the point — Task 5 injects Notion).
 - Produces: `createApproveServer(pins: ApprovePin[], onDecision: OnDecision, onAllDecided?: () => void): http.Server`; `ApprovePin { pageId, name, pinTitle, pinDescription, altText, board, listItems, imageUrls: string[] }`; `type Decision = "approve" | "reject"`; `type OnDecision = (pageId: string, decision: Decision, note?: string) => Promise<void>`; `renderApprovePage(pins: ApprovePin[]): string`. Task 5 uses these exact names.
 
@@ -775,10 +783,12 @@ git commit -m "feat: approve server + review page - injectable, Notion-free, tes
 ### Task 5: `clarity approve` stage + CLI wiring
 
 **Files:**
+
 - Create: `src/stages/approve.ts`
 - Modify: `src/cli.ts`
 
 **Interfaces:**
+
 - Consumes: `createApproveServer`, `ApprovePin` (Task 4); `pinsByStatus`, `updatePin`, `PinSummary.imageUrls` (Task 2).
 - Produces: `runApprove(port?: number): Promise<void>`, wired as the `approve` CLI command.
 
@@ -886,6 +896,7 @@ git commit -m "feat: clarity approve - local review page wired to Notion"
 ### Task 6: DESIGN.md — the pin design system on paper
 
 **Files:**
+
 - Create: `DESIGN.md`
 
 **Interfaces:** none (documentation).

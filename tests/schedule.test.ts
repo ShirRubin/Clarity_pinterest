@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { assignDates, SLOT_TIMES, slotTime, localParts, PINS_PER_DAY } from "../src/schedule.js";
+import { assignDates, SLOT_TIMES, slotTime, localParts, PINS_PER_DAY, URL_GAP_DAYS } from "../src/schedule.js";
 
 test("fills PINS_PER_DAY slots before moving to the next day", () => {
   const q = ["a", "b", "c", "d", "e", "f"].map((id) => ({ id, destUrl: `https://x/${id}/` }));
@@ -8,14 +8,14 @@ test("fills PINS_PER_DAY slots before moving to the next day", () => {
   assert.deepEqual(r.map((x) => x.date), ["2026-09-01", "2026-09-01", "2026-09-01", "2026-09-01", "2026-09-01", "2026-09-02"]);
 });
 
-test("pins sharing a destination URL sit at least 3 days apart", () => {
+test("pins sharing a destination URL sit at least URL_GAP_DAYS apart", () => {
   const q = [
     { id: "v1", destUrl: "https://x/b/" },
     { id: "v2", destUrl: "https://x/b/" },
   ];
   const r = assignDates([], q, "2026-09-01");
   assert.equal(r[0].date, "2026-09-01");
-  assert.equal(r[1].date, "2026-09-04");
+  assert.equal(r[1].date, "2026-09-08");
 });
 
 test("respects already-scheduled pins for day capacity and URL gap", () => {
@@ -26,8 +26,8 @@ test("respects already-scheduled pins for day capacity and URL gap", () => {
     { date: "2026-09-02", destUrl: "https://x/d/" },
   ];
   const r = assignDates(existing, [{ id: "n", destUrl: "https://x/d/" }], "2026-09-01");
-  // Day 1 is full; days 2-4 are inside the 72h window of the existing /d/ pin.
-  assert.equal(r[0].date, "2026-09-05");
+  // Every day through 09-08 is inside the 7-day window of the existing /d/ pin.
+  assert.equal(r[0].date, "2026-09-09");
 });
 
 test("never assigns before the start date", () => {
@@ -63,4 +63,8 @@ test("localParts reads the wall clock in Asia/Jerusalem", () => {
   // 2026-09-08 22:30 UTC = 01:30 next day in Jerusalem
   const late = Date.UTC(2026, 8, 8, 22, 30, 0) / 1000;
   assert.deepEqual(localParts(late), { date: "2026-09-09", hour: 1 });
+});
+
+test("the same-URL gap is a week — the 2026-09-22 research update, was 3 days", () => {
+  assert.equal(URL_GAP_DAYS, 7);
 });

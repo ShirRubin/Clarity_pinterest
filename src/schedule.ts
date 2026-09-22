@@ -2,7 +2,10 @@
 // Pure logic — no Notion, no filesystem — so it stays unit-testable.
 // Rules (see DESIGN.md): 5 pins/day (the research's upper sweet spot, chosen
 // 2026-09-17 to work through the four-variant backlog; was 3), and never the
-// same destination URL twice within 72h. Earliest open slot wins.
+// same destination URL twice within 7 days (raised from 72h on 2026-09-22:
+// AFFILIATE_RESEARCH.md finds a new image on an existing URL keeps 64% of its
+// distribution while near-identical batching collapses to 11%, and Tailwind
+// asks for >= 7 days between pins to one URL). Earliest open slot wins.
 
 export interface ScheduledEntry {
   date: string; // YYYY-MM-DD
@@ -21,7 +24,7 @@ export interface Assignment extends QueueItem {
 }
 
 export const PINS_PER_DAY = 5;
-export const URL_GAP_DAYS = 3;
+export const URL_GAP_DAYS = 7;
 
 /** Pinterest's scheduler time labels for the day's five slots. Never 12:00 PM —
  *  that is the builder's default and how the duplicate-pin defect was born. */
