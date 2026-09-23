@@ -8,7 +8,7 @@ Automated content pipeline for pinterest.com/ClarityBucketLists: idea → bucket
 npm run clarity -- <cmd>   # status | queue | ideas | draft | copy | design | topup | review | approve | revise | ship | pack | csv | uploaded | post-plan | posted | reconcile | unpost | blogpost | stats | run
 clarity copy [limit]       # pin title/description/alt/keywords for rows that have a list but no copy (the backfill catalogue); status untouched
 clarity ship               # Approved → blog post + packs + blog deploy (everything after approval that needs no browser)
-clarity csv [limit] [--from=YYYY-MM-DD] [--window=DAYS]  # packs → exports/csv/<date>-pins.csv for Pinterest's bulk upload (Settings → Import content); publishes the PNGs to the blog first and refuses unknown boards / unreachable images; stamps each pack EXPORTED:. --from/--window slice the calendar (default: the 29-day scheduler window)
+clarity csv [limit] [--from=YYYY-MM-DD] [--window=DAYS]  # packs → exports/csv/<date>-pins.csv for Pinterest's bulk upload (Settings → Import content). **Sized to the scheduler's free slots**: Pinterest holds at most 100 scheduled pins (`SCHEDULER_CAP` in src/csv.ts) and silently drops rows past that, so the file carries 100 − (posted packs dated today+) − (packs in csv files not yet uploaded); a bigger [limit] is trimmed, 0 free writes nothing. Counted from the books, so `reconcile` first if they may be stale. Publishes the PNGs to the blog first and refuses unknown boards / unreachable images; stamps each pack EXPORTED:. --from/--window slice the calendar (default: the 29-day scheduler window)
 clarity uploaded <csv>     # after you uploaded that file: packs → posted/ (POSTED: … csv), rows → Scheduled; pin URLs are backfilled by the next `reconcile --apply`
 clarity post-plan [--json] # packs to post, in order, inside Pinterest's 29-day window — what /clarity-post reads (browser route; skips EXPORTED packs)
 clarity posted <pack> <id> # after one pin is scheduled: move the pack, note the row, Scheduled once all 4 variants are up
@@ -68,7 +68,7 @@ clarity revise             # Needs changes → rewrites each list from your revi
 
 ## Content rules (from ../PINTEREST_RESEARCH.md — follow in generation code)
 
-- 4 design variants per list; each is a "fresh pin". Cadence 5 fresh pins/day since 2026-09-17 (`PINS_PER_DAY`, was 3 — raised to work through the four-variant backlog; research says never more than 10); never the same URL twice within 72h.
+- 4 design variants per list; each is a "fresh pin". Cadence 5 fresh pins/day since 2026-09-17 (`PINS_PER_DAY`, was 3 — raised to work through the four-variant backlog; research says never more than 10); never the same URL twice within 7 days (`URL_GAP_DAYS`, raised from 72h on 2026-09-22 per AFFILIATE_RESEARCH.md).
 - Pin titles keyword-led, <100 chars; descriptions 2–3 natural sentences + CTA; no hashtag walls. Main keyword must appear ON the image.
 - Every list ends with an open slot ("#N — your turn, what would you add?").
 - Affiliate pins (later): must disclose `#affiliate`/`#ad`, full URLs only, ~80/20 helpful-to-affiliate mix.

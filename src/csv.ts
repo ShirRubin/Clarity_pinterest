@@ -88,3 +88,37 @@ export function buildCsv(entries: PlanEntry[], keywordsFor: (e: PlanEntry) => st
   if (problems.length) throw new Error(`Refusing to write the CSV:\n  ${problems.join("\n  ")}`);
   return [CSV_HEADER, ...rows].join("\r\n") + "\r\n";
 }
+
+/**
+ * Pinterest's hard limit on pins waiting in one account's scheduler. Rows past
+ * it are dropped without an error — the 2026-09-17 upload of 471 kept ~100 and
+ * `clarity uploaded` recorded all 471; the 2026-09-23 upload of 40 into 85
+ * scheduled kept exactly 15. The user confirmed the number in Pinterest's UI.
+ */
+export const SCHEDULER_CAP = 100;
+
+export interface Headroom {
+  /** Posted packs dated today or later — the same count as `clarity status`. */
+  scheduled: number;
+  /** Pending packs already written into a csv that has not been recorded as uploaded. */
+  awaitingUpload: number;
+  headroom: number;
+}
+
+/**
+ * How many rows the next csv file may carry. Read from the books, not from
+ * Pinterest (there is no API), so it is only as true as the last `clarity
+ * reconcile`. Today's posted packs count as scheduled even if they went live
+ * this morning — that errs toward a smaller file, the direction that costs
+ * nothing.
+ */
+export function schedulerHeadroom(
+  posted: { date: string }[],
+  pending: { date: string; text: { exported?: unknown } }[],
+  today: string,
+  cap = SCHEDULER_CAP,
+): Headroom {
+  const scheduled = posted.filter((p) => p.date >= today).length;
+  const awaitingUpload = pending.filter((p) => p.text.exported && p.date >= today).length;
+  return { scheduled, awaitingUpload, headroom: Math.max(0, cap - scheduled - awaitingUpload) };
+}

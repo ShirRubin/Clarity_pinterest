@@ -12,7 +12,7 @@ import { readPacks, splitPackName } from "../packs.js";
 import { buildPostPlan, type PlanEntry } from "../postplan.js";
 import { suggestTopics } from "../topics.js";
 import { rowForPack } from "../rowForPack.js";
-import { buildCsv, mediaUrl } from "../csv.js";
+import { buildCsv, mediaUrl, schedulerHeadroom, SCHEDULER_CAP } from "../csv.js";
 import { BLOG_DIR, deployBlog } from "./ship.js";
 
 const CSV_DIR = path.join("exports", "csv");
@@ -70,9 +70,26 @@ async function unreachable(entries: PlanEntry[]): Promise<string[]> {
  *  siblings stay reserved for a later file); `windowDays` overrides the 29-day
  *  scheduler window — bulk upload takes a publish date per row, so a file may
  *  reach further ahead once Pinterest's own limit is known. */
-export async function runCsv(limit = 200, opts: { from?: string; windowDays?: number } = {}): Promise<void> {
+export async function runCsv(requested?: number, opts: { from?: string; windowDays?: number } = {}): Promise<void> {
   const [pendingAll, posted, rows] = await Promise.all([readPacks("packs"), readPacks("posted"), listAllPins()]);
   const today = new Date().toISOString().slice(0, 10);
+
+  // A file larger than the scheduler's free slots is silently cut short by
+  // Pinterest, and `uploaded` would then record rows that never landed — so
+  // the file is sized to the headroom, and a bigger request is trimmed to it.
+  const room = schedulerHeadroom(posted, pendingAll, today);
+  console.log(
+    `scheduler: ${room.scheduled} scheduled + ${room.awaitingUpload} in csv files not yet uploaded ` +
+      `of ${SCHEDULER_CAP} → ${room.headroom} free (from the books — run \`clarity reconcile\` first if they may be stale)`,
+  );
+  if (!room.headroom) {
+    console.log("No free slots — nothing written. About 5 open up per day as scheduled pins go live.");
+    return;
+  }
+  if (requested !== undefined && requested > room.headroom) {
+    console.log(`asked for ${requested}; trimming to the ${room.headroom} free slot(s)`);
+  }
+  const limit = Math.min(requested ?? room.headroom, room.headroom);
   const pending = opts.from ? pendingAll.filter((p) => p.date >= opts.from!) : pendingAll;
   const byDir = new Map(pending.map((p) => [p.dir, p]));
   const rowOf = (e: PlanEntry) => rowForPack(byDir.get(e.pack)!, rows);

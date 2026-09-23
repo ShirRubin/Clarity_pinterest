@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { toUtcStamp, mediaUrl, buildCsv, CSV_HEADER } from "../src/csv.js";
+import { toUtcStamp, mediaUrl, buildCsv, CSV_HEADER, schedulerHeadroom, SCHEDULER_CAP } from "../src/csv.js";
 import type { PlanEntry } from "../src/postplan.js";
 
 const entry = (over: Partial<PlanEntry> = {}): PlanEntry => ({
@@ -80,4 +80,37 @@ test("buildCsv reports every problem in the batch, not just the first", () => {
     () => buildCsv([entry({ board: "Nope" }), entry({ pack: "2026-09-18--the-tea-bucket-list--bold-panel", title: "x".repeat(101) })], () => []),
     (err: Error) => /Nope/.test(err.message) && /title/.test(err.message),
   );
+});
+
+// --- sizing a file to the scheduler's free slots ---
+
+const dated = (date: string, exported = false) => ({ date, text: exported ? { exported: { at: "x", file: "f.csv" } } : {} });
+
+test("Pinterest holds at most 100 scheduled pins — the cap confirmed 2026-09-23", () => {
+  assert.equal(SCHEDULER_CAP, 100);
+});
+
+test("headroom is the cap minus the posted packs still ahead", () => {
+  const posted = [dated("2026-09-23"), dated("2026-09-24"), dated("2026-09-30")];
+  assert.equal(schedulerHeadroom(posted, [], "2026-09-23", 10).headroom, 7);
+});
+
+test("posted packs already in the past are live, not scheduled, and free their slot", () => {
+  const posted = [dated("2026-09-20"), dated("2026-09-22"), dated("2026-09-23")];
+  const h = schedulerHeadroom(posted, [], "2026-09-23", 10);
+  assert.equal(h.scheduled, 1);
+  assert.equal(h.headroom, 9);
+});
+
+test("packs already written into a csv but not yet uploaded hold their slots too", () => {
+  // Two csv files in a row must not both claim the same free slots.
+  const pending = [dated("2026-09-25", true), dated("2026-09-26", true), dated("2026-09-27")];
+  const h = schedulerHeadroom([dated("2026-09-24")], pending, "2026-09-23", 10);
+  assert.equal(h.awaitingUpload, 2);
+  assert.equal(h.headroom, 7);
+});
+
+test("headroom never goes negative when the books already exceed the cap", () => {
+  const posted = Array.from({ length: 12 }, () => dated("2026-09-30"));
+  assert.equal(schedulerHeadroom(posted, [], "2026-09-23", 10).headroom, 0);
 });
