@@ -102,6 +102,16 @@ test("posted packs already in the past are live, not scheduled, and free their s
   assert.equal(h.headroom, 9);
 });
 
+test("given the clock, today's posted packs whose slot has passed are live and free their slot", () => {
+  const at = (date: string, time: string) => ({ date, text: { time } });
+  const posted = [at("2026-09-24", "09:00 AM"), at("2026-09-24", "07:00 PM"), at("2026-09-24", "09:00 PM"), at("2026-09-25", "09:00 AM")];
+  // 19:30 Jerusalem (UTC+3) on the 24th: 09:00 and 19:00 went live, 21:00 is still ahead.
+  const now = Date.parse("2026-09-24T16:30:00Z");
+  const h = schedulerHeadroom(posted, [], "2026-09-24", 10, now);
+  assert.equal(h.scheduled, 2);
+  assert.equal(h.headroom, 8);
+});
+
 test("packs already written into a csv but not yet uploaded hold their slots too", () => {
   // Two csv files in a row must not both claim the same free slots.
   const pending = [dated("2026-09-25", true), dated("2026-09-26", true), dated("2026-09-27")];

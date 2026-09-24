@@ -108,17 +108,21 @@ export interface Headroom {
 /**
  * How many rows the next csv file may carry. Read from the books, not from
  * Pinterest (there is no API), so it is only as true as the last `clarity
- * reconcile`. Today's posted packs count as scheduled even if they went live
- * this morning — that errs toward a smaller file, the direction that costs
- * nothing.
+ * reconcile`. Given `now` (ms), a posted pack dated today whose slot time has
+ * passed is live and frees its slot; without it, or without a time on the pack,
+ * today's packs count as scheduled — erring toward a smaller file.
  */
 export function schedulerHeadroom(
-  posted: { date: string }[],
+  posted: { date: string; text?: { time?: string } }[],
   pending: { date: string; text: { exported?: unknown } }[],
   today: string,
   cap = SCHEDULER_CAP,
+  now?: number,
 ): Headroom {
-  const scheduled = posted.filter((p) => p.date >= today).length;
+  const ahead = (p: (typeof posted)[number]) =>
+    p.date > today ||
+    (p.date === today && (now === undefined || !p.text?.time || Date.parse(`${toUtcStamp(p.date, p.text.time)}Z`) > now));
+  const scheduled = posted.filter(ahead).length;
   const awaitingUpload = pending.filter((p) => p.text.exported && p.date >= today).length;
   return { scheduled, awaitingUpload, headroom: Math.max(0, cap - scheduled - awaitingUpload) };
 }

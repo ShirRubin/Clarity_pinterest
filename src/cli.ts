@@ -57,10 +57,15 @@ const commands: Record<string, { desc: string; run: () => Promise<unknown> }> = 
     },
   },
   csv: {
-    desc: "Packs → one bulk-upload CSV for Pinterest (Settings → Import content), sized to the scheduler's free slots (cap 100); publishes the images first (arg: max pins, default = free slots; --from=YYYY-MM-DD and --window=DAYS slice the calendar)",
+    desc: "Packs → one bulk-upload CSV for Pinterest (Settings → Import content), sized to the scheduler's free slots (cap 100); publishes the images first (arg: max pins, default = free slots; --from=YYYY-MM-DD and --window=DAYS slice the calendar; --scheduled=N takes Pinterest's own scheduled count over the books)",
     run: () => {
       const window = flagValue("window");
-      return runCsv(arg, { from: flagValue("from"), windowDays: window ? parseInt(window, 10) : undefined });
+      const scheduled = flagValue("scheduled");
+      return runCsv(arg, {
+        from: flagValue("from"),
+        windowDays: window ? parseInt(window, 10) : undefined,
+        scheduled: scheduled ? parseInt(scheduled, 10) : undefined,
+      });
     },
   },
   uploaded: {

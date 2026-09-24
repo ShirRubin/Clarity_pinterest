@@ -69,18 +69,31 @@ async function unreachable(entries: PlanEntry[]): Promise<string[]> {
 /** `from` narrows the export to packs dated on/after that day (their earlier
  *  siblings stay reserved for a later file); `windowDays` overrides the 29-day
  *  scheduler window — bulk upload takes a publish date per row, so a file may
- *  reach further ahead once Pinterest's own limit is known. */
-export async function runCsv(requested?: number, opts: { from?: string; windowDays?: number } = {}): Promise<void> {
+ *  reach further ahead once Pinterest's own limit is known. `scheduled` is
+ *  Pinterest's own count (from the ScheduledPinsResource pull) and replaces the
+ *  books' figure when they are known to be off. */
+export async function runCsv(
+  requested?: number,
+  opts: { from?: string; windowDays?: number; scheduled?: number } = {},
+): Promise<void> {
   const [pendingAll, posted, rows] = await Promise.all([readPacks("packs"), readPacks("posted"), listAllPins()]);
   const today = new Date().toISOString().slice(0, 10);
 
   // A file larger than the scheduler's free slots is silently cut short by
   // Pinterest, and `uploaded` would then record rows that never landed — so
   // the file is sized to the headroom, and a bigger request is trimmed to it.
-  const room = schedulerHeadroom(posted, pendingAll, today);
+  const books = schedulerHeadroom(posted, pendingAll, today, SCHEDULER_CAP, Date.now());
+  const room =
+    opts.scheduled === undefined
+      ? books
+      : { ...books, scheduled: opts.scheduled, headroom: Math.max(0, SCHEDULER_CAP - opts.scheduled - books.awaitingUpload) };
+  const source =
+    opts.scheduled === undefined
+      ? "from the books — run `clarity reconcile` first if they may be stale"
+      : `Pinterest's count; the books say ${books.scheduled}`;
   console.log(
     `scheduler: ${room.scheduled} scheduled + ${room.awaitingUpload} in csv files not yet uploaded ` +
-      `of ${SCHEDULER_CAP} → ${room.headroom} free (from the books — run \`clarity reconcile\` first if they may be stale)`,
+      `of ${SCHEDULER_CAP} → ${room.headroom} free (${source})`,
   );
   if (!room.headroom) {
     console.log("No free slots — nothing written. About 5 open up per day as scheduled pins go live.");
