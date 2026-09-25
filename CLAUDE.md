@@ -28,7 +28,7 @@ npm run setup-notion       # one-time: creates the "Clarity Pins" DB (already do
 npm run backfill           # idempotent import of data/backfill.json into Notion
 npm run analytics          # parse data/analytics/raw/*.csv -> snapshot JSON (add `-- --notion` to write stats)
 npx tsx scripts/parse-rss.ts   # rebuild data/backfill.json from data/rss/*.rss
-npm test                   # run the node:test suites (schedule + approve + queue + revise + destination + status + schema + packText + posted + topics + postplan + reconcile + rowForPack + ship + notionPage + decide + review-notion + review-access + review-handler + publishedFlip + migrateScheduled + trends + csv + variants + topup + packRows + reviewReminder + unpost)
+npm test                   # run the node:test suites (schedule + approve + queue + revise + destination + status + schema + packText + posted + topics + postplan + reconcile + rowForPack + ship + notionPage + decide + review-notion + review-access + review-handler + publishedFlip + migrateScheduled + trends + csv + variants + topup + packRows + reviewReminder + unpost + stats)
 npx tsc --noEmit           # typecheck
 npm run review:deploy      # deploy the phone review page (review-worker/) to review.clarity-lists.com
 clarity approve            # opens the local review page (In Review → Approved / Needs changes / Rejected) at 127.0.0.1:4178

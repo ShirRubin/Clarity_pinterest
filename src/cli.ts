@@ -18,6 +18,7 @@ import { runReconcile } from "./stages/reconcile.js";
 import { runUnpost } from "./stages/unpost.js";
 import { runCsv } from "./stages/csv.js";
 import { runUploaded } from "./stages/uploaded.js";
+import { runStats } from "./stages/stats.js";
 import { runQueue } from "./queue.js";
 import { runStatus } from "./status.js";
 
@@ -98,7 +99,7 @@ const commands: Record<string, { desc: string; run: () => Promise<unknown> }> = 
     },
   },
   blogpost: { desc: "Approved/Published lists → blog posts in Clarity_blog + Destination link → post URL (arg: limit, default 20)", run: () => runBlogpost(arg ?? 20) },
-  stats: { desc: "Sync impressions/saves/clicks for Published pins", run: notYet("Phase 4") },
+  stats: { desc: "Import the Pinterest analytics CSVs in data/analytics/raw/ (older exports are archived first so the newest wins; --notion also writes per-pin stats + the summary page)", run: () => runStats(flags.has("--notion")) },
   run: {
     desc: "Full pipeline: ideas → draft → design → review (arg: idea count, default 3)",
     run: async () => {
@@ -110,12 +111,6 @@ const commands: Record<string, { desc: string; run: () => Promise<unknown> }> = 
     },
   },
 };
-
-function notYet(phase: string) {
-  return async () => {
-    console.log(`Not implemented yet — planned for ${phase} of CLARITY_PLAN.md.`);
-  };
-}
 
 const cmd = process.argv[2];
 if (!cmd || !commands[cmd]) {
