@@ -19,6 +19,7 @@ npm run clarity -- queue   # queue health: days of runway, overdue packs, lists 
 npm run generate           # the nightly job (02:00): revise → top up the queue when short → flip Scheduled → Published. Never posts.
 npx tsx scripts/migrate-scheduled.ts [--apply]   # one-off after milestone 3: reconcile Status + Scheduled date with the packs on disk (dry run by default); then `clarity topup` for rows it reports with < 4 variants
 npx tsx scripts/redate-packs.ts [--apply]       # re-date every pending pack to the current cadence (PINS_PER_DAY in src/schedule.ts); dry run by default
+npx tsx scripts/pull-forward.ts [--from=D] | --books   # Pinterest caps the scheduler at 100: when those are spread thin, plan moving the latest scheduled pins into the earliest short days (7-day per-URL gap kept) → exports/reconcile/pull-forward.json; apply on Pinterest (ApiResource/update /v3/scheduledpins/<id>/ with data {scheduled_ts}), then --books re-dates the posted packs + settles rows; then redate-packs --apply
 npx tsx scripts/rename-backfill-rows.ts [--apply] # one-off 2026-09-17: backfill rows take their blog post title (old name kept in Notes)
 npx tsx scripts/backfill-variants.ts [--apply]   # one-off 2026-09-17: fill the per-template date columns from exports/posted/
 npx tsx scripts/check-todoist.ts          # probe the Todoist wire calls (task + reminder create/update/close) with a throwaway task it deletes again
@@ -29,7 +30,7 @@ npm run backfill           # idempotent import of data/backfill.json into Notion
 clarity stats [--notion]   # import the analytics CSVs: archives superseded exports in data/analytics/raw/ first (newest overview + newest per audience view win), then runs the importer; --notion writes per-pin stats + the summary page
 npm run analytics          # the importer itself: parse data/analytics/raw/*.csv -> snapshot JSON (add `-- --notion` to write stats); reads EVERY csv there, so prefer `clarity stats`
 npx tsx scripts/parse-rss.ts   # rebuild data/backfill.json from data/rss/*.rss
-npm test                   # run the node:test suites (schedule + approve + queue + revise + destination + status + schema + packText + posted + topics + postplan + reconcile + rowForPack + ship + notionPage + decide + review-notion + review-access + review-handler + publishedFlip + migrateScheduled + trends + csv + variants + topup + packRows + reviewReminder + unpost + stats)
+npm test                   # run the node:test suites (schedule + approve + queue + revise + destination + status + schema + packText + posted + topics + postplan + reconcile + rowForPack + ship + notionPage + decide + review-notion + review-access + review-handler + publishedFlip + migrateScheduled + trends + csv + variants + topup + packRows + reviewReminder + unpost + stats + pullForward)
 npx tsc --noEmit           # typecheck
 npm run review:deploy      # deploy the phone review page (review-worker/) to review.clarity-lists.com
 clarity approve            # opens the local review page (In Review → Approved / Needs changes / Rejected) at 127.0.0.1:4178
