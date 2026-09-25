@@ -26,7 +26,8 @@ npx tsx scripts/refresh-trends.ts --snippet       # print the browser snippet fo
 npx tsx scripts/refresh-trends.ts <raw.json>     # turn that download into data/trends.json (defaults to ~/Downloads/clarity-trends-raw.json)
 npm run setup-notion       # one-time: creates the "Clarity Pins" DB (already done)
 npm run backfill           # idempotent import of data/backfill.json into Notion
-npm run analytics          # parse data/analytics/raw/*.csv -> snapshot JSON (add `-- --notion` to write stats)
+clarity stats [--notion]   # import the analytics CSVs: archives superseded exports in data/analytics/raw/ first (newest overview + newest per audience view win), then runs the importer; --notion writes per-pin stats + the summary page
+npm run analytics          # the importer itself: parse data/analytics/raw/*.csv -> snapshot JSON (add `-- --notion` to write stats); reads EVERY csv there, so prefer `clarity stats`
 npx tsx scripts/parse-rss.ts   # rebuild data/backfill.json from data/rss/*.rss
 npm test                   # run the node:test suites (schedule + approve + queue + revise + destination + status + schema + packText + posted + topics + postplan + reconcile + rowForPack + ship + notionPage + decide + review-notion + review-access + review-handler + publishedFlip + migrateScheduled + trends + csv + variants + topup + packRows + reviewReminder + unpost + stats)
 npx tsc --noEmit           # typecheck
