@@ -13,8 +13,8 @@ const entry = (over: Partial<PlanEntry> = {}): PlanEntry => ({
   board: "Travel & Festivals",
   link: "https://clarity-lists.com/posts/the-tea-bucket-list",
   title: "Tea Bucket List: 12 Brews",
-  description: "Line one.\n#tea #bucketlist",
-  alt: "a",
+  description: "Line one. Full list and free printable checklist on the blog.\n#tea #bucketlist",
+  alt: "Pastel checklist graphic titled Tea Bucket List with 12 brews to try, a teacup illustration and a soft green border",
   topics: ["tea", "cozy living"],
   ...over,
 });
@@ -45,7 +45,7 @@ test("buildCsv writes Pinterest's header and one row per entry", () => {
       "https://clarity-lists.com/pins/the-tea-bucket-list/sticky-note.png",
       "Travel & Festivals",
       "",
-      "Line one. #tea #bucketlist",
+      "Line one. Full list and free printable checklist on the blog. #tea #bucketlist",
       "https://clarity-lists.com/posts/the-tea-bucket-list/?utm_source=pinterest&utm_medium=pin&utm_campaign=sticky-note&utm_content=the-tea-bucket-list",
       "2026-09-17T06:00:00",
       '"tea, cozy living"',
@@ -56,7 +56,7 @@ test("buildCsv writes Pinterest's header and one row per entry", () => {
 test("buildCsv quotes fields with commas or quotes", () => {
   const csv = buildCsv(
     [entry({ board: "Books, Learning & Culture", title: 'The "Cozy" List' })],
-    () => [],
+    () => ["cozy list"],
   );
   const row = csv.split("\r\n")[1];
   assert.ok(row.startsWith('"The ""Cozy"" List",'));
@@ -65,20 +65,38 @@ test("buildCsv quotes fields with commas or quotes", () => {
 
 test("buildCsv refuses a board Pinterest does not already have", () => {
   assert.throws(
-    () => buildCsv([entry({ board: "Travel and Festivals" })], () => []),
+    () => buildCsv([entry({ board: "Travel and Festivals" })], () => ["tea"]),
     /Travel and Festivals/,
   );
 });
 
 test("buildCsv refuses a title over 100 or a description over 500 characters", () => {
-  assert.throws(() => buildCsv([entry({ title: "x".repeat(101) })], () => []), /title/);
-  assert.throws(() => buildCsv([entry({ description: "x".repeat(501) })], () => []), /description/);
+  assert.throws(() => buildCsv([entry({ title: "x".repeat(101) })], () => ["x"]), /title is 101/);
+  assert.throws(() => buildCsv([entry({ description: "x".repeat(501) })], () => ["tea"]), /description is 501/);
+});
+
+test("buildCsv refuses a title whose keyword is not in the first 40 characters", () => {
+  assert.throws(
+    () => buildCsv([entry({ title: "Twelve Sweet Things to Do Together This Autumn: Tea Bucket List" })], () => ["tea bucket list"]),
+    /first 40/,
+  );
+});
+
+test("buildCsv refuses alt text outside 80–140 characters", () => {
+  assert.throws(() => buildCsv([entry({ alt: "a checklist" })], () => ["tea"]), /alt text is 11 chars/);
+});
+
+test("buildCsv refuses a description that only says save it", () => {
+  assert.throws(
+    () => buildCsv([entry({ description: "Line one. Save it for later.\n#tea" })], () => ["tea"]),
+    /call to action/,
+  );
 });
 
 test("buildCsv reports every problem in the batch, not just the first", () => {
   assert.throws(
-    () => buildCsv([entry({ board: "Nope" }), entry({ pack: "2026-09-18--the-tea-bucket-list--bold-panel", title: "x".repeat(101) })], () => []),
-    (err: Error) => /Nope/.test(err.message) && /title/.test(err.message),
+    () => buildCsv([entry({ board: "Nope" }), entry({ pack: "2026-09-18--the-tea-bucket-list--bold-panel", title: "x".repeat(101) })], () => ["tea"]),
+    (err: Error) => /Nope/.test(err.message) && /title is 101/.test(err.message),
   );
 });
 

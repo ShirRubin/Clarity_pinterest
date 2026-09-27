@@ -22,6 +22,7 @@ import { runStats } from "./stages/stats.js";
 import { runReport } from "./stages/report.js";
 import { runLinks } from "./stages/links.js";
 import { runAuth, readStore, describeStore } from "./pinterestAuth.js";
+import { runCopyCheck } from "./stages/copycheck.js";
 import { runQueue } from "./queue.js";
 import { runStatus } from "./status.js";
 
@@ -106,6 +107,10 @@ const commands: Record<string, { desc: string; run: () => Promise<unknown> }> = 
   stats: { desc: "Import the Pinterest analytics CSVs in data/analytics/raw/ (older exports are archived first so the newest wins; --notion also writes per-pin stats + the summary page)", run: () => runStats(flags.has("--notion")) },
   report: { desc: "Live pin performance from the Pinterest API: totals, per-template A/B table, top pins (arg: min pin age in days to compare templates, default 14). Prints only, never stores", run: () => runReport(arg ?? 14) },
   links: { desc: "Link check over every live pin via the Pinterest API: missing links, off-site links, and posts the blog does not have", run: () => runLinks() },
+  copycheck: {
+    desc: "Waiting packs against the copy rules `csv` enforces (keyword in first 40 title chars, alt 80–140, click CTA naming the post); --fix appends the CTA to packs + Notion rows",
+    run: () => runCopyCheck(flags.has("--fix")),
+  },
   auth: {
     desc: "Connect the Pinterest account once (browser login → 30-day access token + 1-year refresh token in data/pinterest-oauth.json, refreshed automatically); `auth status` shows expiry (--redirect=URI, --scopes=a,b override)",
     run: async () => {

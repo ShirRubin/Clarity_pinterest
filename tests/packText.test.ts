@@ -1,7 +1,7 @@
 // tests/packText.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { postText, parsePostText } from "../src/packText.js";
+import { postText, parsePostText, replaceDescription } from "../src/packText.js";
 import { splitPackName } from "../src/packs.js";
 
 const sample = {
@@ -115,4 +115,13 @@ test("a pin-id POSTED line still wins once the id is backfilled after a csv uplo
     `\nPOSTED: 2026-09-17T09:00:00.000Z csv 2026-09-17-pins.csv\n` +
     `\nPOSTED: 2026-09-18T09:00:00.000Z pin 123\n`;
   assert.deepEqual(parsePostText(txt).posted, { at: "2026-09-18T09:00:00.000Z", pinId: "123" });
+});
+
+test("replaceDescription swaps only the description and keeps the appended EXPORTED/POSTED lines", () => {
+  const original = postText(sample) + "\nEXPORTED: 2026-09-20T10:00:00.000Z 2026-09-20-pins.csv\n";
+  const out = replaceDescription(original, "New line one.\n#new #tags");
+  assert.equal(parsePostText(out).description, "New line one.\n#new #tags");
+  assert.equal(parsePostText(out).alt, sample.alt);
+  assert.equal(parsePostText(out).title, sample.title);
+  assert.ok(out.endsWith("EXPORTED: 2026-09-20T10:00:00.000Z 2026-09-20-pins.csv\n"));
 });

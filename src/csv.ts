@@ -9,6 +9,7 @@ import { POST_TZ } from "./schedule.js";
 import { SITE, pinLink } from "./destination.js";
 import { splitPackName } from "./packs.js";
 import type { PlanEntry } from "./postplan.js";
+import { checkCopy } from "./copyRules.js";
 
 export const CSV_HEADER = "Title,Media URL,Pinterest board,Thumbnail,Description,Link,Publish date,Keywords";
 export const TITLE_MAX = 100;
@@ -71,6 +72,13 @@ export function buildCsv(entries: PlanEntry[], keywordsFor: (e: PlanEntry) => st
     const description = oneLine(e.description);
     if (description.length > DESCRIPTION_MAX) {
       problems.push(`${e.pack}: description is ${description.length} chars (max ${DESCRIPTION_MAX})`);
+    }
+    // The copy rules (keyword in the first 40 title chars, alt 80–140, a click
+    // CTA naming the post): a row that breaks one never reaches a file.
+    // `clarity copycheck --fix` repairs the CTA on waiting packs.
+    const keywords = keywordsFor(e);
+    for (const p of checkCopy({ title: e.title, description: e.description, alt: e.alt, keywords })) {
+      problems.push(`${e.pack}: ${p}`);
     }
     return [
       e.title,

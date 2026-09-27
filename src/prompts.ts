@@ -23,8 +23,10 @@ export const SEO_RULES = `Pinterest SEO rules (follow exactly):
   must appear in the FIRST 40 characters — mobile feeds clip titles around there. Natural
   phrasing, clear value, numbers welcome. No emoji in titles.
 - Pin description: 2-3 natural sentences, 150-300 characters BEFORE hashtags. Primary keyword
-  in the first sentence, 1-2 secondary keywords woven in naturally, ends with a save/click
-  call to action (CTR is a ranking signal). No keyword stuffing.
+  in the first sentence, 1-2 secondary keywords woven in naturally, and the LAST sentence is a
+  click-through call to action that names what is on the post: the full list and the free
+  printable checklist on the blog (e.g. "Save it, then grab the full list and the free printable
+  checklist on the blog"). "Save it" alone is not enough. No keyword stuffing.
 - Then, at the END of the description: 3-5 hashtags on one line — 1-2 broad (#bucketlist,
   #fallaesthetic) + 2-3 specific to the pin (#winterarc). Never more than 5.
 - Emoji: exactly 1-2 fitting emoji inside the description (common ones only — exotic emoji

@@ -21,6 +21,24 @@ const TITLE_HEADER = `TITLE (paste as pin title):`;
 const DESCRIPTION_HEADER = `DESCRIPTION (paste as pin description):`;
 const ALT_HEADER = `ALT TEXT (paste into the pin's alt-text field):`;
 
+/**
+ * The same post.txt with only its description swapped: every other line,
+ * including the EXPORTED/POSTED lines the stages append, stays byte for byte.
+ * Used by `clarity copycheck --fix`.
+ */
+export function replaceDescription(txt: string, description: string): string {
+  const nl = txt.includes("\r\n") ? "\r\n" : "\n";
+  const lines = txt.split(/\r?\n/);
+  const start = lines.findIndex((l) => l === DESCRIPTION_HEADER);
+  if (start < 0) throw new Error("post.txt has no description section");
+  let end = start + 1;
+  while (end < lines.length && !(lines[end - 1] === "" && lines[end] === ALT_HEADER)) end++;
+  if (end >= lines.length) throw new Error("post.txt has no alt-text section after the description");
+  // lines (start+1 .. end-1) are the description plus the blank line before ALT
+  const body = description.split(/\r?\n/);
+  return [...lines.slice(0, start + 1), ...body, "", ...lines.slice(end)].join(nl);
+}
+
 const TOPICS_HELP = [
   `TAGGED TOPICS: always add 10 (the max) in the pin builder. The taxonomy has no`,
   `"bucket list"/"self care" topics — search concrete nouns from the list items`,
