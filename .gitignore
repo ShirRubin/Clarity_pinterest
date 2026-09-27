@@ -5,3 +5,4 @@ logs/
 dist/
 *.log
 .gstack/
+data/pinterest-oauth.json

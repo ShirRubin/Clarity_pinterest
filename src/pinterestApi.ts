@@ -3,20 +3,17 @@
 // consistent with what the app application and clarity-lists.com/privacy/
 // promise: own account only, statistics read live and never stored.
 import type { ApiPin, PinMetrics } from "./report.js";
+import { getAccessToken } from "./pinterestAuth.js";
 
 const BASE = "https://api.pinterest.com/v5";
 
-function token(): string {
-  const t = process.env.PINTEREST_ACCESS_TOKEN;
-  if (!t) throw new Error("PINTEREST_ACCESS_TOKEN is not set in .env");
-  return t;
-}
-
 async function get<T>(pathAndQuery: string): Promise<T> {
-  const res = await fetch(`${BASE}${pathAndQuery}`, { headers: { Authorization: `Bearer ${token()}` } });
+  // OAuth store first (refreshes itself), .env PINTEREST_ACCESS_TOKEN as the fallback.
+  const token = await getAccessToken();
+  const res = await fetch(`${BASE}${pathAndQuery}`, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) {
     const body = await res.text();
-    const hint = res.status === 401 ? " — the access token is invalid or expired; generate a new one on the app's Manage page" : "";
+    const hint = res.status === 401 ? " — the access token is invalid or expired; run `npm run clarity -- auth` to log in again" : "";
     throw new Error(`Pinterest API ${res.status} on ${pathAndQuery.split("?")[0]}${hint}: ${body.slice(0, 200)}`);
   }
   return (await res.json()) as T;
