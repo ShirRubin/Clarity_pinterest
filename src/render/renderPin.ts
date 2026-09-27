@@ -58,6 +58,9 @@ export function parseListItems(listItems: string): ParsedItems {
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+/** How many list items a teaser pin shows before the "and N more" promise. */
+export const TEASER_SHOWN = 3;
+
 export function fillTemplate(html: string, content: PinContent): string {
   const { heads, openSlot } = parseListItems(content.listItems);
   // Seeded by name: each list gets its own palette variant + subject emoji,
@@ -76,10 +79,33 @@ export function fillTemplate(html: string, content: PinContent): string {
     `<li class="open-slot"><span class="item-text">💬 ${esc(openSlot)}</span></li>`,
   ].join("\n      ");
 
+  // Teaser templates (teaser-torn, teaser-count) show only the first TEASER_SHOWN
+  // items and promise the rest on the blog. These placeholders are inert elsewhere.
+  const shown = heads.slice(0, TEASER_SHOWN);
+  const teaserItems = shown
+    .map((h) => `<li><span class="box"></span><span class="item-text">${esc(h)}</span></li>`)
+    .join("\n      ");
+  const cut = heads[TEASER_SHOWN] ?? "";
+  const rest = Math.max(0, heads.length - TEASER_SHOWN);
+  const ghosts = heads
+    .slice(TEASER_SHOWN)
+    .map((_, i) => `<li class="ghost"><span class="num">${String(i + TEASER_SHOWN + 1).padStart(2, "0")}</span><span class="line"></span></li>`)
+    .join("\n      ");
+  const countItems = shown
+    .map((h, i) => `<li><span class="num">${String(i + 1).padStart(2, "0")}</span><span class="item-text">${esc(h)}</span></li>`)
+    .join("\n      ");
+
   return html
     .replaceAll("{{TITLE_MAIN}}", esc(main))
     .replaceAll("{{TITLE_SIZE}}", String(titleSize))
     .replaceAll("{{ITEMS}}", itemsHtml)
+    .replaceAll("{{TEASER_ITEMS}}", teaserItems)
+    .replaceAll("{{TEASER_COUNT_ITEMS}}", countItems)
+    .replaceAll("{{TEASER_CUT}}", esc(cut))
+    .replaceAll("{{TEASER_GHOSTS}}", ghosts)
+    .replaceAll("{{REST_COUNT}}", String(rest))
+    .replaceAll("{{SHOWN_COUNT}}", String(shown.length))
+    .replaceAll("{{TOTAL_COUNT}}", String(heads.length))
     .replaceAll("{{EMOJI}}", emoji)
     .replaceAll("{{BG}}", pal.bg)
     .replaceAll("{{BG2}}", pal.bg2)

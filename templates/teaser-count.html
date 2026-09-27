@@ -1,0 +1,90 @@
+<!doctype html>
+<!-- Teaser, "3 of N counter" (option B, chosen 2026-09-27): the big-numbers layout
+     with only the first three items filled in; the rest stay as outline numerals
+     over dotted lines, so the missing part is countable. The kicker says how
+     many are shown; the pill says what to do and the address says where.
+     Same fonts, palette tokens and watermark as the four full-list templates. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: "Fredoka"; src: url("fonts/Fredoka-700.woff2") format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Fredoka"; src: url("fonts/Fredoka-600.woff2") format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Patrick Hand SC"; src: url("fonts/PatrickHandSC-400.woff2") format("woff2"); font-weight: 400; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1000px; height: 1500px; }
+  .page {
+    width: 1000px; height: 1500px; overflow: hidden; position: relative;
+    background: linear-gradient(180deg, {{BG}} 0%, {{BG2}} 100%);
+    display: flex; flex-direction: column; padding: 72px 64px 40px;
+  }
+  .deco {
+    position: absolute; top: -40px; right: -60px; font-size: 300px; line-height: 1;
+    opacity: 0.16; transform: rotate(10deg); font-family: "Segoe UI Emoji", sans-serif;
+  }
+  header {
+    position: relative; z-index: 1; padding-bottom: 28px; margin-bottom: 24px;
+    border-bottom: 5px solid {{ACCENT}};
+  }
+  .kicker {
+    font-family: "Fredoka"; font-weight: 600; text-transform: uppercase;
+    color: {{ACCENT}}; font-size: 30px; letter-spacing: 12px; margin-bottom: 10px;
+  }
+  .title-main {
+    font-family: "Fredoka"; font-weight: 700; text-transform: uppercase;
+    color: {{ACCENT_DARK}}; font-size: {{TITLE_SIZE}}px; line-height: 1.02; max-width: 760px;
+  }
+  .checklist {
+    list-style: none; flex: 1; position: relative; z-index: 1;
+    display: grid; grid-template-columns: 1fr 1fr; column-gap: 36px; row-gap: 8px;
+    align-content: space-evenly;
+  }
+  .checklist li { display: flex; align-items: flex-start; gap: 18px; }
+  .num {
+    font-family: "Fredoka"; font-weight: 700; font-size: 74px; line-height: 0.9;
+    color: {{ACCENT}}; min-width: 96px;
+  }
+  .item-text {
+    font-family: "Patrick Hand SC"; font-size: 33px; line-height: 1.06;
+    color: {{TEXT}}; text-transform: uppercase; padding-top: 8px;
+  }
+  .ghost .num { color: transparent; -webkit-text-stroke: 3px {{ACCENT_SOFT}}; }
+  .ghost .line { flex: 1; margin-top: 26px; border-top: 5px dotted {{ACCENT_SOFT}}; }
+  /* the promise: one short pill, then the address on its own line */
+  .cta {
+    position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 14px; padding-top: 26px;
+  }
+  .cta-pill {
+    background: {{ACCENT}}; color: #fff; font-family: "Fredoka"; font-weight: 600;
+    font-size: 32px; padding: 18px 40px; border-radius: 999px; white-space: nowrap;
+  }
+  .cta-url {
+    font-family: "Fredoka"; font-weight: 700; font-size: 40px; color: {{ACCENT_DARK}};
+    letter-spacing: 1px;
+  }
+  footer {
+    text-align: center; padding-top: 22px; position: relative; z-index: 1;
+    font-family: "Fredoka"; font-weight: 600; font-size: 32px; color: {{ACCENT_DARK}};
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="deco">{{EMOJI}}</div>
+    <header>
+      <div class="kicker">{{SHOWN_COUNT}} of {{TOTAL_COUNT}} shown</div>
+      <div class="title-main">{{TITLE_MAIN}} Bucket List</div>
+    </header>
+    <ul class="checklist">
+      {{TEASER_COUNT_ITEMS}}
+      {{TEASER_GHOSTS}}
+    </ul>
+    <div class="cta">
+      <div class="cta-pill">tap the pin for the other {{REST_COUNT}} + the printable</div>
+      <div class="cta-url">clarity-lists.com</div>
+    </div>
+    <footer>@claritybucketlists</footer>
+  </div>
+</body>
+</html>
