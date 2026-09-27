@@ -46,7 +46,7 @@ test("buildCsv writes Pinterest's header and one row per entry", () => {
       "Travel & Festivals",
       "",
       "Line one. #tea #bucketlist",
-      "https://clarity-lists.com/posts/the-tea-bucket-list",
+      "https://clarity-lists.com/posts/the-tea-bucket-list/?utm_source=pinterest&utm_medium=pin&utm_campaign=sticky-note&utm_content=the-tea-bucket-list",
       "2026-09-17T06:00:00",
       '"tea, cozy living"',
     ].join(","),

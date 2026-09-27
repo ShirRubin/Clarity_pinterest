@@ -47,6 +47,16 @@ test("never puts a URL within 7 days of the same URL, scheduled or already publi
   assert.ok(moves.length > 0);
 });
 
+test("two design variants of one post are the same URL even though their utm tags differ", () => {
+  const post = "https://clarity-lists.com/posts/tea";
+  const scheduled = [
+    pin("a", "2026-10-01", "09:00 AM", `${post}?utm_source=pinterest&utm_campaign=sticky-note`),
+    pin("late", "2026-11-10", "09:00 AM", `${post}?utm_source=pinterest&utm_campaign=big-numbers`),
+  ];
+  const [m] = planPullForward(scheduled, [], "2026-10-01");
+  assert.ok(Date.parse(m.toDate) - Date.parse("2026-10-01") >= 7 * 86_400_000, `moved to ${m.toDate}`);
+});
+
 test("respects Israel's DST change when computing the new timestamp", () => {
   const scheduled = [pin("late", "2026-12-01", "09:00 AM")];
   const [m] = planPullForward(scheduled, [], "2026-10-30");

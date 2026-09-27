@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chooseDestination, postUrlForName, SITE } from "../src/destination.js";
+import { chooseDestination, postUrlForName, SITE, pinLink, linkKey } from "../src/destination.js";
 
 test("post URL is the blog site + slug of the name's short title", () => {
   assert.equal(
@@ -37,4 +37,28 @@ test("no post yet falls back to the board URL", () => {
 test("no post and an unknown board falls back to the profile", () => {
   const d = chooseDestination({ name: "Some List", board: "Not A Real Board" }, false);
   assert.deepEqual(d, { url: "https://www.pinterest.com/ClarityBucketLists/", source: "board" });
+});
+
+// --- UTM tags on the link a pin carries (CLARITY_PLAN §3.4) ---
+
+test("a post link sent to Pinterest carries utm tags naming the design and the post", () => {
+  assert.equal(
+    pinLink(`${SITE}/posts/the-tea-bucket-list`, "sticky-note"),
+    `${SITE}/posts/the-tea-bucket-list/?utm_source=pinterest&utm_medium=pin&utm_campaign=sticky-note&utm_content=the-tea-bucket-list`,
+  );
+});
+
+test("only blog post links are tagged, and never twice", () => {
+  const board = "https://www.pinterest.com/ClarityBucketLists/fall-bucket-lists/";
+  assert.equal(pinLink(board, "sticky-note"), board);
+  const tagged = pinLink(`${SITE}/posts/tea`, "bold-panel");
+  assert.equal(pinLink(tagged, "sticky-note"), tagged);
+});
+
+test("linkKey drops the tags, so a list's four tagged variants are still one URL", () => {
+  const a = pinLink(`${SITE}/posts/tea`, "sticky-note");
+  const b = pinLink(`${SITE}/posts/tea`, "big-numbers");
+  assert.notEqual(a, b);
+  assert.equal(linkKey(a), linkKey(b));
+  assert.equal(linkKey(`${SITE}/posts/tea/`), `${SITE}/posts/tea`);
 });

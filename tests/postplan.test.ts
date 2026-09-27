@@ -37,6 +37,11 @@ test("orders by date then time, and maps the board to Pinterest's spelling", () 
   assert.equal(plan.entries[0].image, "exports/packs/2026-09-08--the-tea-bucket-list--sticky-note/sticky-note.png");
   assert.deepEqual(plan.entries.map((e) => e.n), [1, 2, 3]);
   assert.equal(plan.entries[0].total, 3);
+  // The link handed to the pin builder carries the design's utm tags; the pack keeps the plain URL.
+  assert.equal(
+    plan.entries[0].link,
+    "https://clarity-lists.com/posts/the-tea-bucket-list/?utm_source=pinterest&utm_medium=pin&utm_campaign=sticky-note&utm_content=the-tea-bucket-list",
+  );
 });
 
 test("packs beyond the scheduler window are deferred, not planned", () => {

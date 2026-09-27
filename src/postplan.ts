@@ -3,6 +3,7 @@
 import path from "node:path";
 import { PINTEREST_BOARD_NAMES, type Board } from "./schema.js";
 import { SLOT_TIMES } from "./schedule.js";
+import { pinLink } from "./destination.js";
 import type { PackInfo } from "./packs.js";
 
 /** Pinterest's native scheduler rejects dates further out than this. */
@@ -117,7 +118,7 @@ export function buildPostPlan(
     time,
     image: path.posix.join("exports", p.where, p.dir, p.text.image),
     board: PINTEREST_BOARD_NAMES[p.text.board as Board] ?? p.text.board,
-    link: p.text.link,
+    link: pinLink(p.text.link, p.template),
     title: p.text.title,
     description: p.text.description,
     alt: p.text.alt,

@@ -6,7 +6,7 @@
 // so every board is checked against Pinterest's spelling before a row is made.
 import { PINTEREST_BOARD_NAMES } from "./schema.js";
 import { POST_TZ } from "./schedule.js";
-import { SITE } from "./destination.js";
+import { SITE, pinLink } from "./destination.js";
 import { splitPackName } from "./packs.js";
 import type { PlanEntry } from "./postplan.js";
 
@@ -78,7 +78,7 @@ export function buildCsv(entries: PlanEntry[], keywordsFor: (e: PlanEntry) => st
       e.board,
       "", // Thumbnail — video only
       description,
-      e.link,
+      parts ? pinLink(e.link, parts.template) : e.link,
       toUtcStamp(e.date, e.time),
       keywordsFor(e).join(", "),
     ]

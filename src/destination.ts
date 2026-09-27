@@ -58,6 +58,23 @@ export interface Destination {
   source: "notion" | "blog" | "board";
 }
 
+/**
+ * The link a pin actually carries: the post URL plus utm tags naming the
+ * design, so Umami on the blog can tell the four variants apart (the template
+ * A/B verdict). Applied only where a link leaves for Pinterest (csv,
+ * post-plan) — pack files keep the plain post URL. Board links and links that
+ * already carry a query are returned untouched. The trailing slash is the
+ * canonical post URL — without it the blog answers with a 307 redirect.
+ */
+export function pinLink(url: string, template: string): string {
+  if (!url.startsWith(`${SITE}/posts/`) || url.includes("?")) return url;
+  const slug = linkKey(url).split("/").pop()!;
+  return `${linkKey(url)}/?utm_source=pinterest&utm_medium=pin&utm_campaign=${template}&utm_content=${slug}`;
+}
+
+/** A link with its query, fragment and trailing slash removed — what "the same URL" means for spacing rules. */
+export const linkKey = (url: string) => url.split(/[?#]/)[0].replace(/\/+$/, "");
+
 export function chooseDestination(row: DestinationInput, postOnDisk: boolean): Destination {
   if (row.destinationLink?.startsWith(SITE)) return { url: row.destinationLink, source: "notion" };
   if (postOnDisk) return { url: postUrlForName(row.name), source: "blog" };

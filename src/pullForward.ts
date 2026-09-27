@@ -7,6 +7,7 @@
 // Pure logic: the caller applies the moves on Pinterest and in the packs.
 import { PINS_PER_DAY, SLOT_TIMES, URL_GAP_DAYS, localParts } from "./schedule.js";
 import { toUtcStamp } from "./csv.js";
+import { linkKey } from "./destination.js";
 
 export interface PinAt {
   id: string;
@@ -32,11 +33,14 @@ export function planPullForward(scheduled: PinAt[], published: PinAt[], from: st
   const at = new Map(scheduled.map((p) => [p.id, { ...p, date: localParts(p.ts).date }]));
   const fixed = published.map((p) => ({ link: p.link, date: localParts(p.ts).date }));
 
+  // Compared by linkKey: a list's variants carry different utm tags but are one URL.
   const clashes = (id: string, link: string | undefined, date: string) => {
     if (!link) return false;
+    const key = linkKey(link);
+    const same = (other: string | undefined) => !!other && linkKey(other) === key;
     const near = (d: string) => Math.abs(dayMs(d) - dayMs(date)) < URL_GAP_DAYS * DAY_MS;
-    for (const o of at.values()) if (o.id !== id && o.link === link && near(o.date)) return true;
-    return fixed.some((o) => o.link === link && near(o.date));
+    for (const o of at.values()) if (o.id !== id && same(o.link) && near(o.date)) return true;
+    return fixed.some((o) => same(o.link) && near(o.date));
   };
 
   const moves: PullMove[] = [];
