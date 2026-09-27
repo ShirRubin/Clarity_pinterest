@@ -124,7 +124,9 @@ export async function getAccessToken(): Promise<string> {
     if (cached.refreshExpiresAt && cached.refreshExpiresAt < Date.now()) {
       throw new Error("The Pinterest refresh token has expired: run `npm run clarity -- auth` again");
     }
-    refreshing ??= tokenRequest({ grant_type: "refresh_token", refresh_token: cached.refreshToken, scope: cached.scope })
+    // refresh_on asks Pinterest for a new refresh token too (continuous refresh);
+    // the first login only granted a 60-day one. If it is ignored, the old one is kept.
+    refreshing ??= tokenRequest({ grant_type: "refresh_token", refresh_token: cached.refreshToken, scope: cached.scope, refresh_on: "true" })
       .then(async (r) => {
         const next = storeFromTokenResponse(r, Date.now(), cached);
         await writeStore(next);
