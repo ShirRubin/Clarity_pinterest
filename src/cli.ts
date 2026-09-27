@@ -19,6 +19,7 @@ import { runUnpost } from "./stages/unpost.js";
 import { runCsv } from "./stages/csv.js";
 import { runUploaded } from "./stages/uploaded.js";
 import { runStats } from "./stages/stats.js";
+import { runReport } from "./stages/report.js";
 import { runQueue } from "./queue.js";
 import { runStatus } from "./status.js";
 
@@ -100,6 +101,7 @@ const commands: Record<string, { desc: string; run: () => Promise<unknown> }> = 
   },
   blogpost: { desc: "Approved/Published lists → blog posts in Clarity_blog + Destination link → post URL (arg: limit, default 20)", run: () => runBlogpost(arg ?? 20) },
   stats: { desc: "Import the Pinterest analytics CSVs in data/analytics/raw/ (older exports are archived first so the newest wins; --notion also writes per-pin stats + the summary page)", run: () => runStats(flags.has("--notion")) },
+  report: { desc: "Live pin performance from the Pinterest API: totals, per-template A/B table, top pins (arg: min pin age in days to compare templates, default 14). Prints only, never stores", run: () => runReport(arg ?? 14) },
   run: {
     desc: "Full pipeline: ideas → draft → design → review (arg: idea count, default 3)",
     run: async () => {
