@@ -30,6 +30,11 @@ export function replaceDescription(txt: string, description: string): string {
   return replaceSection(txt, DESCRIPTION_HEADER, ALT_HEADER, description);
 }
 
+/** Same, for the title section (it runs until the blank line before the description header). */
+export function replaceTitle(txt: string, title: string): string {
+  return replaceSection(txt, TITLE_HEADER, DESCRIPTION_HEADER, title);
+}
+
 /** Same, for the alt-text section (it runs until the blank line before BOARD:). */
 export function replaceAlt(txt: string, alt: string): string {
   return replaceSection(txt, ALT_HEADER, "BOARD: ", alt);

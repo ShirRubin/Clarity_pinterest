@@ -6,6 +6,8 @@ import {
   ctaProblem,
   ctaVariantFor,
   CTA_VARIANTS,
+  dashProblem,
+  fixTitleDashes,
   descriptionBody,
   hashtagLine,
   lastSentence,
@@ -84,11 +86,26 @@ test("the variant is stable per slug and differs across slugs", () => {
   assert.ok(picks.size > 1);
 });
 
-// --- all three at once ---
+// --- rule 4: no long dash in pin copy ---
+
+test("a long dash anywhere in the title, description or alt fails and says where", () => {
+  assert.match(dashProblem({ title: "Lilo & Stitch Bucket List — 12 Ohana Days", description: "Fine.", alt: "Fine" }) ?? "", /title/);
+  assert.match(dashProblem({ title: "Fine", description: "Twelve films — one a night.", alt: "Fine" }) ?? "", /description/);
+  assert.match(dashProblem({ title: "Fine", description: "Fine.", alt: "5–10 vials" }) ?? "", /alt/);
+  assert.equal(dashProblem({ title: "Fine: yes", description: "Fine, yes.", alt: "Fine" }), undefined);
+});
+
+test("fixTitleDashes turns the title's dash into a colon, or 'to' between numbers", () => {
+  assert.equal(fixTitleDashes("Lilo & Stitch Bucket List — 12 Ohana Days"), "Lilo & Stitch Bucket List: 12 Ohana Days");
+  assert.equal(fixTitleDashes("Movement Bucket List – 10–15 Minute Wins"), "Movement Bucket List: 10 to 15 Minute Wins");
+  assert.equal(fixTitleDashes("Plain Title: No Dash"), "Plain Title: No Dash");
+});
+
+// --- all four at once ---
 
 test("checkCopy lists every broken rule and is empty for good copy", () => {
-  const bad = checkCopy({ title: "Nice", description: "Save it.", alt: "short", keywords: ["tea bucket list"] });
-  assert.equal(bad.length, 3);
+  const bad = checkCopy({ title: "Nice — list", description: "Save it.", alt: "short", keywords: ["tea bucket list"] });
+  assert.equal(bad.length, 4);
   const good = checkCopy({
     title: "Tea Bucket List: 12 Brews to Try",
     description: "Twelve brews. Full list and free printable checklist on the blog.\n#tea",

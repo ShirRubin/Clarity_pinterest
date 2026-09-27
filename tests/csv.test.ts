@@ -93,6 +93,14 @@ test("buildCsv refuses a description that only says save it", () => {
   );
 });
 
+test("buildCsv refuses a long dash in the title or description", () => {
+  assert.throws(() => buildCsv([entry({ title: "Tea Bucket List — 12 Brews" })], () => ["tea bucket list"]), /long dash in the title/);
+  assert.throws(
+    () => buildCsv([entry({ description: "Line one — two. Full list and free printable checklist on the blog.\n#tea" })], () => ["tea"]),
+    /long dash in the description/,
+  );
+});
+
 test("buildCsv reports every problem in the batch, not just the first", () => {
   assert.throws(
     () => buildCsv([entry({ board: "Nope" }), entry({ pack: "2026-09-18--the-tea-bucket-list--bold-panel", title: "x".repeat(101) })], () => ["tea"]),

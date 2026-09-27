@@ -8,6 +8,8 @@
 //   3. The description's last sentence, before the hashtags, is a call to
 //      action that names what is on the post — the click has to be earned:
 //      "Full list + free printable checklist on the blog", not just "Save it".
+//   4. No long dash (em or en) anywhere in the title, description or alt text;
+//      the house rule from the blog (Sep 27), extended to pin copy the same night.
 
 export const TITLE_KEYWORD_WINDOW = 40;
 export const ALT_MIN = 80;
@@ -96,9 +98,30 @@ export function ctaProblem(description: string): string | undefined {
   return `description does not end with a call to action that names what is on the post (last sentence: "${last}")`;
 }
 
+const LONG_DASH = /[–—]/;
+
+/** Rule 4: the long dash never ships in pin copy. */
+export function dashProblem(c: Pick<PinCopy, "title" | "description" | "alt">): string | undefined {
+  const where = (["title", "description", "alt"] as const).filter((k) => LONG_DASH.test(c[k]));
+  return where.length ? `long dash in the ${where.join(" and ")} (use a colon, comma or full stop)` : undefined;
+}
+
+/**
+ * Titles are formulaic ("Name — 12 things"), so the dash has one safe mechanical
+ * fix: a spaced dash becomes a colon, a dash between numbers becomes "to", any
+ * other dash a comma. Descriptions are prose and get rewritten by the model.
+ */
+export function fixTitleDashes(title: string): string {
+  return title
+    .replace(/(\d)\s*[–—]\s*(\d)/g, "$1 to $2")
+    .replace(/\s*[–—]\s*/g, ": ")
+    .replace(/:\s*:/g, ":")
+    .trim();
+}
+
 /** Every rule a pin's copy breaks, in one list; empty means it may ship. */
 export function checkCopy(c: PinCopy): string[] {
-  return [titleKeywordProblem(c.title, c.keywords), altProblem(c.alt), ctaProblem(c.description)].filter(
+  return [titleKeywordProblem(c.title, c.keywords), altProblem(c.alt), ctaProblem(c.description), dashProblem(c)].filter(
     (p): p is string => !!p,
   );
 }

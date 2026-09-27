@@ -35,4 +35,5 @@ export const SEO_RULES = `Pinterest SEO rules (follow exactly):
   naturally (e.g. "Pastel checklist graphic titled Winter Arc Bucket List with 14 rituals").
   Pinterest's AI cross-checks alt text against the image — describe, don't sell.
 - Keywords: 4-8 search phrases the pin targets (used for tracking, not stuffed into copy).
+- Never use an em dash or en dash (— –) in the pin title, description or alt text; use a colon, comma or full stop. The house rule since Sep 27, 2026.
 - The final list item is always an open slot inviting comments, e.g. "#12 — your turn. What would you add?"`;
