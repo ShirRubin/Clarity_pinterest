@@ -75,6 +75,7 @@ Rules:
 - Address every point in the reviewer's notes. Keep the items and copy they did not complain about as close to the current version as possible.
 - Keep 10-15 items in the Clarity voice: "**Short bold action** — one or two specific, doable sentences."
 - The FINAL item stays the open slot: "#<n> — your turn. What would you add?"
+- Never use the em dash character (—) inside a sentence, title, description or altText; use a comma, colon or full stop instead. The only dash allowed is the one separating "**Short bold action**" from its sentences.
 - If the notes only concern the copy (title/description/alt), keep the list items unchanged.
 ${SEO_RULES}
 

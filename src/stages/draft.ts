@@ -44,6 +44,7 @@ Theme: ${idea.theme ?? "-"} · Trend: ${idea.trend ?? "-"} · Board: ${idea.boar
 Requirements:
 - 10-15 list items in the Clarity voice: each item is "**Short bold action** — one or two specific, doable sentences."
 - The FINAL item is the open slot: "#<n> — your turn. What would you add?" (comment bait, always last).
+- Never use the em dash character (—) inside a sentence, title, description or altText; use a comma, colon or full stop instead. The only dash allowed is the one separating "**Short bold action**" from its sentences.
 ${SEO_RULES}
 
 The pin image will be a pastel checklist graphic showing the list title and the bold action heads — write altText describing THAT image.

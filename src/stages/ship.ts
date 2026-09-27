@@ -23,6 +23,9 @@ const DEPLOY_MARKER = path.join(BLOG_DIR, "dist", ".clarity-deployed");
 export async function deployBlog(): Promise<void> {
   // npx is a .cmd on Windows — shell:true is what makes it resolvable there.
   const run = (args: string[]) => execFileSync("npx", args, { cwd: BLOG_DIR, stdio: "inherit", shell: true });
+  // The blog's house rule (no long dashes anywhere that renders) is enforced by
+  // scripts/check-dashes.mjs; `npm run build` runs it as prebuild, this path must too.
+  execFileSync("node", ["scripts/check-dashes.mjs"], { cwd: BLOG_DIR, stdio: "inherit", shell: true });
   run(["astro", "build"]);
   run(["wrangler", "deploy"]);
   // Only reached once wrangler deploy actually succeeds (execFileSync throws

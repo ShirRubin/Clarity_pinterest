@@ -35,6 +35,24 @@ const THEME_CATEGORY: Record<string, string> = {
 // Pin description doubles as the post lead — hashtags belong on Pinterest only
 const stripHashtags = (s: string) => s.replace(/\s*#[\w-]+/g, "").trim();
 
+// House rule on the blog (its build fails on U+2014/U+2013): no long dashes.
+// Notion keeps the pipeline's "**Head** — detail" format (the pin renderer reads
+// it); the blog copy drops the separator and turns any other dash into a comma.
+const noDashes = (s: string) => s.replace(/\s*[—–]\s*/g, ", ").replace(/,\s*,/g, ",");
+function blogItems(items: string): string {
+  return items
+    .split("\n")
+    .map((line) => {
+      const m = /^(\d+)\.\s*(?:\*\*)?#?\d*\s*[—–-]?\s*your turn[.,:]?\s*(.*)$/i.exec(line);
+      if (m) {
+        const rest = m[2].replace(/\*\*/g, "").replace(/^\s*[—–]\s*/, "").trim();
+        return `${m[1]}. **Your turn.** ${rest ? rest[0].toUpperCase() + rest.slice(1) : "What would you add?"}`;
+      }
+      return noDashes(line.replace(/^(\d+\.\s*\*\*.+?\*\*)\s*[—–]\s*/, "$1 "));
+    })
+    .join("\n");
+}
+
 const exists = (p: string) => access(p).then(() => true, () => false);
 
 async function findDesignPng(name: string): Promise<string | undefined> {
@@ -140,7 +158,8 @@ async function generateBackfillPost(row: PinSummary, imagePath: string): Promise
 Write the blog post for it:
 - "title": a clean short post title (e.g. "Theme Party Bucket List"), Title Case, no colon, max 60 chars.
 - "intro": 2-3 sentences introducing the list. Ground it in this pin description: "${(row.pinDescription ?? "").replace(/"/g, "'")}". No hashtags.
-- "items": transcribe the checklist items EXACTLY as they appear on the image (same order, fix obvious OCR-style typos only), then format each as "**Item text** — one helpful sentence expanding it." Keep every item from the image; do not invent extra items unless the image has fewer than 8, in which case add fitting ones to reach 10.`;
+- "items": transcribe the checklist items EXACTLY as they appear on the image (same order, fix obvious OCR-style typos only), then format each as "**Item text** — one helpful sentence expanding it." Keep every item from the image; do not invent extra items unless the image has fewer than 8, in which case add fitting ones to reach 10.
+- Never use the em dash character (—) inside any sentence, in the title, or in the intro; use a comma, colon or full stop instead. The only dash allowed is the one separating "**Item text**" from its sentence.`;
   return generateJSON<BackfillPost>(system, user, BACKFILL_SCHEMA, {
     allowFileRead: true,
     // Without this the headless CLI silently denies the Read (tmpdir is outside
@@ -171,7 +190,14 @@ interface PostFields {
   items: string; // numbered markdown lines
 }
 
-function buildMarkdown(f: PostFields): string {
+function buildMarkdown(raw: PostFields): string {
+  const f: PostFields = {
+    ...raw,
+    title: noDashes(raw.title),
+    intro: noDashes(raw.intro),
+    cover: raw.cover ? { ...raw.cover, alt: noDashes(raw.cover.alt) } : undefined,
+    items: blogItems(raw.items),
+  };
   const itemCount = f.items.split("\n").filter((l) => /^\d+\./.test(l)).length;
   const words = f.items.split(/\s+/).length;
   const readTime = `${Math.max(2, Math.round(words / 200))} min`;
@@ -289,7 +315,7 @@ export async function runBlogpost(limit = 20): Promise<number> {
               title: gen.title,
               category: BOARD_CATEGORY[row.board ?? ""] ?? "Lists",
               intro: stripHashtags(gen.intro),
-              cover: { path: `/images/covers/pins/${slug}.jpg`, alt: `${gen.title} — the original Clarity pin checklist` },
+              cover: { path: `/images/covers/pins/${slug}.jpg`, alt: `${gen.title}, the original Clarity pin checklist` },
               date: (row.publishedDate ?? new Date().toISOString()).slice(0, 10),
               items,
             }),
