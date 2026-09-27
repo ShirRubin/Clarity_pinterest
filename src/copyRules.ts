@@ -16,7 +16,7 @@ export const ALT_MIN = 80;
 export const ALT_MAX = 140;
 
 const CTA_VERB = /\b(save|tap|click|grab|get|read|see|find|open|download|head|go|visit|check|print|browse|start)\b/i;
-const DESTINATION = /\b(blog|post|printable|checklist|pdf|link|full list|article|site|website|guide)\b/i;
+const DESTINATION = /\b(blog|post|printable|checklist|pdf|link|full list|article|site|website|guide|clarity-lists\.com)\b/i;
 const ON_THE = /\bon the (blog|post|site)\b/i;
 
 export interface PinCopy {
@@ -132,6 +132,13 @@ export function checkCopy(c: PinCopy): string[] {
  * Rotated by slug so the account does not repeat one sentence on every pin.
  */
 export const CTA_VARIANTS = [
+  "Tap the pin for the full list and a free printable checklist at clarity-lists.com.",
+  "Tap the pin: the full list and the free printable checklist are at clarity-lists.com.",
+  "Every item plus a free printable checklist is one tap away at clarity-lists.com.",
+  "Tap the pin for the whole list and the free printable at clarity-lists.com.",
+];
+/** The wording the first --fix run (Sep 27) appended; replaced by the address-bearing lines above. */
+export const CTA_VARIANTS_V1 = [
   "The full list and a free printable checklist are on the blog.",
   "Tap through for the full list and the free printable checklist.",
   "Every item plus a free printable checklist is waiting on the blog.",
