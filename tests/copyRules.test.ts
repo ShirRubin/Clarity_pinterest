@@ -22,6 +22,11 @@ test("a keyword phrase inside the first 40 title characters passes, punctuation 
   assert.equal(titleKeywordProblem("Tea Bucket List: 12 Brews", ["cozy tea", "TEA BUCKET LIST"]), undefined);
 });
 
+test("apostrophes and ampersands in the title do not hide a plainly written keyword", () => {
+  assert.equal(titleKeywordProblem("New Year's Eve Bucket List: 12 Glam Ways", ["new years eve bucket list"]), undefined);
+  assert.equal(titleKeywordProblem("Lilo & Stitch Bucket List: 12 Ohana Days", ["lilo and stitch bucket list"]), undefined);
+});
+
 test("a keyword that only appears after character 40 fails, and so does a title with no keywords", () => {
   const p = titleKeywordProblem("Twelve Sweet Things to Do Together This Autumn: Mother-Daughter Bucket List", ["mother-daughter bucket list"]);
   assert.match(p ?? "", /first 40/);

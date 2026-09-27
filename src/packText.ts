@@ -27,15 +27,24 @@ const ALT_HEADER = `ALT TEXT (paste into the pin's alt-text field):`;
  * Used by `clarity copycheck --fix`.
  */
 export function replaceDescription(txt: string, description: string): string {
+  return replaceSection(txt, DESCRIPTION_HEADER, ALT_HEADER, description);
+}
+
+/** Same, for the alt-text section (it runs until the blank line before BOARD:). */
+export function replaceAlt(txt: string, alt: string): string {
+  return replaceSection(txt, ALT_HEADER, "BOARD: ", alt);
+}
+
+function replaceSection(txt: string, header: string, nextHeaderPrefix: string, text: string): string {
   const nl = txt.includes("\r\n") ? "\r\n" : "\n";
   const lines = txt.split(/\r?\n/);
-  const start = lines.findIndex((l) => l === DESCRIPTION_HEADER);
-  if (start < 0) throw new Error("post.txt has no description section");
+  const start = lines.findIndex((l) => l === header);
+  if (start < 0) throw new Error(`post.txt has no "${header}" section`);
   let end = start + 1;
-  while (end < lines.length && !(lines[end - 1] === "" && lines[end] === ALT_HEADER)) end++;
-  if (end >= lines.length) throw new Error("post.txt has no alt-text section after the description");
-  // lines (start+1 .. end-1) are the description plus the blank line before ALT
-  const body = description.split(/\r?\n/);
+  while (end < lines.length && !(lines[end - 1] === "" && lines[end].startsWith(nextHeaderPrefix))) end++;
+  if (end >= lines.length) throw new Error(`post.txt has no "${nextHeaderPrefix}" section after "${header}"`);
+  // lines (start+1 .. end-1) are the section plus the blank line before the next header
+  const body = text.split(/\r?\n/);
   return [...lines.slice(0, start + 1), ...body, "", ...lines.slice(end)].join(nl);
 }
 

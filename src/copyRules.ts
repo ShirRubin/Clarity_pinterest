@@ -24,8 +24,19 @@ export interface PinCopy {
   keywords: string[];
 }
 
-/** Lower-case, letters and digits only, single spaces: how phrases are compared. */
-export const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+/**
+ * Lower-case, letters and digits only, single spaces: how phrases are compared.
+ * Apostrophes vanish ("year's" = "years") and "&" reads as "and", so a keyword
+ * written the plain way still matches a styled title.
+ */
+export const normalize = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[''`]/g, "")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 /** The description without its hashtag line(s), one paragraph. */
 export function descriptionBody(description: string): string {
