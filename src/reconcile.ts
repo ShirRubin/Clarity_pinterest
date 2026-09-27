@@ -3,6 +3,7 @@
 // Pure; the stage reads the JSON files and can apply the "already live" fixes.
 import { localParts } from "./schedule.js";
 import type { PackInfo } from "./packs.js";
+import type { ApiPin } from "./report.js";
 
 /** One pin as the skill's browser snippet normalises it from Pinterest's resources. */
 export interface PinterestPin {
@@ -33,7 +34,18 @@ function preferred(a: { pin: PinterestPin; hour: number }, b: { pin: PinterestPi
   return a.pin.ts <= b.pin.ts ? a : b; // among equals, earliest ts wins
 }
 
-export function reconcile(pins: PinterestPin[], pending: PackInfo[], posted: PackInfo[], today: string): Reconciliation {
+/**
+ * `publishedOnly`: the pins came from the API alone, which cannot see Pinterest's
+ * scheduler — so a future-dated posted pack being absent proves nothing and is
+ * never called "missing". Only the id backfill and already-live checks run.
+ */
+export function reconcile(
+  pins: PinterestPin[],
+  pending: PackInfo[],
+  posted: PackInfo[],
+  today: string,
+  opts: { publishedOnly?: boolean } = {},
+): Reconciliation {
   const byKey = new Map<string, { pin: PinterestPin; hour: number }>();
   const sameDayGroups = new Map<string, PinterestPin[]>();
   const noon: PinterestPin[] = [];
@@ -53,10 +65,11 @@ export function reconcile(pins: PinterestPin[], pending: PackInfo[], posted: Pac
   });
 
   const sameDay = [...sameDayGroups.entries()]
-    .filter(([, group]) => group.length > 1)
+    // Published-only: old repins share titles, and only the scheduler holds duplicates we can delete.
+    .filter(([, group]) => !opts.publishedOnly && group.length > 1)
     .map(([k, group]) => ({ date: k.slice(k.lastIndexOf("@") + 1), title: group[0].title, ids: group.map((p) => p.id) }));
 
-  const missing = posted.filter((pack) => pack.date >= today && !byKey.has(key(pack.text.title, pack.date)));
+  const missing = opts.publishedOnly ? [] : posted.filter((pack) => pack.date >= today && !byKey.has(key(pack.text.title, pack.date)));
 
   // A csv upload moves packs to posted/ before Pinterest tells us any ids;
   // once the pin shows up in Pinterest's own list, hand the id back.
@@ -67,6 +80,25 @@ export function reconcile(pins: PinterestPin[], pending: PackInfo[], posted: Pac
   });
 
   return { alreadyLive, noon, sameDay, missing, unidentified };
+}
+
+/**
+ * Published pins straight from the API (`GET /v5/pins`) in place of the
+ * browser snippet's created.json. `created_at` carries no zone and is UTC.
+ * Untitled pins are dropped (and counted): reconcile matches on title + date.
+ */
+export function fromApiPins(apiPins: ApiPin[]): { pins: PinterestPin[]; untitled: number } {
+  const pins: PinterestPin[] = [];
+  let untitled = 0;
+  for (const p of apiPins) {
+    if (!p.title.trim()) {
+      untitled++;
+      continue;
+    }
+    const iso = /Z|[+-]dd:dd$/.test(p.createdAt) ? p.createdAt : `${p.createdAt}Z`;
+    pins.push({ id: p.id, title: p.title, link: p.link ?? undefined, ts: Math.floor(Date.parse(iso) / 1000), kind: "published" });
+  }
+  return { pins, untitled };
 }
 
 /**

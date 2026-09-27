@@ -1,9 +1,15 @@
-// src/stages/reconcile.ts — `clarity reconcile <scheduled.json> <created.json> [--apply]`
-// The two files are Pinterest's ScheduledPinsResource / UserActivityPinsResource
+// src/stages/reconcile.ts — `clarity reconcile <scheduled.json> <created.json|api> [--apply]`
+// or `clarity reconcile api [--apply]`.
+// The files are Pinterest's ScheduledPinsResource / UserActivityPinsResource
 // data, normalised by the /clarity-post skill's browser snippet to PinterestPin[].
+// "api" reads the published pins from the Pinterest API instead of created.json.
+// The API cannot see the scheduler, so `reconcile api` alone is the
+// published-only pass: pin ids for csv-uploaded packs that have gone live, and
+// pending packs that are already live — no "missing", no truncation check.
 import { readFile } from "node:fs/promises";
 import { readPacks } from "../packs.js";
-import { reconcile, formatReconcile, parsePinterestPins, scheduledLooksTruncated, type PinterestPin } from "../reconcile.js";
+import { listPinsWithMetrics } from "../pinterestApi.js";
+import { reconcile, formatReconcile, parsePinterestPins, scheduledLooksTruncated, fromApiPins, type PinterestPin } from "../reconcile.js";
 import { runPosted } from "./posted.js";
 
 async function readPins(file: string, kind: PinterestPin["kind"]): Promise<PinterestPin[]> {
@@ -11,9 +17,19 @@ async function readPins(file: string, kind: PinterestPin["kind"]): Promise<Pinte
   return parsePinterestPins(raw, kind, file);
 }
 
-export async function runReconcile(scheduledFile: string, createdFile: string, apply = false): Promise<void> {
-  const scheduled = await readPins(scheduledFile, "scheduled");
-  const created = await readPins(createdFile, "published");
+async function readCreated(source: string): Promise<PinterestPin[]> {
+  if (source !== "api") return readPins(source, "published");
+  const { pins, untitled } = fromApiPins(await listPinsWithMetrics());
+  if (untitled) console.log(`(${untitled} untitled pins from the API skipped — reconcile matches on title)`);
+  return pins;
+}
+
+/** `scheduledFile` undefined = the published-only API pass. */
+export async function runReconcile(scheduledFile: string | undefined, createdSource: string, apply = false): Promise<void> {
+  const publishedOnly = scheduledFile === undefined;
+  const scheduled = publishedOnly ? [] : await readPins(scheduledFile, "scheduled");
+  const created = await readCreated(createdSource);
+  if (publishedOnly) console.log("published-only pass (the API cannot see the scheduler): id backfill + already-live only");
   // Printed before anything else derived from these counts — a silently short
   // page from Pinterest's endpoint should be visible immediately, not inferred
   // later from a suspicious "missing" list.
@@ -22,10 +38,10 @@ export async function runReconcile(scheduledFile: string, createdFile: string, a
   const pins = [...scheduled, ...created];
   const [pending, posted] = await Promise.all([readPacks("packs"), readPacks("posted")]);
   const today = new Date().toISOString().slice(0, 10);
-  const r = reconcile(pins, pending, posted, today);
+  const r = reconcile(pins, pending, posted, today, { publishedOnly });
   console.log(formatReconcile(r));
 
-  const truncated = scheduledLooksTruncated(scheduled.length, created.length, posted, today);
+  const truncated = !publishedOnly && scheduledLooksTruncated(scheduled.length, created.length, posted, today);
   if (truncated) {
     const due = posted.filter((p) => p.date > today).length;
     console.log(

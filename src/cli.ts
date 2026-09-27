@@ -20,6 +20,7 @@ import { runCsv } from "./stages/csv.js";
 import { runUploaded } from "./stages/uploaded.js";
 import { runStats } from "./stages/stats.js";
 import { runReport } from "./stages/report.js";
+import { runLinks } from "./stages/links.js";
 import { runQueue } from "./queue.js";
 import { runStatus } from "./status.js";
 
@@ -86,9 +87,10 @@ const commands: Record<string, { desc: string; run: () => Promise<unknown> }> = 
     },
   },
   reconcile: {
-    desc: "Diff Pinterest's pin JSON against the packs: reconcile <scheduled.json> <created.json> [--apply]",
+    desc: "Diff Pinterest's pins against the packs: reconcile <scheduled.json> <created.json|api> [--apply], or reconcile api [--apply] for the published-only API pass (pin ids for live csv uploads; safe unattended)",
     run: () => {
-      need(2, "reconcile <scheduled.json> <created.json> [--apply]");
+      if (words[0] === "api" && words.length === 1) return runReconcile(undefined, "api", flags.has("--apply"));
+      need(2, "reconcile <scheduled.json> <created.json|api> [--apply]  |  reconcile api [--apply]");
       return runReconcile(words[0], words[1], flags.has("--apply"));
     },
   },
@@ -102,6 +104,7 @@ const commands: Record<string, { desc: string; run: () => Promise<unknown> }> = 
   blogpost: { desc: "Approved/Published lists → blog posts in Clarity_blog + Destination link → post URL (arg: limit, default 20)", run: () => runBlogpost(arg ?? 20) },
   stats: { desc: "Import the Pinterest analytics CSVs in data/analytics/raw/ (older exports are archived first so the newest wins; --notion also writes per-pin stats + the summary page)", run: () => runStats(flags.has("--notion")) },
   report: { desc: "Live pin performance from the Pinterest API: totals, per-template A/B table, top pins (arg: min pin age in days to compare templates, default 14). Prints only, never stores", run: () => runReport(arg ?? 14) },
+  links: { desc: "Link check over every live pin via the Pinterest API: missing links, off-site links, and posts the blog does not have", run: () => runLinks() },
   run: {
     desc: "Full pipeline: ideas → draft → design → review (arg: idea count, default 3)",
     run: async () => {

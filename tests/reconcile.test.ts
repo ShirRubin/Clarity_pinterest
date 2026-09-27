@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { reconcile, formatReconcile, parsePinterestPins, scheduledLooksTruncated, type PinterestPin } from "../src/reconcile.js";
+import { reconcile, formatReconcile, parsePinterestPins, scheduledLooksTruncated, fromApiPins, type PinterestPin } from "../src/reconcile.js";
 import type { PackInfo } from "../src/packs.js";
 
 // 2026-09-10 09:00 Jerusalem = 06:00 UTC
@@ -145,4 +145,36 @@ test("a posted pack that already knows its pin id is not re-identified", () => {
   p.text.posted = { at: "2026-09-09T08:00:00.000Z", pinId: "9" };
   const r = reconcile([pin("9", "Tea Bucket List", at("2026-09-10", 9))], [], [p], "2026-09-08");
   assert.deepEqual(r.unidentified, []);
+});
+
+test("API pins become published PinterestPins; created_at without a zone is read as UTC", () => {
+  const { pins, untitled } = fromApiPins([
+    { id: "9", createdAt: "2026-09-10T06:00:00", title: "Tea Bucket List", link: null, metrics: { impression: 0, save: 0, pinClick: 0, outboundClick: 0 } },
+  ]);
+  assert.equal(untitled, 0);
+  assert.deepEqual(pins, [{ id: "9", title: "Tea Bucket List", link: undefined, ts: at("2026-09-10", 9), kind: "published" }]);
+});
+
+test("API pins with no title are dropped and counted — reconcile matches on title", () => {
+  const { pins, untitled } = fromApiPins([
+    { id: "1", createdAt: "2026-09-10T06:00:00", title: "  ", link: null, metrics: { impression: 0, save: 0, pinClick: 0, outboundClick: 0 } },
+  ]);
+  assert.deepEqual(pins, []);
+  assert.equal(untitled, 1);
+});
+
+test("published-only mode: a csv-uploaded pack that has gone live gets its id; nothing is called missing", () => {
+  const livePack = pack("posted", "2026-09-10", "Tea Bucket List");
+  const futurePack = pack("posted", "2026-09-20", "Soup Bucket List");
+  const r = reconcile([pin("7", "Tea Bucket List", at("2026-09-10", 9), "published")], [], [livePack, futurePack], "2026-09-12", { publishedOnly: true });
+  assert.deepEqual(r.unidentified.map((u) => u.pin.id), ["7"]);
+  assert.deepEqual(r.missing, []);
+});
+
+test("published-only mode skips the same-title check — old repins share titles, and only the scheduler can hold duplicates to delete", () => {
+  const r = reconcile(
+    [pin("1", "Robotics", at("2025-06-15", 9), "published"), pin("2", "Robotics", at("2025-06-15", 10), "published")],
+    [], [], "2026-09-27", { publishedOnly: true },
+  );
+  assert.deepEqual(r.sameDay, []);
 });
