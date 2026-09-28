@@ -139,7 +139,9 @@ export async function runCsv(
   const copied = await publishImages(entries);
   if (copied) {
     console.log(`${copied} new image(s) in ${PINS_PUBLIC_DIR} — deploying the blog so Pinterest can fetch them`);
-    await deployBlog();
+    // Always a direct wrangler deploy: public/pins/ is git-ignored, so a push
+    // (CLARITY_BLOG_DEPLOY=git) would publish a build without these images.
+    await deployBlog({ direct: true });
   } else {
     console.log("all images already published");
   }

@@ -20,16 +20,79 @@ export const BLOG_DIR = process.env.CLARITY_BLOG_DIR ?? path.join("..", "Clarity
 // exactly the "looks current but isn't" case `deployBehind` below catches.
 const DEPLOY_MARKER = path.join(BLOG_DIR, "dist", ".clarity-deployed");
 
-export async function deployBlog(): Promise<void> {
+/**
+ * How a finished blog build reaches clarity-lists.com (env CLARITY_BLOG_DEPLOY):
+ * - "wrangler" (default): `wrangler deploy` from this machine, as it always was.
+ * - "git": commit the pipeline's blog files on `main` and push; Cloudflare
+ *   Workers Builds (A3) builds and deploys each push, one at a time, which
+ *   ends the parallel-deploy race. Only switch to "git" once a test push has
+ *   been seen building and deploying end to end.
+ */
+export type DeployMode = "wrangler" | "git";
+
+export function deployModeFrom(raw: string | undefined): DeployMode {
+  const v = (raw ?? "").trim().toLowerCase();
+  if (v === "" || v === "wrangler") return "wrangler";
+  if (v === "git") return "git";
+  throw new Error(`CLARITY_BLOG_DEPLOY must be "wrangler" or "git", not "${raw}"`);
+}
+
+/** Production is `main` only; anything else (notably `affiliates`, which
+ *  carries an unreleased Worker script + D1 binding) must never deploy. */
+export const PRODUCTION_BRANCH = "main";
+export function branchProblem(branch: string): string | undefined {
+  if (branch === PRODUCTION_BRANCH) return undefined;
+  return `the blog checkout at ${BLOG_DIR} is on "${branch}", not "${PRODUCTION_BRANCH}", so refusing to deploy it to clarity-lists.com. Switch it back with \`git switch ${PRODUCTION_BRANCH}\` (work on other branches in a separate worktree).`;
+}
+
+// The files the pipeline writes into the blog (posts + their cover images +
+// printable PDFs). public/pins/ is git-ignored on purpose (~370 MB), see csv.ts.
+export const PIPELINE_BLOG_PATHS = ["src/content/posts", "public/images", "public/downloads"];
+
+const git = (args: string[]) =>
+  execFileSync("git", args, { cwd: BLOG_DIR, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] }).trim();
+
+/** Commit whatever the pipeline wrote on main and push it; Workers Builds deploys. */
+function pushToMain(): void {
+  git(["add", "-A", "--", ...PIPELINE_BLOG_PATHS]);
+  let staged = true;
+  try {
+    execFileSync("git", ["diff", "--cached", "--quiet"], { cwd: BLOG_DIR, stdio: "ignore" });
+    staged = false; // exit 0 = nothing staged
+  } catch {
+    /* exit 1 = there are staged changes */
+  }
+  if (staged) {
+    const n = git(["diff", "--cached", "--name-only", "--", "src/content/posts"]).split(/\r?\n/).filter(Boolean).length;
+    git(["commit", "-m", `clarity ship: ${n} post file${n === 1 ? "" : "s"} from the nightly pipeline`]);
+  }
+  // Another session may have pushed since; replay ours on top rather than fail.
+  git(["pull", "--rebase", "origin", PRODUCTION_BRANCH]);
+  execFileSync("git", ["push", "origin", PRODUCTION_BRANCH], { cwd: BLOG_DIR, stdio: "inherit" });
+  console.log(staged ? "Pushed to main; Cloudflare Workers Builds deploys it (Deployments tab)." : "Nothing new to commit; main is pushed.");
+}
+
+/**
+ * Build the blog and publish it. `direct` forces a `wrangler deploy` from this
+ * machine even in "git" mode: `clarity csv` needs that, because the pin PNGs
+ * it publishes live in git-ignored public/pins/ and a GitHub build cannot ship them.
+ */
+export async function deployBlog(opts: { direct?: boolean } = {}): Promise<void> {
+  const mode = deployModeFrom(process.env.CLARITY_BLOG_DEPLOY);
+  const problem = branchProblem(git(["rev-parse", "--abbrev-ref", "HEAD"]));
+  if (problem) throw new Error(problem);
   // npx is a .cmd on Windows — shell:true is what makes it resolvable there.
   const run = (args: string[]) => execFileSync("npx", args, { cwd: BLOG_DIR, stdio: "inherit", shell: true });
   // The blog's house rule (no long dashes anywhere that renders) is enforced by
   // scripts/check-dashes.mjs; `npm run build` runs it as prebuild, this path must too.
   execFileSync("node", ["scripts/check-dashes.mjs"], { cwd: BLOG_DIR, stdio: "inherit", shell: true });
+  // Built locally in both modes: in "git" mode it is the pre-push check, so a
+  // broken build never reaches main.
   run(["astro", "build"]);
-  run(["wrangler", "deploy"]);
-  // Only reached once wrangler deploy actually succeeds (execFileSync throws
-  // otherwise) — this is what lets the next run tell "deployed" from "built".
+  if (mode === "git" && !opts.direct) pushToMain();
+  else run(["wrangler", "deploy"]);
+  // Only reached once the deploy (or push) actually succeeds (execFileSync
+  // throws otherwise). This is what lets the next run tell "deployed" from "built".
   await writeFile(DEPLOY_MARKER, new Date().toISOString(), "utf8");
 }
 
