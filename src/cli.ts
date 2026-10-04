@@ -21,6 +21,7 @@ import { runUploaded } from "./stages/uploaded.js";
 import { runStats } from "./stages/stats.js";
 import { runReport } from "./stages/report.js";
 import { runLinks } from "./stages/links.js";
+import { runTrends } from "./stages/trends.js";
 import { runAuth, readStore, describeStore } from "./pinterestAuth.js";
 import { runCopyCheck } from "./stages/copycheck.js";
 import { runQueue } from "./queue.js";
@@ -107,6 +108,17 @@ const commands: Record<string, { desc: string; run: () => Promise<unknown> }> = 
   stats: { desc: "Import the Pinterest analytics CSVs in data/analytics/raw/ (older exports are archived first so the newest wins; --notion also writes per-pin stats + the summary page)", run: () => runStats(flags.has("--notion")) },
   report: { desc: "Live pin performance from the Pinterest API: totals, per-template A/B table, top pins (arg: min pin age in days to compare templates, default 14). Prints only, never stores", run: () => runReport(arg ?? 14) },
   links: { desc: "Link check over every live pin via the Pinterest API: missing links, off-site links, and posts the blog does not have", run: () => runLinks() },
+  trends: {
+    desc: "What people search on Pinterest now, live from the API: searches containing \"bucket list\" (✓ = a post answers it, NEW = a gap), then the top searches per Clarity topic. Prints only (arg: rows per topic, default 10; --type=growing|monthly|seasonal|yearly, --region=US, --interest=travel,wedding, --match=winter,christmas)",
+    run: () =>
+      runTrends({
+        limit: arg,
+        type: flagValue("type"),
+        region: flagValue("region"),
+        interests: flagValue("interest")?.split(",").map((x) => x.trim()).filter(Boolean),
+        match: flagValue("match")?.split(",").map((x) => x.trim()).filter(Boolean),
+      }),
+  },
   copycheck: {
     desc: "Waiting packs against the copy rules `csv` enforces (keyword in first 40 title chars, alt 80–140, click CTA naming the post); --fix appends the CTA to packs + Notion rows",
     run: () => runCopyCheck(flags.has("--fix")),

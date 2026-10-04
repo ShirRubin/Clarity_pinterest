@@ -65,3 +65,28 @@ export async function accountTotals(startDate: string, endDate: string): Promise
   const m = r.all.summary_metrics;
   return { impression: m.IMPRESSION ?? 0, save: m.SAVE ?? 0, pinClick: m.PIN_CLICK ?? 0, outboundClick: m.OUTBOUND_CLICK ?? 0 };
 }
+
+export type TrendType = "growing" | "monthly" | "seasonal" | "yearly";
+
+/** One keyword from Pinterest's top-trends list. `time_series` is a weekly index, 0-100 against the keyword's own peak. */
+export interface RawTrend {
+  keyword: string;
+  pct_growth_wow: number;
+  pct_growth_mom: number;
+  pct_growth_yoy: number;
+  time_series: Record<string, number>;
+}
+
+/**
+ * Pinterest's top search trends for a region. Unlike trends.pinterest.com's
+ * /top_trends_filtered/ (see src/trends.ts), the API honours its filters:
+ * `interest` is one of Pinterest's fixed topic ids (travel, wedding, …) and
+ * `includeKeywords` keeps only searches containing those words.
+ */
+export async function topTrends(o: { region: string; type: TrendType; interest?: string; includeKeywords?: string[]; limit: number }): Promise<RawTrend[]> {
+  const q = new URLSearchParams({ limit: String(o.limit) });
+  if (o.interest) q.append("interests", o.interest);
+  for (const k of o.includeKeywords ?? []) q.append("include_keywords", k);
+  const r = await get<{ trends: RawTrend[] }>(`/trends/keywords/${encodeURIComponent(o.region)}/top/${o.type}?${q}`);
+  return r.trends ?? [];
+}
