@@ -2,6 +2,7 @@ import { Client } from "@notionhq/client";
 import "dotenv/config";
 import { DB_PROPERTIES, STATUSES, type Board, type Status } from "./schema.js";
 import { pageToSummary, imageUrlsOf, rt, type NotionPage, type PinSummary } from "./notionPage.js";
+import { variantCopyColumn, type VariantCopies } from "./variantCopy.js";
 
 export type { PinSummary, NotionPage } from "./notionPage.js";
 
@@ -44,6 +45,8 @@ export interface PinRow {
   notes?: string;
   /** Per-template posting dates → one date column each (src/variants.ts). */
   variants?: Partial<Record<string, string | null>>;
+  /** Per-template pin copy → "<field> · <template>" columns (src/variantCopy.ts); "" clears a field. */
+  variantCopy?: VariantCopies;
 }
 
 export function toNotionProperties(row: PinRow): Record<string, unknown> {
@@ -80,6 +83,12 @@ export function toNotionProperties(row: PinRow): Record<string, unknown> {
   for (const [template, date] of Object.entries(row.variants ?? {})) {
     if (date) p[template] = { date: { start: date } };
     else if (date === null) p[template] = { date: null };
+  }
+  for (const [template, copy] of Object.entries(row.variantCopy ?? {})) {
+    if (!copy) continue;
+    if (copy.pinTitle !== undefined) p[variantCopyColumn("Pin title", template)] = { rich_text: rt(copy.pinTitle) };
+    if (copy.pinDescription !== undefined) p[variantCopyColumn("Pin description", template)] = { rich_text: rt(copy.pinDescription) };
+    if (copy.altText !== undefined) p[variantCopyColumn("Alt text", template)] = { rich_text: rt(copy.altText) };
   }
   return p;
 }

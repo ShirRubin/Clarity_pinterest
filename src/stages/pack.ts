@@ -13,6 +13,7 @@ import { readPacks } from "../packs.js";
 import { assignDates, slotTime, type QueueItem, type ScheduledEntry } from "../schedule.js";
 import { chooseDestination, postSlugForName, slugify } from "../destination.js";
 import { redatePending } from "./redate.js";
+import { copyFor } from "../variantCopy.js";
 
 const BLOG_DIR = process.env.CLARITY_BLOG_DIR ?? path.join("..", "Clarity_blog");
 const POSTS_DIR = path.join(BLOG_DIR, "src", "content", "posts");
@@ -112,6 +113,7 @@ export async function runPack(limit = 10): Promise<void> {
   const assigned = assignDates(existing, queue, today);
 
   let packed = 0;
+  let sharedCopy = 0;
   const newlyPacked = new Set<string>(); // pageIds this run actually wrote a variant for
   for (const a of assigned) {
     const [pageId, template] = a.id.split("#");
@@ -127,6 +129,10 @@ export async function runPack(limit = 10): Promise<void> {
     const packDir = path.join("exports", "packs", `${a.date}--${slug}--${template}`);
     await mkdir(packDir, { recursive: true });
     await cp(src, path.join(packDir, `${template}.png`));
+    // Each variant carries its own title / description / alt (src/variantCopy.ts);
+    // a row that has none yet falls back to the base copy and says so.
+    const copy = copyFor(row, template);
+    if (!copy.own && template !== TEMPLATE_NAMES[0]) sharedCopy++;
     await writeFile(
       path.join(packDir, "post.txt"),
       postText({
@@ -134,9 +140,9 @@ export async function runPack(limit = 10): Promise<void> {
         time: slotTime(a.slot),
         pageId,
         image: `${template}.png`,
-        title: row.pinTitle ?? row.name,
-        description: row.pinDescription ?? "",
-        alt: row.altText ?? "",
+        title: copy.title,
+        description: copy.description,
+        alt: copy.alt,
         board: row.board ?? "(pick manually)",
         link: a.destUrl,
       }),
@@ -179,6 +185,7 @@ export async function runPack(limit = 10): Promise<void> {
   }
   const skippedNote = skipped ? ` (${skipped} row(s) skipped — missing blog post)` : "";
   console.log(`\n${packed} pack(s) written to exports/packs/ — run /clarity-post to put them on Pinterest.${skippedNote}`);
+  if (sharedCopy) console.warn(`⚠ ${sharedCopy} variant pack(s) carry the row's base copy — run \`clarity variantcopy\` and they are rewritten in place.`);
 
   // assignDates gave the new packs the first free slots, which on a full
   // calendar means the far end of it. Re-date the pending calendar with new

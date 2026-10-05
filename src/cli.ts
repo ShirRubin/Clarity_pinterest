@@ -10,6 +10,7 @@ import { runReview } from "./stages/review.js";
 import { runApprove } from "./stages/approve.js";
 import { runRevise } from "./stages/revise.js";
 import { runPack } from "./stages/pack.js";
+import { runVariantCopy } from "./stages/variantCopy.js";
 import { runBlogpost } from "./stages/blogpost.js";
 import { runShip } from "./stages/ship.js";
 import { runPostPlan } from "./stages/postplan.js";
@@ -53,7 +54,8 @@ const commands: Record<string, { desc: string; run: () => Promise<unknown> }> = 
   review: { desc: "Designed → In Review: stage for the Notion review queue", run: () => runReview(arg ?? 50) },
   approve: { desc: "In Review → Approved / Needs changes / Rejected via local review page (arg: port, default 4178)", run: () => runApprove(arg ?? 4178) },
   revise: { desc: "Needs changes → rewrite from your review notes, re-render, back to In Review (arg: limit, default 10)", run: () => runRevise(arg ?? 10) },
-  ship: { desc: "Approved → blog post + packs + blog deploy, in one go (no browser)", run: () => runShip() },
+  ship: { desc: "Approved → blog post + variant copy + packs + blog deploy, in one go (no browser)", run: () => runShip() },
+  variantcopy: { desc: "Own title/description/alt per design variant for packable rows that still share one set, then rewrite their pending packs (arg: limit, default 50)", run: () => runVariantCopy({ limit: arg ?? 50 }) },
   pack: { desc: "Approved / Scheduled / Published rows with unposted variants → dated, time-slotted packs in exports/packs/ (arg: limit, default 10)", run: () => runPack(arg ?? 10) },
   publish: {
     desc: "(deprecated alias of pack)",

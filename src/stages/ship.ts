@@ -10,6 +10,7 @@ import { readdir, stat, writeFile, access } from "node:fs/promises";
 import path from "node:path";
 import { runBlogpost } from "./blogpost.js";
 import { runPack } from "./pack.js";
+import { runVariantCopy } from "./variantCopy.js";
 import { blogDrift } from "../status.js";
 
 export const BLOG_DIR = process.env.CLARITY_BLOG_DIR ?? path.join("..", "Clarity_blog");
@@ -157,6 +158,8 @@ async function blogBehind(): Promise<boolean> {
 export async function runShip(): Promise<void> {
   console.log("--- blog posts ---");
   const written = await runBlogpost(50);
+  console.log("\n--- variant copy ---");
+  await runVariantCopy({ limit: 50 });
   console.log("\n--- packs ---");
   await runPack(50);
 

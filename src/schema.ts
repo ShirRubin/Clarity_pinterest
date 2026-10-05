@@ -1,6 +1,7 @@
 // Single source of truth for the "Clarity Pins" Notion database schema.
 // setup-notion.ts creates the DB from this; notion.ts reads/writes through it.
 import { TEMPLATE_NAMES, type TemplateName } from "./templates.js";
+import { COPY_FIELDS, SECONDARY_TEMPLATES, variantCopyColumn } from "./variantCopy.js";
 
 export const STATUSES = [
   "Idea",
@@ -84,6 +85,12 @@ const VARIANT_DATE_PROPERTIES = Object.fromEntries(TEMPLATE_NAMES.map((t) => [t,
   { date: Record<string, never> }
 >;
 
+// One title / description / alt text per secondary template (src/variantCopy.ts):
+// "Pin title · bold-panel" and so on. The first template keeps the base columns.
+const VARIANT_COPY_PROPERTIES = Object.fromEntries(
+  SECONDARY_TEMPLATES.flatMap((t) => COPY_FIELDS.map((f) => [variantCopyColumn(f, t), { rich_text: {} }])),
+) as Record<string, { rich_text: Record<string, never> }>;
+
 // Notion API property definitions for database creation.
 export const DB_PROPERTIES = {
   Name: { title: {} },
@@ -125,4 +132,5 @@ export const DB_PROPERTIES = {
   // One date per design template — the variant's posting date (empty = not
   // posted, future = scheduled, past = live). See src/variants.ts.
   ...VARIANT_DATE_PROPERTIES,
+  ...VARIANT_COPY_PROPERTIES,
 } as const;

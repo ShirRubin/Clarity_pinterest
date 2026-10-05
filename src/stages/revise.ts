@@ -10,6 +10,7 @@
 // acts on feedback written since the last rewrite.
 import { generateJSON } from "../claude.js";
 import { pinsByStatus, updatePin } from "../notion.js";
+import { SECONDARY_TEMPLATES } from "../variantCopy.js";
 import { BRAND_CONTEXT, SEO_RULES, VOICE_EXAMPLE } from "../prompts.js";
 import { DRAFT_SCHEMA, type DraftOut } from "./draft.js";
 import { runDesign } from "./design.js";
@@ -90,6 +91,8 @@ Reply with ONLY a JSON object:
         status: "Drafted",
         listItems: draft.listItems.map((item, i) => `${i + 1}. ${item}`).join("\n"),
         pinTitle: draft.pinTitle?.slice(0, 100) ?? row.pinTitle,
+        // The variant sets described the old list; clear them so `ship` writes new ones.
+        variantCopy: Object.fromEntries(SECONDARY_TEMPLATES.map((t) => [t, { pinTitle: "", pinDescription: "", altText: "" }])),
         pinDescription: draft.pinDescription,
         altText: draft.altText?.slice(0, 160),
         keywords: (draft.keywords ?? []).slice(0, 8).map((k) => k.slice(0, 100)),

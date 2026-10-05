@@ -1,6 +1,7 @@
 // src/notionPage.ts — the pure half of the Notion layer: raw page JSON → PinSummary.
 // No SDK, no env, no I/O, so the review Worker can use it with plain fetch.
 import { VARIANT_COLUMNS, type Variants } from "./variants.js";
+import { SECONDARY_TEMPLATES, variantCopyColumn, type VariantCopies } from "./variantCopy.js";
 
 type NotionProp = {
   title?: { plain_text: string }[];
@@ -40,6 +41,8 @@ export interface PinSummary {
   notes?: string;
   /** Per-template posting date columns (see src/variants.ts); filled columns only. */
   variants: Variants;
+  /** Per-template pin copy (src/variantCopy.ts); templates with at least one filled field. */
+  variantCopy: VariantCopies;
   imageUrls: string[];
 }
 
@@ -83,6 +86,16 @@ export function pageToSummary(page: NotionPage): PinSummary {
     scheduledDate: p["Scheduled date"]?.date?.start,
     variants: Object.fromEntries(
       VARIANT_COLUMNS.map((t) => [t, p[t]?.date?.start]).filter(([, d]) => !!d),
+    ),
+    variantCopy: Object.fromEntries(
+      SECONDARY_TEMPLATES.flatMap((t) => {
+        const c = {
+          pinTitle: text(p[variantCopyColumn("Pin title", t)]) || undefined,
+          pinDescription: text(p[variantCopyColumn("Pin description", t)]) || undefined,
+          altText: text(p[variantCopyColumn("Alt text", t)]) || undefined,
+        };
+        return c.pinTitle || c.pinDescription || c.altText ? [[t, c]] : [];
+      }),
     ),
     publishedDate: p["Published date"]?.date?.start,
     impressions: p["Impressions"]?.number ?? undefined,
