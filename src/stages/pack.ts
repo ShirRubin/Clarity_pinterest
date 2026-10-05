@@ -12,6 +12,7 @@ import { postText } from "../packText.js";
 import { readPacks } from "../packs.js";
 import { assignDates, slotTime, type QueueItem, type ScheduledEntry } from "../schedule.js";
 import { chooseDestination, postSlugForName, slugify } from "../destination.js";
+import { redatePending } from "./redate.js";
 
 const BLOG_DIR = process.env.CLARITY_BLOG_DIR ?? path.join("..", "Clarity_blog");
 const POSTS_DIR = path.join(BLOG_DIR, "src", "content", "posts");
@@ -178,4 +179,13 @@ export async function runPack(limit = 10): Promise<void> {
   }
   const skippedNote = skipped ? ` (${skipped} row(s) skipped — missing blog post)` : "";
   console.log(`\n${packed} pack(s) written to exports/packs/ — run /clarity-post to put them on Pinterest.${skippedNote}`);
+
+  // assignDates gave the new packs the first free slots, which on a full
+  // calendar means the far end of it. Re-date the pending calendar with new
+  // lists first (src/freshness.ts) so a list approved today opens next week,
+  // not behind three months of fourth skins.
+  if (packed) {
+    console.log(`\nRe-dating the pending calendar, new lists first…`);
+    await redatePending({ apply: true, today, rows: all });
+  }
 }

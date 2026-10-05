@@ -4,6 +4,9 @@ import { createPin, listAllPins } from "../notion.js";
 import { BOARDS, THEMES, TRENDS, type Board } from "../schema.js";
 import { BRAND_CONTEXT, SEO_RULES } from "../prompts.js";
 import { loadTrends, formatForPrompt, isStale, cacheAgeDays, STALE_AFTER_DAYS } from "../trends.js";
+import { bucketListRows } from "./trends.js";
+import { formatDemandTargets, pickTargets } from "../demandTargets.js";
+import { DO_NOT_GENERATE, IDEA_BOARDS } from "../prompts.js";
 
 interface IdeaOut {
   name: string;
@@ -43,24 +46,44 @@ export async function runIdeas(count = 5): Promise<void> {
   }
   const demandBlock = formatForPrompt(trends, today);
 
+  // The searches the blog does not answer yet, live from Pinterest's trends
+  // API (print-only, never stored). The API is read-only and on Trial; if it
+  // is down or the token lapsed, generation carries on with the cache alone.
+  let targetsBlock = "";
+  try {
+    const targets = pickTargets(await bucketListRows());
+    targetsBlock = formatDemandTargets(targets, count);
+    console.log(`Pinterest search gaps: ${targets.length} "bucket list" searches with no post yet.`);
+  } catch (err) {
+    console.warn(`! Could not read Pinterest trends (${(err as Error).message}) — ideas use the demand cache only.`);
+  }
+
+  // Boards with the fewest lists are where a new list is most visible; the
+  // two dead boards (see DO_NOT_GENERATE) are not offered at all.
+  const boardLine = IDEA_BOARDS.map((b) => `${b}: ${boardCounts[b] ?? 0}`).join(" · ");
+
   const system = `${BRAND_CONTEXT}\n\nYou are the idea engine of Clarity's content pipeline. You propose bucket-list ideas that people will SAVE — saves are Pinterest's #1 ranking signal.`;
 
   const user = `Today is ${today}. Pinterest users plan 45-60 days ahead, so seasonal ideas should target events 45-60 days out (set seasonWindow to the earliest sensible publish date, or null for evergreen).
 
+${targetsBlock}
+
 ${demandBlock}
 
-Current board sizes (bigger = proven demand worth doubling down on): ${JSON.stringify(boardCounts)}
+Lists per board today (prefer the boards with the FEWEST lists; never more than one idea per board in this run): ${boardLine}
+
+${DO_NOT_GENERATE}
 
 Every idea must be clearly different from ALL existing pins:
 ${existingNames.map((n) => `- ${n}`).join("\n")}
 
 ${SEO_RULES}
 
-Propose exactly ${count} new bucket-list ideas. Mix: some riding a trend tag, some seasonal (45-60 day lead from today), some doubling down on proven boards. Each must have an obvious save-worthy hook.
-${demandBlock ? `\nGround them in the demand data above: most ideas should map onto a rising, peaking or steady term, and the matching phrase should read naturally in the list's title. Do not force a term in where it does not belong — a natural title beats a keyword-stuffed one.` : ""}
+Propose exactly ${count} new bucket-list ideas. Each title carries a phrase people actually type into Pinterest search (a head term like "winter bucket list", "christmas bucket list ideas", "couples bucket list", "travel bucket list", "bucket list for college students"), a number, and a hook that makes it worth saving. Seasonal ideas lead the holiday by 45-60 days.
+${demandBlock ? `\nGround the rest in the demand data above: map onto a rising, peaking or steady term, and let the phrase read naturally in the title. A natural title beats a keyword-stuffed one.` : ""}
 
 Reply with ONLY a JSON array, each element:
-{"name": "working title of the list", "theme": one of ${JSON.stringify(THEMES)}, "trend": one of ${JSON.stringify(TRENDS)}, "board": one of ${JSON.stringify(BOARDS)}, "seasonWindow": "YYYY-MM-DD" or null, "rationale": "one sentence on why this will get saves"}`;
+{"name": "working title of the list", "theme": one of ${JSON.stringify(THEMES)}, "trend": one of ${JSON.stringify(TRENDS)}, "board": one of ${JSON.stringify(IDEA_BOARDS)}, "seasonWindow": "YYYY-MM-DD" or null, "rationale": "one sentence on why this will get saves"}`;
 
   // Enums here mean the model can only return select values Notion already knows.
   const schema = {
@@ -71,7 +94,7 @@ Reply with ONLY a JSON array, each element:
         name: { type: "string" },
         theme: { type: "string", enum: [...THEMES] },
         trend: { type: "string", enum: [...TRENDS] },
-        board: { type: "string", enum: [...BOARDS] },
+        board: { type: "string", enum: [...IDEA_BOARDS] },
         seasonWindow: { type: ["string", "null"], description: "YYYY-MM-DD or null" },
         rationale: { type: "string" },
       },

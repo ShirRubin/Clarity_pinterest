@@ -9,6 +9,12 @@
 // treated as cover — a pile of missed posts must not make the queue look healthy;
 // submitted packs are already dealt with and are never past due.
 //
+// Since Oct 5 2026 (growth review, plan §1) runway is ALSO measured in NEW
+// lists: 540 variant packs of lists Pinterest already knew read as 91 days of
+// cover and switched the generator off for a month. `FRESH_LISTS_PER_WEEK` is
+// a floor on lists whose first pin goes live in the next 7 days; the backlog
+// of fourth skins never satisfies it (src/freshness.ts).
+//
 // The arithmetic half is pure so tests/queue.test.ts can pin it down; the async
 // half reads the packs directory and Notion.
 import { readdir } from "node:fs/promises";
@@ -18,12 +24,20 @@ import { PINS_PER_DAY } from "./schedule.js";
 import type { Status } from "./schema.js";
 import { slugify } from "./destination.js";
 import { splitPackName } from "./packs.js";
+import { freshLists, type CalendarPack } from "./freshness.js";
+import { rowForPack } from "./rowForPack.js";
 
 /** Keep this many days of scheduled packs ahead of today. */
 export const TARGET_RUNWAY_DAYS = 14;
 
 /** Ceiling on one run: draft alone costs ~85s per list, so a night's batch stays small. */
 export const MAX_LISTS_PER_RUN = 6;
+
+/** New lists (never posted, not backfill) whose first pin must go live each week, whatever the pack count says. */
+export const FRESH_LISTS_PER_WEEK = 5;
+
+/** The window `FRESH_LISTS_PER_WEEK` is counted over. */
+export const FRESH_HORIZON_DAYS = 7;
 
 /** Each approved list becomes one pin per template. Guarded against drift in tests. */
 export const VARIANTS_PER_LIST = 4;
@@ -80,13 +94,17 @@ export function runwayFromPackNames(
   };
 }
 
-/** How many fresh lists to generate to reach TARGET_RUNWAY_DAYS, capped per run. */
-export function listsNeeded(runway: Runway, inFlightLists: number): number {
+/**
+ * How many lists to generate: enough to reach TARGET_RUNWAY_DAYS of packs AND
+ * enough new lists to hold FRESH_LISTS_PER_WEEK, whichever asks for more,
+ * capped per run. Lists in flight (idea → approved, not yet packed) count
+ * against both, since they become the next fresh openers.
+ */
+export function listsNeeded(runway: Runway, inFlightLists: number, freshThisWeek = FRESH_LISTS_PER_WEEK): number {
   const shortfallDays = TARGET_RUNWAY_DAYS - runway.daysOfRunway;
-  if (shortfallDays <= 0) return 0;
-  const packsWanted = shortfallDays * PINS_PER_DAY;
-  const lists = Math.ceil(packsWanted / VARIANTS_PER_LIST) - inFlightLists;
-  return Math.max(0, Math.min(MAX_LISTS_PER_RUN, lists));
+  const forRunway = shortfallDays > 0 ? Math.ceil((shortfallDays * PINS_PER_DAY) / VARIANTS_PER_LIST) - inFlightLists : 0;
+  const forFreshness = FRESH_LISTS_PER_WEEK - freshThisWeek - inFlightLists;
+  return Math.max(0, Math.min(MAX_LISTS_PER_RUN, Math.max(forRunway, forFreshness)));
 }
 
 /**
@@ -113,7 +131,19 @@ export interface QueueHealth extends Runway {
   /** Row counts per pipeline status, for the statuses that represent work in flight. */
   inFlight: Partial<Record<Status, number>>;
   inFlightLists: number;
+  /** New lists whose first pin goes live in the next FRESH_HORIZON_DAYS days. */
+  freshThisWeek: string[];
   needed: number;
+}
+
+/** Pack names → the shape src/freshness.ts reads (exported flag unknown here; it only matters for re-dating). */
+function calendarPacks(names: string[]): CalendarPack[] {
+  const out: CalendarPack[] = [];
+  for (const dir of names) {
+    const parts = splitPackName(dir);
+    if (parts) out.push({ dir, ...parts });
+  }
+  return out;
 }
 
 /** Pack directory names under exports/<dir>, or none when it does not exist yet. */
@@ -137,10 +167,16 @@ export async function queueHealth(
   const [pending, submitted] = await Promise.all([packNames("packs"), packNames("posted")]);
   const runway = runwayFromPackNames(pending, today, submitted);
 
-  const inFlight = inFlightFrom(rows ?? (await listAllPins()), [...pending, ...submitted]);
+  const allRows = rows ?? (await listAllPins());
+  const inFlight = inFlightFrom(allRows, [...pending, ...submitted]);
   const inFlightLists = Object.values(inFlight).reduce((a, b) => a + b, 0);
 
-  return { ...runway, inFlight, inFlightLists, needed: listsNeeded(runway, inFlightLists) };
+  // A pack without a PAGE: line falls back to a slug match against non-backfill
+  // rows, so a backfill list (a 2025 pin Pinterest already knows) is never "new".
+  const isNew = (slug: string) => !!rowForPack({ text: {}, slug }, allRows);
+  const freshThisWeek = freshLists(calendarPacks(pending), calendarPacks(submitted), today, FRESH_HORIZON_DAYS, isNew);
+
+  return { ...runway, inFlight, inFlightLists, freshThisWeek, needed: listsNeeded(runway, inFlightLists, freshThisWeek.length) };
 }
 
 export function formatQueueHealth(h: QueueHealth): string {
@@ -156,8 +192,13 @@ export function formatQueueHealth(h: QueueHealth): string {
       : `In flight nothing — no lists between idea and approval`,
   );
   lines.push(
+    `Fresh     ${h.freshThisWeek.length} new list(s) go live in the next ${FRESH_HORIZON_DAYS} days (floor ${FRESH_LISTS_PER_WEEK})` +
+      (h.freshThisWeek.length ? `: ${h.freshThisWeek.slice(0, 5).join(", ")}${h.freshThisWeek.length > 5 ? ", …" : ""}` : ""),
+  );
+  lines.push(
     h.needed
-      ? `Generate  ${h.needed} new list(s) to reach a ${TARGET_RUNWAY_DAYS}-day runway`
+      ? `Generate  ${h.needed} new list(s) — ` +
+          (h.daysOfRunway < TARGET_RUNWAY_DAYS ? `to reach a ${TARGET_RUNWAY_DAYS}-day runway` : `to keep ${FRESH_LISTS_PER_WEEK} new lists a week going live`)
       : `Generate  nothing — the queue is healthy`,
   );
   if (h.inFlight["In Review"]) {

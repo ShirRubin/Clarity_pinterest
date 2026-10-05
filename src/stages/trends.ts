@@ -23,6 +23,18 @@ function line(r: TrendRow, withBlog: boolean): string {
 
 const header = (withBlog: boolean) => `  ${"search".padEnd(38)} ${pad("month", 7)} ${pad("year", 7)} ${pad("now", 7)}   peak${withBlog ? "  blog" : ""}`;
 
+/** Live rows for every "bucket list" search (growing first, then the biggest), with blog coverage. ~2 API calls. */
+export async function bucketListRows(region = "US"): Promise<TrendRow[]> {
+  const files = await readdir(POSTS_DIR);
+  const slugs = files.filter((f) => /\.mdx?$/.test(f)).map((f) => f.replace(/\.mdx?$/, ""));
+  const [moving, steady] = await Promise.all([
+    topTrends({ region, type: "growing", includeKeywords: ["bucket list"], limit: 50 }),
+    topTrends({ region, type: "monthly", includeKeywords: ["bucket list"], limit: 50 }),
+  ]);
+  const seen = new Set<string>();
+  return [...moving, ...steady].filter((t) => !seen.has(t.keyword) && !!seen.add(t.keyword)).map((t) => toRow(t, slugs));
+}
+
 export async function runTrends(o: { limit?: number; type?: string; region?: string; interests?: string[]; match?: string[] } = {}): Promise<void> {
   const region = o.region ?? "US";
   const perTopic = o.limit ?? 10;

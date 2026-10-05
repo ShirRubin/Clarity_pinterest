@@ -7,6 +7,7 @@ import {
   MAX_LISTS_PER_RUN,
   TARGET_RUNWAY_DAYS,
   VARIANTS_PER_LIST,
+  FRESH_LISTS_PER_WEEK,
 } from "../src/queue.js";
 import { TEMPLATE_NAMES } from "../src/render/renderPin.js";
 
@@ -92,6 +93,30 @@ test("past-due packs do not pad the runway", () => {
   );
   const without = runwayFromPackNames([pack("2026-09-11")], "2026-08-30");
   assert.equal(listsNeeded(withOverdue, 0), listsNeeded(without, 0));
+});
+
+// --- the freshness floor (Oct 5 2026) ------------------------------------------
+// 540 packs of old lists read as 91 days of runway and silenced the generator
+// for a month. A deep calendar of fourth skins is not cover for NEW lists.
+
+test("a deep calendar with no new lists going live still asks for the weekly floor", () => {
+  const r = runwayFromPackNames([pack("2027-01-04")], "2026-10-05"); // 91 days
+  assert.equal(listsNeeded(r, 0, 0), FRESH_LISTS_PER_WEEK);
+});
+
+test("new lists already opening this week and lists in flight both count toward the floor", () => {
+  const r = runwayFromPackNames([pack("2027-01-04")], "2026-10-05");
+  assert.equal(listsNeeded(r, 1, 2), FRESH_LISTS_PER_WEEK - 3);
+  assert.equal(listsNeeded(r, 0, FRESH_LISTS_PER_WEEK), 0);
+  assert.equal(listsNeeded(r, 9, 0), 0);
+});
+
+test("the floor and the runway shortfall take the larger of the two, still capped per run", () => {
+  const empty = runwayFromPackNames([], "2026-10-05"); // runway alone wants MAX_LISTS_PER_RUN
+  assert.equal(listsNeeded(empty, 0, 0), MAX_LISTS_PER_RUN);
+  const twoShort = runwayFromPackNames([pack("2026-10-17")], "2026-10-05"); // 12 days → 3 lists for runway
+  assert.equal(listsNeeded(twoShort, 0, 0), FRESH_LISTS_PER_WEEK); // but the floor wants 5
+  assert.equal(listsNeeded(twoShort, 0, FRESH_LISTS_PER_WEEK), 3); // floor met → runway decides
 });
 
 // --- drift guard -------------------------------------------------------------

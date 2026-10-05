@@ -3,12 +3,22 @@ import { BOARDS, THEMES, TRENDS } from "./schema.js";
 export const BRAND_CONTEXT = `Clarity Bucket Lists is a Pinterest-first content brand (@claritybucketlists) publishing
 curated, aesthetic bucket lists: pop culture eras, self-growth, manifestation, travel, fandoms, it-girl energy.
 Audience: mostly Gen Z and young-millennial women who save aspirational-but-doable lists.
-Voice: warm, direct, second person, a little playful. Confident short sentences. Em dashes. Never corporate,
-never generic listicle filler. Every item is specific enough to actually do.
+Voice: warm, direct, second person, a little playful. Confident short sentences. Never corporate,
+never generic listicle filler. Every item is specific enough to actually do. No em dashes or en dashes in
+pin titles, descriptions or alt text (house rule since Sep 27, 2026): a colon, comma or full stop instead.
 
 Boards: ${BOARDS.join(" · ")}
 Themes: ${THEMES.join(" · ")}
 Trend tags (Pinterest Predicts 2026 waves + evergreen): ${TRENDS.join(" · ")}`;
+
+/** Boards a new idea may be filed under. The two tech/career boards are left
+ *  out: their pins get almost no impressions (growth review, Oct 5 2026) and
+ *  "Figma / Python / Photoshop bucket list" is not something Pinterest's
+ *  audience searches. They stay in BOARDS for the rows that already exist. */
+export const IDEA_BOARDS = BOARDS.filter((b) => b !== "Coding & Tech Skills Bucket Lists" && b !== "Career & Learn New Skills");
+
+/** Topics the idea engine must not propose. Spliced into the ideas prompt. */
+export const DO_NOT_GENERATE = `Never propose: software or coding skills (Figma, Canva, Photoshop, Python, robotics, "learn to code"), career-ladder or productivity-tool lists, anything whose audience is a developer or a designer rather than a Pinterest reader planning her season, her trip or her evening.`;
 
 // Real excerpt from the blog — the canonical Clarity voice for list items.
 export const VOICE_EXAMPLE = `Example of the Clarity voice (from "It Girl Era Bucket List"):
