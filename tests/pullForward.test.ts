@@ -8,11 +8,10 @@ const ts = (date: string, time: string) => Date.parse(`${toUtcStamp(date, time)}
 const pin = (id: string, date: string, time: string, link = `https://x/${id}`) => ({ id, link, ts: ts(date, time) });
 
 test("the latest pins fill the earliest short day, into its free slot times", () => {
+  // Three slots a day since 2026-10-05: Oct 1 has one free (18:00), Oct 2 is empty.
   const scheduled = [
     pin("a", "2026-10-01", "09:00 AM"),
-    pin("b", "2026-10-01", "11:00 AM"),
     pin("c", "2026-10-01", "01:00 PM"),
-    pin("d", "2026-10-01", "04:00 PM"),
     pin("late1", "2026-11-10", "09:00 AM"),
     pin("late2", "2026-11-12", "09:00 AM"),
   ];

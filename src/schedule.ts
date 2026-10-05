@@ -1,7 +1,8 @@
 // Cadence-aware date assignment for approved pins.
 // Pure logic — no Notion, no filesystem — so it stays unit-testable.
-// Rules (see DESIGN.md): 5 pins/day (the research's upper sweet spot, chosen
-// 2026-09-17 to work through the four-variant backlog; was 3), and never the
+// Rules (see DESIGN.md): 3 pins/day (back from 5 on 2026-10-05, growth review
+// plan §1: 5/day was a backlog-clearing choice and the backlog is fourth skins;
+// Pinterest's 2026 guidance for an active account is 1-3 fresh pins a day), and never the
 // same destination URL twice within 7 days (raised from 72h on 2026-09-22:
 // AFFILIATE_RESEARCH.md finds a new image on an existing URL keeps 64% of its
 // distribution while near-identical batching collapses to 11%, and Tailwind
@@ -25,12 +26,12 @@ export interface Assignment extends QueueItem {
   slot: number;
 }
 
-export const PINS_PER_DAY = 5;
+export const PINS_PER_DAY = 3;
 export const URL_GAP_DAYS = 7;
 
-/** Pinterest's scheduler time labels for the day's five slots. Never 12:00 PM —
+/** Pinterest's scheduler time labels for the day's three slots. Never 12:00 PM —
  *  that is the builder's default and how the duplicate-pin defect was born. */
-export const SLOT_TIMES = ["09:00 AM", "11:00 AM", "01:00 PM", "04:00 PM", "06:00 PM"] as const;
+export const SLOT_TIMES = ["09:00 AM", "01:00 PM", "06:00 PM"] as const;
 export const POST_TZ = "Asia/Jerusalem";
 export const slotTime = (slot: number) => SLOT_TIMES[slot];
 

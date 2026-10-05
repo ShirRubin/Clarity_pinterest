@@ -69,15 +69,15 @@ test("an empty queue is capped at the per-run maximum", () => {
 });
 
 test("a small gap asks for only what closes it", () => {
-  // 12 days of runway, 2 days short: 2 days x 5 pins = 10 packs / 4 variants = 3 lists.
+  // 12 days of runway, 2 days short: 2 days x 3 pins = 6 packs / 4 variants = 2 lists.
   const r = runwayFromPackNames([pack("2026-09-11")], "2026-08-30");
   assert.equal(r.daysOfRunway, 12);
-  assert.equal(listsNeeded(r, 0), 3);
+  assert.equal(listsNeeded(r, 0), 2);
 });
 
 test("lists already in flight count against what the run needs to make", () => {
-  const r = runwayFromPackNames([pack("2026-09-11")], "2026-08-30"); // needs 3
-  assert.equal(listsNeeded(r, 1), 2);
+  const r = runwayFromPackNames([pack("2026-09-11")], "2026-08-30"); // needs 2
+  assert.equal(listsNeeded(r, 1), 1);
 });
 
 test("more in flight than needed asks for nothing, never a negative", () => {
@@ -114,9 +114,9 @@ test("new lists already opening this week and lists in flight both count toward 
 test("the floor and the runway shortfall take the larger of the two, still capped per run", () => {
   const empty = runwayFromPackNames([], "2026-10-05"); // runway alone wants MAX_LISTS_PER_RUN
   assert.equal(listsNeeded(empty, 0, 0), MAX_LISTS_PER_RUN);
-  const twoShort = runwayFromPackNames([pack("2026-10-17")], "2026-10-05"); // 12 days → 3 lists for runway
+  const twoShort = runwayFromPackNames([pack("2026-10-17")], "2026-10-05"); // 12 days → 2 lists for runway
   assert.equal(listsNeeded(twoShort, 0, 0), FRESH_LISTS_PER_WEEK); // but the floor wants 5
-  assert.equal(listsNeeded(twoShort, 0, FRESH_LISTS_PER_WEEK), 3); // floor met → runway decides
+  assert.equal(listsNeeded(twoShort, 0, FRESH_LISTS_PER_WEEK), 2); // floor met → runway decides
 });
 
 // --- drift guard -------------------------------------------------------------

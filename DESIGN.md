@@ -22,7 +22,7 @@
 - Keyword visibly on the image; open slot renders as comment bait.
 
 ## Posting rules
-- 3 fresh pins/day, held for 90 days; never the same destination URL twice within 72h (`src/schedule.ts` enforces both).
+- 3 pins/day (5 between Sep 17 and Oct 5, 2026, to clear the four-variant backlog); never the same destination URL twice within 7 days (`src/schedule.ts` enforces both); the calendar order is season first, then new-list openers, then the backlog (`src/freshness.ts`, `src/season.ts`).
 - 1 list = 4 scheduled pins — one per template variant, each its own pack (`VARIANTS_PER_LIST` in `src/queue.ts` must equal `TEMPLATE_NAMES.length`; a test guards the drift).
 - `src/stages/publish.ts` skips variants that are already packed and only marks a row scheduled in Notion once every one of its variants has a pack — a partially packed row is left unscheduled and retried on a later run.
 - Tagged topics: fill all 10; concrete nouns from list items + vibe topics — the taxonomy has no "bucket list"/"self care".
