@@ -30,14 +30,23 @@ interface RawPin {
   } | null;
 }
 
-/** Every pin on the account with its 90-day metrics — about 100 pins per call. */
+const hasNullMetrics = (page: { items: RawPin[] }) => page.items.some((p) => p.pin_metrics === null);
+
+/** Every pin on the account with its 90-day metrics — about 100 pins per call.
+ *  Pinterest answers `pin_metrics: null` for some pins when calls overlap
+ *  (two `clarity report` runs at once gave two different top-pin lists); a
+ *  page like that is fetched once more, and whatever is still null is marked
+ *  `metricsMissing` instead of being mistaken for zeros. Never run two
+ *  metric pulls in parallel. */
 export async function listPinsWithMetrics(): Promise<ApiPin[]> {
   const out: ApiPin[] = [];
   let bookmark: string | undefined;
   do {
     const q = `/pins?page_size=100&pin_metrics=true${bookmark ? `&bookmark=${encodeURIComponent(bookmark)}` : ""}`;
-    const page = await get<{ items: RawPin[]; bookmark: string | null }>(q);
+    let page = await get<{ items: RawPin[]; bookmark: string | null }>(q);
+    if (hasNullMetrics(page)) page = await get<{ items: RawPin[]; bookmark: string | null }>(q);
     for (const p of page.items) {
+      const missing = p.pin_metrics === null;
       const m = p.pin_metrics?.["90d"] ?? {};
       out.push({
         id: p.id,
@@ -51,6 +60,7 @@ export async function listPinsWithMetrics(): Promise<ApiPin[]> {
           pinClick: m.pin_click ?? 0,
           outboundClick: m.outbound_click ?? 0,
         },
+        ...(missing ? { metricsMissing: true } : {}),
       });
     }
     bookmark = page.bookmark ?? undefined;

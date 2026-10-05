@@ -3,7 +3,7 @@
 // Prints only — see src/report.ts for why nothing is stored.
 import { readPacks } from "../packs.js";
 import { accountTotals, listPinsWithMetrics } from "../pinterestApi.js";
-import { buildReport, type ApiPin, type PinOrigin } from "../report.js";
+import { buildReport, matchOrigins, type ApiPin } from "../report.js";
 
 const pad = (s: string | number, n: number) => String(s).padStart(n);
 const num = (n: number) => n.toLocaleString("en-US");
@@ -18,16 +18,22 @@ export async function runReport(matureDays = 14): Promise<void> {
   const today = day(0);
   // Same window as the pins' own 90-day metrics; yesterday is the last complete day.
   const [pins, account, posted] = await Promise.all([listPinsWithMetrics(), accountTotals(day(-90), day(-1)), readPacks("posted")]);
-  const origins = new Map<string, PinOrigin>();
-  for (const pack of posted) {
-    if (pack.text.posted?.pinId) origins.set(pack.text.posted.pinId, { template: pack.template, slug: pack.slug });
-  }
+  const origins = matchOrigins(
+    pins,
+    posted.map((pack) => ({ template: pack.template, slug: pack.slug, title: pack.text.title, date: pack.date, pinId: pack.text.posted?.pinId })),
+  );
   const r = buildReport(pins, origins, account, today, matureDays);
   const t = r.totals;
 
   console.log(`Pinterest — last 90 days, live from the API (${today}, nothing stored)\n`);
   console.log(`  ${num(t.pins)} pins · ${num(t.impression)} impressions · ${num(t.save)} saves · ${num(t.pinClick)} pin clicks · ${num(t.outboundClick)} outbound clicks`);
   if (r.outboundWarning) console.log(`\n  ⚠ ${r.outboundWarning}`);
+  if (r.missingMetrics) {
+    console.log(
+      `\n  ⚠ Pinterest returned no metrics for ${r.missingMetrics} pins this run (it does that when two report runs overlap). ` +
+        "They are left out of the table; re-run `clarity report` on its own.",
+    );
+  }
 
   console.log(`\nTemplates — pipeline pins at least ${matureDays} days old, per 1,000 impressions`);
   console.log(`  ${"template".padEnd(18)} ${pad("pins", 5)} ${pad("impr.", 9)} ${pad("saves/1k", 9)} ${pad("clicks/1k", 10)} ${pad("outbound/1k", 12)}`);

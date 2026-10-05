@@ -6,6 +6,7 @@
 // the privacy page at clarity-lists.com/privacy/ promises statistics are
 // "requested from Pinterest when needed rather than kept". So this is a live
 // report only: nothing here is written to Notion or to disk.
+import { localParts } from "./schedule.js";
 import { TEMPLATE_NAMES } from "./templates.js";
 
 export interface PinMetrics {
@@ -24,12 +25,60 @@ export interface ApiPin {
   metrics: PinMetrics;
   /** Set when this pin is a save of another pin. */
   parentPinId?: string | null;
+  /** Pinterest answered with `pin_metrics: null` for this pin — it happens when
+   *  two report runs overlap. The zeros in `metrics` are then not real. */
+  metricsMissing?: boolean;
 }
 
 /** Which pack a pin came from — keyed by pin id from the POSTED lines in exports/posted/. */
 export interface PinOrigin {
   template: string;
   slug: string;
+}
+
+/** What a posted pack contributes to pin attribution (a projection of PackInfo, so this file stays fs-free). */
+export interface PostedPackRef {
+  template: string;
+  slug: string;
+  title: string;
+  /** The pack's POST ON date, in the posting zone. */
+  date: string;
+  /** The id recorded on the POSTED line, if any. Packs posted through the
+   *  browser scheduler carry a *scheduler* id (38xx…) that the API never
+   *  reports for the published pin, so this is a hint, not a key. */
+  pinId?: string;
+}
+
+const norm = (s: string) => s.trim().toLowerCase();
+const titleDateKey = (title: string, date: string) => `${norm(title)}@${date}`;
+
+/** The posting-zone date a published pin went live. `created_at` from the API carries no zone and is UTC. */
+export function publishedDate(createdAt: string): string {
+  const iso = /Z|[+-]\d\d:\d\d$/.test(createdAt) ? createdAt : `${createdAt}Z`;
+  return localParts(Math.floor(Date.parse(iso) / 1000)).date;
+}
+
+/**
+ * Which pack each API pin came from. The POSTED pin id is tried first, then
+ * the pin's title + go-live date — the same key `reconcile` matches on, and
+ * unique across every pack written so far. Without the fallback the report
+ * saw only the csv-uploaded packs (whose ids come from the API itself) and
+ * showed every browser-scheduled template as 0 pins.
+ */
+export function matchOrigins(pins: ApiPin[], posted: PostedPackRef[]): Map<string, PinOrigin> {
+  const byId = new Map<string, PinOrigin>();
+  const byTitleDate = new Map<string, PinOrigin>();
+  for (const pack of posted) {
+    const origin = { template: pack.template, slug: pack.slug };
+    if (pack.pinId) byId.set(pack.pinId, origin);
+    byTitleDate.set(titleDateKey(pack.title, pack.date), origin);
+  }
+  const origins = new Map<string, PinOrigin>();
+  for (const p of pins) {
+    const origin = byId.get(p.id) ?? byTitleDate.get(titleDateKey(p.title, publishedDate(p.createdAt)));
+    if (origin) origins.set(p.id, origin);
+  }
+  return origins;
 }
 
 export interface TemplateRow extends PinMetrics {
@@ -50,6 +99,8 @@ export interface Report {
   tooNew: number;
   /** Pins with no posted pack (published before the pipeline, or ids never reconciled). */
   untracked: number;
+  /** Pins Pinterest returned without metrics this run — their zeros are not real; re-run, never in parallel. */
+  missingMetrics: number;
   topOutbound: ApiPin[];
   topSaves: ApiPin[];
   outboundWarning?: string;
@@ -91,8 +142,10 @@ export function buildReport(
   );
   let tooNew = 0;
   let untracked = 0;
+  const missingMetrics = pins.filter((p) => p.metricsMissing).length;
 
   for (const p of pins) {
+    if (p.metricsMissing) continue; // zeros from a null answer would drag the template's rates down
     const origin = origins.get(p.id);
     if (!origin) {
       untracked++;
@@ -128,6 +181,7 @@ export function buildReport(
     templates,
     tooNew,
     untracked,
+    missingMetrics,
     topOutbound: top("outboundClick"),
     topSaves: top("save"),
   };

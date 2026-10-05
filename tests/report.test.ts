@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildReport, type ApiPin, type PinOrigin } from "../src/report.js";
+import { buildReport, matchOrigins, publishedDate, type ApiPin, type PinOrigin } from "../src/report.js";
 
 const TODAY = "2026-09-26";
 
@@ -94,4 +94,46 @@ test("the outbound warning fires when fewer than 1 in 100 pin clicks reach the s
   assert.match(low.outboundWarning ?? "", /Only 20 of 38,039/);
   const fine = buildReport([], new Map(), { ...ACCOUNT, pinClick: 1000, outboundClick: 50 }, TODAY, 14);
   assert.equal(fine.outboundWarning, undefined);
+});
+
+test("a pin Pinterest returned without metrics is counted as missing and kept out of the template table", () => {
+  const pins = [
+    pin("a", "2026-09-01", { impression: 1000, save: 10 }),
+    { ...pin("b", "2026-09-01"), metricsMissing: true },
+  ];
+  const origins = new Map([["a", origin("bold-panel")], ["b", origin("bold-panel")]]);
+  const r = buildReport(pins, origins, ACCOUNT, TODAY, 14);
+  assert.equal(r.missingMetrics, 1);
+  const row = r.templates.find((t) => t.template === "bold-panel")!;
+  assert.equal(row.pins, 1);
+  assert.equal(row.savesPer1k, 10);
+});
+
+test("publishedDate turns the API's zoneless UTC created_at into the posting-zone date", () => {
+  // 22:30 UTC on Sep 20 is already Sep 21 in Asia/Jerusalem (UTC+3 in September).
+  assert.equal(publishedDate("2026-09-20T22:30:00"), "2026-09-21");
+  assert.equal(publishedDate("2026-09-20T06:00:00Z"), "2026-09-20");
+});
+
+test("matchOrigins keys on the POSTED pin id first, then on title + go-live date for browser-scheduled packs", () => {
+  const posted = [
+    // csv route: the API handed the real id back
+    { template: "sticky-note", slug: "slow-october", title: "Slow October Bucket List: 15 Cozy Rituals", date: "2026-09-23", pinId: "1100356121488000001" },
+    // browser route: the scheduler id (38xx…) never matches a published id
+    { template: "classic-checklist", slug: "dark-academia", title: "Dark Academia Bucket List: 15 Semester Era Ideas", date: "2026-09-10", pinId: "3865000000000000001" },
+    // same title, another day, another template
+    { template: "bold-panel", slug: "dark-academia", title: "Dark Academia Bucket List: 15 Semester Era Ideas", date: "2026-09-07", pinId: "3865000000000000002" },
+  ];
+  const pins = [
+    { ...pin("1100356121488000001", "2026-09-23"), title: "something retitled by hand" },
+    { ...pin("1100356121487773763", "2026-09-10"), title: "Dark Academia Bucket List: 15 Semester Era Ideas" },
+    { ...pin("1100356121487541120", "2026-09-07"), title: "dark academia bucket list: 15 semester era ideas " },
+    pin("legacy", "2025-04-17"),
+  ];
+  const origins = matchOrigins(pins, posted);
+  assert.equal(origins.get("1100356121488000001")?.template, "sticky-note");
+  assert.equal(origins.get("1100356121487773763")?.template, "classic-checklist");
+  assert.equal(origins.get("1100356121487541120")?.template, "bold-panel");
+  assert.equal(origins.has("legacy"), false);
+  assert.equal(origins.size, 3);
 });
