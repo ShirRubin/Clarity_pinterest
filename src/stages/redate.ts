@@ -59,11 +59,17 @@ export async function redatePending(o: { apply: boolean; today?: string; rows?: 
   const pendingAll = await readPacks("packs");
   const exported = pendingAll.filter((p) => p.text.exported);
   const isNew = newListPredicate(pendingAll, rows);
-  const pending = orderForCalendar(
-    pendingAll.filter((p) => !p.text.exported),
+  const byDirAll = new Map(pendingAll.map((p) => [p.dir, p]));
+  const ordered = orderForCalendar(
+    pendingAll.filter((p) => !p.text.exported).map((p) => ({ dir: p.dir, date: p.date, slug: p.slug, template: p.template, title: p.text.title })),
     posted,
     isNew,
-  ) as PackInfo[];
+    today,
+  );
+  const pending = ordered.map((o) => byDirAll.get(o.dir)!);
+  const notBefore = new Map(ordered.filter((o) => o.notBefore).map((o) => [o.dir, o.notBefore!]));
+  const tiers = { season: 0, opener: 0, backlog: 0, parked: 0 };
+  for (const o of ordered) tiers[o.tier]++;
 
   const existing: ScheduledEntry[] = [
     ...rows
@@ -72,7 +78,7 @@ export async function redatePending(o: { apply: boolean; today?: string; rows?: 
     ...[...posted, ...exported].filter((p) => p.text.link).map((p) => ({ date: p.date, destUrl: p.text.link })),
   ];
 
-  const assigned = assignDates(existing, pending.map((p) => ({ id: p.dir, destUrl: p.text.link })), today);
+  const assigned = assignDates(existing, pending.map((p) => ({ id: p.dir, destUrl: p.text.link, notBefore: notBefore.get(p.dir) })), today);
   const byDir = new Map(pending.map((p) => [p.dir, p]));
 
   let moved = 0;
@@ -95,7 +101,8 @@ export async function redatePending(o: { apply: boolean; today?: string; rows?: 
   if (moved > 12) log(`  … and ${moved - 12} more`);
 
   const last = [...perDay.keys()].sort().pop();
-  log(`\n${pending.length} pending packs at ${PINS_PER_DAY}/day, new lists first → ${moved} moved, calendar runs to ${last}${o.apply ? " — written." : " — dry run, add --apply to write."}`);
+  log(`\n${pending.length} pending packs at ${PINS_PER_DAY}/day (${tiers.season} in season, ${tiers.opener} new-list openers, ${tiers.backlog} backlog, ${tiers.parked} parked for their window) → ${moved} moved, calendar runs to ${last}${o.apply ? " — written." : " — dry run, add --apply to write."}`);
+  for (const p of ordered.filter((x) => x.tier === "parked").slice(0, 8)) log(`  parked  ${p.slug.slice(0, 50).padEnd(50)} ${p.season!.name}: waits for ${p.notBefore}`);
 
   let rowsFixed = 0;
   if (o.apply) {

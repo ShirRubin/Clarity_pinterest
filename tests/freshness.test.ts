@@ -65,3 +65,40 @@ test("orderForCalendar leaves a backfill list's packs in the backlog", () => {
   const order = orderForCalendar(pending, [], (slug) => slug === "brand-new").map((p) => p.slug);
   assert.deepEqual(order, ["brand-new", "friends-bucket-list"]);
 });
+
+test("with a date, seasonal packs in their window go first by deadline and out-of-window ones are parked", () => {
+  const pending = [
+    pack("2026-11-19", "halloween-movies-bucket-list"), // open until Oct 24 → first
+    pack("2026-12-13", "the-thanksgiving-episode-bucket-list-12-sitcom-nights-in-nov"), // open until Nov 19
+    pack("2026-11-05", "the-2027-vision-board-party-bucket-list-12-steps-to-host-it-"), // window opens Nov 2 → parked until then
+    pack("2026-10-20", "slow-october", "sticky-note"), // fall: open until Nov 14, but rank 1 only if it is a first variant… it is
+    pack("2026-10-21", "brand-new-list"),
+    pack("2026-10-22", "old", "big-numbers"),
+    pack("2026-11-20", "halloween-movies-bucket-list", "bold-panel"), // second Halloween variant: after every list's first
+  ];
+  const posted = [pack("2026-09-01", "old"), pack("2026-09-02", "halloween-movies-bucket-list", "sticky-note")];
+  const order = orderForCalendar(pending, posted, (slug) => slug === "brand-new-list", "2026-10-05");
+  assert.deepEqual(
+    order.map((p) => `${p.tier}:${p.slug.slice(0, 16)}${p.notBefore ? "@" + p.notBefore : ""}`),
+    [
+      "season:halloween-movies",
+      "season:slow-october",
+      "season:the-thanksgiving",
+      "season:halloween-movies",
+      "opener:brand-new-list",
+      "backlog:old",
+      "parked:the-2027-vision-@2026-11-02",
+    ],
+  );
+});
+
+test("a seasonal pack past its deadline is parked for next year's window", () => {
+  const order = orderForCalendar([pack("2026-11-19", "halloween-movies-bucket-list")], [], () => false, "2026-11-19");
+  assert.equal(order[0].tier, "parked");
+  assert.equal(order[0].notBefore, "2027-09-01");
+});
+
+test("without a date the order is season-blind, as before", () => {
+  const order = orderForCalendar([pack("2026-11-19", "halloween-movies-bucket-list"), pack("2026-10-21", "brand-new-list")], [], () => true);
+  assert.deepEqual(order.map((p) => p.tier), ["opener", "opener"]);
+});

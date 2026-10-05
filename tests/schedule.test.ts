@@ -68,3 +68,13 @@ test("localParts reads the wall clock in Asia/Jerusalem", () => {
 test("the same-URL gap is a week — the 2026-09-22 research update, was 3 days", () => {
   assert.equal(URL_GAP_DAYS, 7);
 });
+
+test("an item with notBefore waits for that date, and takes the earliest slot from there", () => {
+  const q = [
+    { id: "now", destUrl: "https://x/a/" },
+    { id: "later", destUrl: "https://x/b/", notBefore: "2026-11-02" },
+    { id: "past", destUrl: "https://x/c/", notBefore: "2026-08-01" }, // a notBefore in the past is just the start date
+  ];
+  const r = assignDates([], q, "2026-10-05");
+  assert.deepEqual(r.map((x) => x.date), ["2026-10-05", "2026-11-02", "2026-10-05"]);
+});

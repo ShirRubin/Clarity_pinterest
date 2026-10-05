@@ -15,6 +15,8 @@ export interface ScheduledEntry {
 export interface QueueItem {
   id: string; // opaque — publish uses `${pageId}#${template}`
   destUrl: string;
+  /** Earliest date this item may take (a seasonal window that has not opened yet). */
+  notBefore?: string;
 }
 
 export interface Assignment extends QueueItem {
@@ -51,7 +53,7 @@ export function assignDates(
 
   const out: Assignment[] = [];
   for (const item of queue) {
-    let ms = toMs(startDate);
+    let ms = toMs(item.notBefore && item.notBefore > startDate ? item.notBefore : startDate);
     for (;;) {
       const date = toDate(ms);
       const dayFull = (perDay.get(date) ?? 0) >= PINS_PER_DAY;
