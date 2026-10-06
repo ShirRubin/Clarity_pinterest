@@ -188,7 +188,63 @@ interface PostFields {
   cover?: { path: string; alt: string };
   date: string;
   items: string; // numbered markdown lines
+  /** One or two sentences on how to use the list (post page, under the list). */
+  howTo?: string;
+  /** Exactly three reader questions with short answers (post page + FAQPage JSON-LD). */
+  faq?: { q: string; a: string }[];
 }
+
+interface PostExtras {
+  howTo: string;
+  faq: { q: string; a: string }[];
+}
+
+const EXTRAS_SCHEMA = {
+  type: "object",
+  properties: {
+    howTo: { type: "string", maxLength: 240 },
+    faq: {
+      type: "array",
+      minItems: 3,
+      maxItems: 3,
+      items: { type: "object", properties: { q: { type: "string", maxLength: 120 }, a: { type: "string", maxLength: 320 } }, required: ["q", "a"], additionalProperties: false },
+    },
+  },
+  required: ["howTo", "faq"],
+  additionalProperties: false,
+};
+
+/**
+ * The two search-facing extras every post carries since Oct 6, 2026 (growth
+ * review): a how-to line and three FAQs a Pinterest reader would actually
+ * search. Same shape the blog's scripts/backfill-faq.mjs wrote for the 144
+ * existing posts. A failure returns undefined and the post ships without them.
+ */
+export async function generatePostExtras(title: string, intro: string, items: string): Promise<PostExtras | undefined> {
+  const system = `You write for Clarity Bucket Lists (clarity-lists.com), a cozy bucket-list blog. Voice: warm, direct, second person. Never use an em dash or en dash; use a comma, colon or full stop.`;
+  const user = `For this blog post, write:
+- "howTo": one or two sentences (max 240 characters) on how to use this list: pick, tick off, print.
+- "faq": exactly 3 questions a Pinterest reader would type into search about this topic (specific to the topic, not about the site), each with a 1 to 2 sentence answer that uses the topic's natural keywords.
+
+Title: ${title}
+Intro: ${intro}
+List:
+${items.split("\n").slice(0, 16).join("\n")}
+
+Reply with ONLY a JSON object: {"howTo": "...", "faq": [{"q": "...", "a": "..."}, {"q": "...", "a": "..."}, {"q": "...", "a": "..."}]}`;
+  try {
+    const out = await generateJSON<PostExtras>(system, user, EXTRAS_SCHEMA);
+    const clean = (t: string) => noDashes(t).trim();
+    const faq = (out.faq ?? []).map((f) => ({ q: clean(f.q), a: clean(f.a) })).filter((f) => f.q && f.a);
+    if (!out.howTo?.trim() || faq.length !== 3) return undefined;
+    return { howTo: clean(out.howTo), faq };
+  } catch (err) {
+    console.warn(`  ! post extras skipped: ${(err as Error).message}`);
+    return undefined;
+  }
+}
+
+const yamlStr = (t: string) => `"${t.replace(/\\/g, "\\\\").replace(/"/g, "'").replace(/\r?\n/g, " ")}"`;
 
 function buildMarkdown(raw: PostFields): string {
   const f: PostFields = {
@@ -211,6 +267,8 @@ function buildMarkdown(raw: PostFields): string {
     `readTime: "${readTime}"`,
     `itemCount: ${itemCount}`,
     "affiliates: true",
+    ...(f.howTo ? [`howTo: ${yamlStr(f.howTo)}`] : []),
+    ...(f.faq?.length ? ["faq:", ...f.faq.flatMap((q) => [`  - q: ${yamlStr(q.q)}`, `    a: ${yamlStr(q.a)}`])] : []),
     "---",
   ].join("\n");
   // frontmatter intro already renders in the post hero — no repeated body lead
@@ -251,6 +309,8 @@ export async function runBlogpost(limit = 20): Promise<number> {
         cover = { path: `/images/covers/pins/${slug}.jpg`, alt: row.altText ?? shortTitle(row.name) };
       }
 
+      const items = (row.listItems ?? "").trim();
+      const extras = await generatePostExtras(shortTitle(row.name), stripHashtags(row.pinDescription ?? ""), items);
       await writeFile(
         postPath,
         buildMarkdown({
@@ -259,7 +319,8 @@ export async function runBlogpost(limit = 20): Promise<number> {
           intro: stripHashtags(row.pinDescription ?? ""),
           cover,
           date: (row.publishedDate ?? new Date().toISOString()).slice(0, 10),
-          items: (row.listItems ?? "").trim(),
+          items,
+          ...extras,
         }),
         "utf8",
       );
@@ -309,6 +370,7 @@ export async function runBlogpost(limit = 20): Promise<number> {
           const coverFile = path.join(COVERS_DIR, `${slug}.jpg`);
           if (!(await exists(coverFile))) await copyFile(tmpSmall, coverFile);
           const items = gen.items.map((it, i) => `${i + 1}. ${it}`).join("\n");
+          const extras = await generatePostExtras(gen.title, stripHashtags(gen.intro), items);
           await writeFile(
             postPath,
             buildMarkdown({
@@ -318,6 +380,7 @@ export async function runBlogpost(limit = 20): Promise<number> {
               cover: { path: `/images/covers/pins/${slug}.jpg`, alt: `${gen.title}, the original Clarity pin checklist` },
               date: (row.publishedDate ?? new Date().toISOString()).slice(0, 10),
               items,
+              ...extras,
             }),
             "utf8",
           );

@@ -7,6 +7,9 @@ import { loadTrends, formatForPrompt, isStale, cacheAgeDays, STALE_AFTER_DAYS } 
 import { bucketListRows } from "./trends.js";
 import { formatDemandTargets, pickTargets } from "../demandTargets.js";
 import { DO_NOT_GENERATE, IDEA_BOARDS } from "../prompts.js";
+import { listPinsWithMetrics } from "../pinterestApi.js";
+import { readPacks } from "../packs.js";
+import { formatWinners, matchOrigins, winners } from "../report.js";
 
 interface IdeaOut {
   name: string;
@@ -58,6 +61,19 @@ export async function runIdeas(count = 5): Promise<void> {
     console.warn(`! Could not read Pinterest trends (${(err as Error).message}) — ideas use the demand cache only.`);
   }
 
+  // What already earns saves here, read live from the API and used once in
+  // the prompt (never stored, same rule as `clarity report`). ~3 API calls.
+  let winnersBlock = "";
+  try {
+    const [apiPins, posted] = await Promise.all([listPinsWithMetrics(), readPacks("posted")]);
+    const origins = matchOrigins(apiPins, posted.map((p) => ({ template: p.template, slug: p.slug, title: p.text.title, date: p.date, pinId: p.text.posted?.pinId })));
+    const w = winners(apiPins, origins, today, 14);
+    winnersBlock = formatWinners(w);
+    console.log(`Account winners: ${w.length} mature pipeline pins with 100+ impressions.`);
+  } catch (err) {
+    console.warn(`! Could not read pin stats (${(err as Error).message}) — ideas run without the winners block.`);
+  }
+
   // Boards with the fewest lists are where a new list is most visible; the
   // two dead boards (see DO_NOT_GENERATE) are not offered at all.
   const boardLine = IDEA_BOARDS.map((b) => `${b}: ${boardCounts[b] ?? 0}`).join(" · ");
@@ -67,6 +83,8 @@ export async function runIdeas(count = 5): Promise<void> {
   const user = `Today is ${today}. Pinterest users plan 45-60 days ahead, so seasonal ideas should target events 45-60 days out (set seasonWindow to the earliest sensible publish date, or null for evergreen).
 
 ${targetsBlock}
+
+${winnersBlock}
 
 ${demandBlock}
 

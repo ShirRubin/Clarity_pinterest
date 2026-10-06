@@ -91,6 +91,12 @@ export function fillTemplate(html: string, content: PinContent): string {
     .slice(TEASER_SHOWN)
     .map((_, i) => `<li class="ghost"><span class="num">${String(i + TEASER_SHOWN + 1).padStart(2, "0")}</span><span class="line"></span></li>`)
     .join("\n      ");
+  // The poster candidate shows five lines, not three (inert elsewhere).
+  const posterShown = heads.slice(0, 5);
+  const posterItems = posterShown
+    .map((h) => `<li><span class="box"></span><span class="item-text">${esc(h)}</span></li>`)
+    .join("\n      ");
+  const posterRest = Math.max(0, heads.length - posterShown.length);
   const countItems = shown
     .map((h, i) => `<li><span class="num">${String(i + 1).padStart(2, "0")}</span><span class="item-text">${esc(h)}</span></li>`)
     .join("\n      ");
@@ -101,6 +107,8 @@ export function fillTemplate(html: string, content: PinContent): string {
     .replaceAll("{{ITEMS}}", itemsHtml)
     .replaceAll("{{TEASER_ITEMS}}", teaserItems)
     .replaceAll("{{TEASER_COUNT_ITEMS}}", countItems)
+    .replaceAll("{{POSTER_ITEMS}}", posterItems)
+    .replaceAll("{{POSTER_REST}}", String(posterRest))
     .replaceAll("{{TEASER_CUT}}", esc(cut))
     .replaceAll("{{TEASER_GHOSTS}}", ghosts)
     .replaceAll("{{REST_COUNT}}", String(rest))

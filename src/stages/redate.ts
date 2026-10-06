@@ -74,11 +74,15 @@ export async function redatePending(o: { apply: boolean; today?: string; rows?: 
   const existing: ScheduledEntry[] = [
     ...rows
       .filter((r) => r.source === "pipeline" && r.pinUrl && r.publishedDate)
-      .map((r) => ({ date: r.publishedDate!.slice(0, 10), destUrl: r.destinationLink ?? chooseDestination(r, false).url })),
-    ...[...posted, ...exported].filter((p) => p.text.link).map((p) => ({ date: p.date, destUrl: p.text.link })),
+      .map((r) => ({ date: r.publishedDate!.slice(0, 10), destUrl: r.destinationLink ?? chooseDestination(r, false).url, board: r.board })),
+    ...[...posted, ...exported].filter((p) => p.text.link).map((p) => ({ date: p.date, destUrl: p.text.link, board: p.text.board })),
   ];
 
-  const assigned = assignDates(existing, pending.map((p) => ({ id: p.dir, destUrl: p.text.link, notBefore: notBefore.get(p.dir) })), today);
+  const assigned = assignDates(
+    existing,
+    pending.map((p) => ({ id: p.dir, destUrl: p.text.link, notBefore: notBefore.get(p.dir), board: p.text.board })),
+    today,
+  );
   const byDir = new Map(pending.map((p) => [p.dir, p]));
 
   let moved = 0;

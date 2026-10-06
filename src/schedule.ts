@@ -11,6 +11,8 @@
 export interface ScheduledEntry {
   date: string; // YYYY-MM-DD
   destUrl: string;
+  /** Pinterest board name; used for the per-board weekly cap when known. */
+  board?: string;
 }
 
 export interface QueueItem {
@@ -18,6 +20,7 @@ export interface QueueItem {
   destUrl: string;
   /** Earliest date this item may take (a seasonal window that has not opened yet). */
   notBefore?: string;
+  board?: string;
 }
 
 export interface Assignment extends QueueItem {
@@ -28,6 +31,13 @@ export interface Assignment extends QueueItem {
 
 export const PINS_PER_DAY = 3;
 export const URL_GAP_DAYS = 7;
+/** At most this many pins of one board inside any 7-day stretch, so one big
+ *  board (TV & Movie held 45 of 338 pending packs) cannot own a week. */
+export const BOARD_WEEK_CAP = 4;
+export const BOARD_WINDOW_DAYS = 7;
+
+/** "Books · Learning & Culture" and "Books, Learning & Culture" are one board. */
+export const boardKey = (b?: string) => (b ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
 /** Pinterest's scheduler time labels for the day's three slots. Never 12:00 PM —
  *  that is the builder's default and how the duplicate-pin defect was born. */
@@ -46,11 +56,14 @@ export function assignDates(
 ): Assignment[] {
   const perDay = new Map<string, number>();
   const byUrl = new Map<string, number[]>();
-  const book = (date: string, destUrl: string) => {
+  const byBoard = new Map<string, number[]>();
+  const book = (date: string, destUrl: string, board?: string) => {
     perDay.set(date, (perDay.get(date) ?? 0) + 1);
     byUrl.set(destUrl, [...(byUrl.get(destUrl) ?? []), toMs(date)]);
+    const k = boardKey(board);
+    if (k) byBoard.set(k, [...(byBoard.get(k) ?? []), toMs(date)]);
   };
-  for (const e of existing) book(e.date, e.destUrl);
+  for (const e of existing) book(e.date, e.destUrl, e.board);
 
   const out: Assignment[] = [];
   for (const item of queue) {
@@ -61,12 +74,15 @@ export function assignDates(
       const urlClash = (byUrl.get(item.destUrl) ?? []).some(
         (other) => Math.abs(other - ms) < URL_GAP_DAYS * DAY_MS,
       );
-      if (!dayFull && !urlClash) break;
+      const k = boardKey(item.board);
+      const boardFull =
+        !!k && (byBoard.get(k) ?? []).filter((other) => Math.abs(other - ms) < BOARD_WINDOW_DAYS * DAY_MS).length >= BOARD_WEEK_CAP;
+      if (!dayFull && !urlClash && !boardFull) break;
       ms += DAY_MS;
     }
     const date = toDate(ms);
     const slot = perDay.get(date) ?? 0; // existing pins hold the earliest slots
-    book(date, item.destUrl);
+    book(date, item.destUrl, item.board);
     out.push({ ...item, date, slot });
   }
   return out;

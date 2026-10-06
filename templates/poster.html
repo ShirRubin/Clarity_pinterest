@@ -1,0 +1,112 @@
+<!doctype html>
+<!-- Poster candidate (growth review, Oct 6 2026; NOT registered in TEMPLATE_NAMES).
+     What page-1 pins in the niche share that ours did not: a big number and the
+     search phrase as the headline, a warm paper surface with texture, a handful
+     of legible lines instead of 12 to 25 unreadable ones, and the printable
+     promise ON the image. Same fonts, palette tokens and watermark as the
+     registered templates, so it slots in if chosen. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: "Fredoka"; src: url("fonts/Fredoka-700.woff2") format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Fredoka"; src: url("fonts/Fredoka-600.woff2") format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Patrick Hand SC"; src: url("fonts/PatrickHandSC-400.woff2") format("woff2"); font-weight: 400; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1000px; height: 1500px; }
+  .page {
+    width: 1000px; height: 1500px; overflow: hidden; position: relative;
+    background:
+      radial-gradient(circle at 18% 12%, {{BG}} 0, transparent 46%),
+      radial-gradient(circle at 86% 92%, {{BG2}} 0, transparent 50%),
+      #fbf4ea;
+    display: flex; flex-direction: column; padding: 70px 70px 44px;
+  }
+  /* paper grain: two fine dotted layers at different angles read as texture at feed size */
+  .grain {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.55;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(90,70,50,0.035) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(90,70,50,0.03) 0 1px, transparent 1px 4px);
+  }
+  header { position: relative; z-index: 1; display: flex; gap: 34px; align-items: flex-start; }
+  .big {
+    font-family: "Fredoka"; font-weight: 700; font-size: 250px; line-height: 0.82;
+    color: {{ACCENT}}; letter-spacing: -8px; text-shadow: 10px 10px 0 {{ACCENT_SOFT}};
+    flex: none;
+  }
+  .headline { padding-top: 14px; }
+  .kicker {
+    font-family: "Fredoka"; font-weight: 600; text-transform: uppercase; letter-spacing: 9px;
+    color: {{ACCENT_DARK}}; font-size: 28px; margin-bottom: 10px;
+  }
+  .title-main {
+    font-family: "Fredoka"; font-weight: 700; text-transform: uppercase;
+    color: {{ACCENT_DARK}}; font-size: {{TITLE_SIZE}}px; line-height: 0.98; letter-spacing: 1px;
+  }
+  .sub {
+    font-family: "Patrick Hand SC"; font-size: 44px; color: {{TEXT}}; margin-top: 14px; line-height: 1.05;
+  }
+  .card {
+    position: relative; z-index: 1; margin-top: 44px; flex: 1;
+    background: rgba(255,255,255,0.78); border: 4px solid {{ACCENT_DARK}}; border-radius: 30px;
+    box-shadow: 12px 12px 0 {{ACCENT_SOFT}}; padding: 40px 44px 34px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .checklist { list-style: none; display: flex; flex-direction: column; justify-content: space-evenly; flex: 1; }
+  .checklist li { display: flex; align-items: center; gap: 26px; }
+  .box {
+    flex: 0 0 56px; width: 56px; height: 56px; border: 5px solid {{CHECK}}; border-radius: 16px;
+    background: #fff; transform: rotate(-2deg);
+  }
+  .checklist li:nth-child(even) .box { transform: rotate(2.5deg); }
+  .item-text {
+    font-family: "Patrick Hand SC"; font-size: 46px; line-height: 1.02; color: {{TEXT}};
+    text-transform: uppercase;
+  }
+  .more {
+    font-family: "Fredoka"; font-weight: 600; font-size: 40px; color: {{ACCENT}};
+    padding-top: 26px; border-top: 4px dashed {{ACCENT_SOFT}}; margin-top: 10px;
+  }
+  .more small { display: block; font-family: "Patrick Hand SC"; font-size: 34px; color: {{TEXT}}; margin-top: 6px; }
+  .sticker {
+    position: absolute; z-index: 2; right: 44px; top: 300px; transform: rotate(7deg);
+    background: {{ACCENT}}; color: #fff; font-family: "Fredoka"; font-weight: 700;
+    font-size: 30px; text-transform: uppercase; letter-spacing: 2px; text-align: center;
+    padding: 18px 26px; border-radius: 999px; border: 5px solid #fff; box-shadow: 6px 6px 0 {{ACCENT_DARK}};
+    line-height: 1.05;
+  }
+  .sticker small { display: block; font-size: 24px; letter-spacing: 1px; }
+  footer {
+    position: relative; z-index: 1; text-align: center; padding-top: 24px;
+    font-family: "Fredoka"; font-weight: 600; font-size: 34px; color: {{ACCENT}};
+  }
+  .deco {
+    position: absolute; right: -40px; bottom: 70px; font-size: 260px; opacity: 0.18;
+    transform: rotate(-10deg); font-family: "Segoe UI Emoji", sans-serif; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="grain"></div>
+  <header>
+    <div class="big">{{TOTAL_COUNT}}</div>
+    <div class="headline">
+      <div class="kicker">Bucket list ideas</div>
+      <div class="title-main">{{TITLE_MAIN}}</div>
+      <div class="sub">{{TOTAL_COUNT}} things to actually do this season</div>
+    </div>
+  </header>
+  <div class="sticker">Free printable<small>checklist inside</small></div>
+  <div class="card">
+    <ul class="checklist">
+      {{POSTER_ITEMS}}
+    </ul>
+    <div class="more">+ {{POSTER_REST}} more on the full list<small>tap the pin · clarity-lists.com</small></div>
+  </div>
+  <div class="deco">{{EMOJI}}</div>
+  <footer>@claritybucketlists</footer>
+</div>
+</body>
+</html>

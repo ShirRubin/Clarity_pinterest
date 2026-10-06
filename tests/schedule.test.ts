@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { assignDates, SLOT_TIMES, slotTime, localParts, PINS_PER_DAY, URL_GAP_DAYS } from "../src/schedule.js";
+import { assignDates, SLOT_TIMES, slotTime, localParts, PINS_PER_DAY, URL_GAP_DAYS, BOARD_WEEK_CAP, boardKey } from "../src/schedule.js";
 
 test("fills PINS_PER_DAY slots before moving to the next day", () => {
   const q = ["a", "b", "c", "d"].map((id) => ({ id, destUrl: `https://x/${id}/` }));
@@ -77,4 +77,32 @@ test("an item with notBefore waits for that date, and takes the earliest slot fr
   ];
   const r = assignDates([], q, "2026-10-05");
   assert.deepEqual(r.map((x) => x.date), ["2026-10-05", "2026-11-02", "2026-10-05"]);
+});
+
+test("a board gets at most BOARD_WEEK_CAP pins in any 7-day stretch; other boards fill the gaps", () => {
+  const tv = Array.from({ length: 6 }, (_, i) => ({ id: `tv${i}`, destUrl: `https://x/tv${i}/`, board: "TV & Movie Bucket Lists" }));
+  const fall = { id: "fall", destUrl: "https://x/fall/", board: "Fall Bucket Lists" };
+  const r = assignDates([], [...tv, fall], "2026-10-05");
+  const byId = Object.fromEntries(r.map((x) => [x.id, x.date]));
+  assert.equal(BOARD_WEEK_CAP, 4);
+  assert.deepEqual([byId.tv0, byId.tv1, byId.tv2, byId.tv3], ["2026-10-05", "2026-10-05", "2026-10-05", "2026-10-06"]);
+  assert.equal(byId.tv4, "2026-10-12"); // the fifth waits until the first drops out of the window
+  assert.equal(byId.fall, "2026-10-06"); // not blocked by the TV board's cap
+});
+
+test("existing pins on a board count toward its cap, and board names match loosely", () => {
+  const existing = [
+    { date: "2026-10-05", destUrl: "https://x/a/", board: "Books · Learning & Culture" },
+    { date: "2026-10-06", destUrl: "https://x/b/", board: "Books, Learning & Culture" },
+    { date: "2026-10-07", destUrl: "https://x/c/", board: "Books, Learning & Culture" },
+    { date: "2026-10-08", destUrl: "https://x/d/", board: "books learning culture" },
+  ];
+  const r = assignDates(existing, [{ id: "e", destUrl: "https://x/e/", board: "Books, Learning & Culture" }], "2026-10-05");
+  assert.equal(r[0].date, "2026-10-12");
+  assert.equal(boardKey("Books · Learning & Culture"), boardKey("Books, Learning & Culture"));
+});
+
+test("an item without a board is never held by the board cap", () => {
+  const r = assignDates([], [{ id: "n", destUrl: "https://x/n/" }], "2026-10-05");
+  assert.equal(r[0].date, "2026-10-05");
 });

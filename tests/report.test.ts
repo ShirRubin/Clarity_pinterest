@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildReport, matchOrigins, publishedDate, type ApiPin, type PinOrigin } from "../src/report.js";
+import { buildReport, matchOrigins, publishedDate, winners, formatWinners, type ApiPin, type PinOrigin } from "../src/report.js";
 
 const TODAY = "2026-09-26";
 
@@ -136,4 +136,20 @@ test("matchOrigins keys on the POSTED pin id first, then on title + go-live date
   assert.equal(origins.get("1100356121487541120")?.template, "bold-panel");
   assert.equal(origins.has("legacy"), false);
   assert.equal(origins.size, 3);
+});
+
+test("winners ranks mature, tracked pins with enough reach by saves per 1k and leaves out repins, untracked and new pins", () => {
+  const pins = [
+    pin("a", "2026-09-01", { impression: 2000, save: 40, pinClick: 100 }), // 20/1k
+    pin("b", "2026-09-01", { impression: 500, save: 20 }), // 40/1k, smaller
+    pin("c", "2026-09-01", { impression: 50, save: 10 }), // under the reach floor
+    pin("new", "2026-09-20", { impression: 1000, save: 100 }), // too new
+    pin("legacy", "2025-04-17", { impression: 100000, save: 3000 }), // untracked
+    { ...pin("copy", "2026-09-01", { impression: 2000, save: 40 }), parentPinId: "a" },
+  ];
+  const origins = new Map([["a", origin("bold-panel")], ["b", origin("sticky-note")], ["c", origin("bold-panel")], ["new", origin("bold-panel")], ["copy", origin("bold-panel")]]);
+  const w = winners(pins, origins, TODAY, 14);
+  assert.deepEqual(w.map((x) => [x.title, x.savesPer1k]), [["Pin b", 40], ["Pin a", 20]]);
+  assert.match(formatWinners(w), /"Pin b" \(500 impressions, 40 saves\/1k\)/);
+  assert.equal(formatWinners([]), "");
 });

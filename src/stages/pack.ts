@@ -49,8 +49,8 @@ export async function runPack(limit = 10): Promise<void> {
   const existing: ScheduledEntry[] = [
     ...all
       .filter((r) => r.source === "pipeline" && r.pinUrl && r.publishedDate)
-      .map((r) => ({ date: r.publishedDate!.slice(0, 10), destUrl: r.destinationLink ?? chooseDestination(r, false).url })),
-    ...allPacks.filter((p) => p.text.link).map((p) => ({ date: p.date, destUrl: p.text.link })),
+      .map((r) => ({ date: r.publishedDate!.slice(0, 10), destUrl: r.destinationLink ?? chooseDestination(r, false).url, board: r.board })),
+    ...allPacks.filter((p) => p.text.link).map((p) => ({ date: p.date, destUrl: p.text.link, board: p.text.board })),
   ];
 
   // A row is fully packed once every variant has a pack on disk or a date in
@@ -100,7 +100,7 @@ export async function runPack(limit = 10): Promise<void> {
           earliestDate = existingDate;
         }
       } else {
-        queue.push({ id: `${row.pageId}#${t}`, destUrl: dest });
+        queue.push({ id: `${row.pageId}#${t}`, destUrl: dest, board: row.board });
       }
     }
 

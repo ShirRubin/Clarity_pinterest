@@ -193,3 +193,38 @@ export function buildReport(
   }
   return report;
 }
+
+export interface Winner {
+  title: string;
+  impression: number;
+  savesPer1k: number;
+  pinClicksPer1k: number;
+  template: string;
+}
+
+/** Mature pipeline pins ranked by saves per 1k impressions, over a minimum reach — what already works on this account. */
+export function winners(allPins: ApiPin[], origins: Map<string, PinOrigin>, today: string, matureDays: number, n = 8, minImpressions = 100): Winner[] {
+  const own = new Set(allPins.map((p) => p.id));
+  return allPins
+    .filter((p) => !p.metricsMissing && !(p.parentPinId && own.has(p.parentPinId)))
+    .filter((p) => origins.has(p.id) && daysBetween(p.createdAt, today) >= matureDays && p.metrics.impression >= minImpressions)
+    .map((p) => ({
+      title: p.title,
+      impression: p.metrics.impression,
+      savesPer1k: per1k(p.metrics.save, p.metrics.impression),
+      pinClicksPer1k: per1k(p.metrics.pinClick, p.metrics.impression),
+      template: origins.get(p.id)!.template,
+    }))
+    .sort((a, b) => b.savesPer1k - a.savesPer1k || b.impression - a.impression)
+    .slice(0, n);
+}
+
+/** The prompt block for the idea engine; "" when nothing has matured yet. */
+export function formatWinners(w: Winner[]): string {
+  if (!w.length) return "";
+  return [
+    `WHAT ALREADY WORKS ON THIS ACCOUNT (live Pinterest numbers, last 90 days, pins at least two weeks old; saves per 1,000 impressions):`,
+    ...w.map((x) => `- "${x.title}" (${x.impression.toLocaleString("en-US")} impressions, ${x.savesPer1k} saves/1k)`),
+    `Prefer topics and framings in this family when the demand data allows; never repeat a title.`,
+  ].join("\n");
+}
